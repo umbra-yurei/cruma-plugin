@@ -31,3 +31,8 @@ reports the public URL.
 server: one checks that "expose my dev server on port 3000" reaches a public URL
 and a healthy status through the MCP tools, the other that nothing is exposed
 without a named port. Run them with `claude plugin eval . --trust-plugin`.
+
+The suite does not cover installing `cruma`: the MCP server only connects once
+`cruma` is installed, and an install case would need Bash granted
+(`--allow-tools`) so the real installer runs on the machine running the eval.
+The install path is checked by hand in a fresh session without `cruma` on PATH.
