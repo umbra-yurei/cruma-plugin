@@ -1,0 +1,15 @@
+{
+  "name": "cruma-plugin",
+  "description": "Claude Code plugin marketplace for the Cruma tunnel agent.",
+  "owner": {
+    "name": "Cruma"
+  },
+  "plugins": [
+    {
+      "name": "cruma",
+      "source": "./",
+      "description": "Install the Cruma tunnel agent and expose a local development server.",
+      "version": "0.1.0"
+    }
+  ]
+}
