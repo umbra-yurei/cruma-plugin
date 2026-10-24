@@ -44,7 +44,8 @@ reports the public URL.
 
 `evals/` holds `claude plugin eval` cases that run against a mocked `cruma` MCP
 server: one checks that "expose my dev server on port 3000" reaches a public URL
-and a healthy status through the MCP tools, the other that nothing is exposed
+and a healthy status through `expose_local_port` (or the `upsert_backend` +
+`upsert_frontend` fallback), the other that nothing is exposed
 without a named port. Run them with `claude plugin eval . --trust-plugin`.
 
 The suite does not cover installing `cruma`: the MCP server only connects once

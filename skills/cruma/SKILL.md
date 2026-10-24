@@ -38,10 +38,18 @@ To expose a port without `expose_local_port`, after the user approves:
 3. Call `upsert_frontend` with `{"frontend":{"hostname":"<assigned_domain>","backend_id":"dev-<port>"}}`.
 4. Call `get_health_summary`; `status` should be `ok`.
 
-Report `https://<assigned_domain>/` and say which path you used
-(`expose_local_port` or `upsert_backend`/`upsert_frontend`). Nothing is written
-to disk. To stop, call `remove_frontend` and then `remove_backend`; the tunnel
-closes when the session ends.
+When you hand off, say all four of these in the final message:
+
+1. The public URL: `public_url` from `expose_local_port`, or
+   `https://<assigned_domain>/` on the fallback path. Do not give any other URL.
+2. The local port it forwards to.
+3. That `get_health_summary` reported `ok`, called after the expose step. If it
+   did not, report the status and issues instead of claiming success.
+4. Which path you used: `expose_local_port` or `upsert_backend`/`upsert_frontend`.
+
+Nothing is written to disk, so do not ask the user to edit a file. To stop,
+call `unexpose` (or `remove_frontend` and then `remove_backend` on the fallback
+path); the tunnel closes when the session ends.
 
 If the `cruma` tools are not in your tool list, the MCP server is not connected
 (for example `cruma` was missing when the session started, or you are in
