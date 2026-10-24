@@ -1,0 +1,30 @@
+{
+  "name": "cruma-plugin",
+  "version": "0.1.1",
+  "description": "Install the Cruma tunnel agent and expose local development servers with explicit approval.",
+  "author": {
+    "name": "Cruma"
+  },
+  "homepage": "https://cruma.io",
+  "repository": "https://github.com/umbra-yurei/cruma-plugin",
+  "license": "MIT",
+  "keywords": [
+    "tunnels",
+    "development"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Cruma",
+    "shortDescription": "Expose local development servers through a Cruma tunnel.",
+    "longDescription": "Install the Cruma agent and share a local development server only after you approve making it public.",
+    "developerName": "Cruma",
+    "category": "Developer tools",
+    "capabilities": [
+      "Shell access",
+      "Network access"
+    ],
+    "defaultPrompt": [
+      "Expose my dev server on port 3000."
+    ]
+  }
+}
