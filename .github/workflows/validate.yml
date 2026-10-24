@@ -17,5 +17,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --global @anthropic-ai/claude-code
-      - run: claude plugin validate --strict .
+      - run: npm install --no-save @anthropic-ai/claude-code@2.1.280
+      - run: npx --no-install claude --version
+      - run: npx --no-install claude plugin validate --strict .

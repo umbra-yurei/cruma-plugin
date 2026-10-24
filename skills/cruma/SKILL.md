@@ -76,9 +76,11 @@ After approval, start the tunnel in the background:
 cruma proxy http <port> --json
 ```
 
-Read its one JSON line, take the public URL from it, and report that URL to the
-user. Keep the process running so the URL remains live. Do not require an
-account: anonymous tunnels are supported.
+Read its one JSON line. When `event` is `"ready"`, report the first address in
+`public_urls` to the user and keep the process running so the URL remains live.
+When `event` is `"error"`, report the error and inspect the logs on stderr;
+do not invent a URL. Do not require an account: anonymous tunnels are
+supported.
 
 ## Stop and update
 

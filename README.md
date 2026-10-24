@@ -11,7 +11,7 @@ Add the marketplace, then install the plugin:
 
 ```sh
 claude plugin marketplace add umbra-yurei/cruma-plugin
-claude plugin install cruma
+claude plugin install cruma@cruma-plugin
 ```
 
 In Claude Code, ask to expose a local service, for example: “Expose my dev
