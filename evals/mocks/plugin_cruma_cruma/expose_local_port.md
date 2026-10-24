@@ -1,0 +1,1 @@
+{"schema_version":"2026-04-22","kind":"cruma.expose.exposed","public_url":"https://port-3000.demo1234.tun.example.test","public_hostname":"port-3000.demo1234.tun.example.test","local_target":"127.0.0.1:3000","name":"port-3000","frontend_id":"port-3000","backend_id":"mcp-expose-port-3000","updated":false}

@@ -1,4 +1,4 @@
 ---
 type: regex
-pattern: 'https://demo1234\.tun\.example\.test'
+pattern: 'https://([a-z0-9-]+\.)?demo1234\.tun\.example\.test'
 ---
