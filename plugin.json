@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cruma",
+  "version": "0.1.1",
+  "description": "Install the Cruma tunnel agent and expose local development servers with explicit approval.",
+  "author": {
+    "name": "Cruma"
+  },
+  "homepage": "https://cruma.io",
+  "repository": "https://github.com/umbra-yurei/cruma-plugin",
+  "license": "MIT",
+  "keywords": [
+    "tunnels",
+    "development"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Cruma",
+        "shortDescription": "Share local dev servers",
+        "longDescription": "Install the Cruma agent and share a local development server after you approve making it public.",
+        "developerName": "Cruma",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Shell access",
+          "Network access"
+        ],
+        "defaultPrompt": [
+          "Expose my dev server on port 3000."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg"
+      }
+    }
+  }
+}
