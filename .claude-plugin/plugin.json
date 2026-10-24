@@ -1,7 +1,7 @@
 {
   "name": "cruma",
-  "version": "0.1.1",
-  "description": "Install the Cruma tunnel agent and expose a local development server.",
+  "version": "0.2.0",
+  "description": "Install the Cruma tunnel agent, expose a local development server and drive it over MCP.",
   "author": {
     "name": "Cruma"
   }
