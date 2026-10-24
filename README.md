@@ -7,6 +7,12 @@ local service reachable at a public URL, so only expose a service after the
 user has confirmed that it is safe to share. Tunnels can be anonymous: no
 account or signup is required to start one.
 
+The plugin also connects a local MCP server named `cruma` (`.mcp.json` runs
+`cruma mcp`). It runs the `cruma` binary installed on your machine, with its
+own anonymous agent, and exposes nothing until Claude calls a tool that does.
+When `cruma` is not installed, the MCP server fails to start and the skill falls
+back to `cruma proxy http <port> --json`.
+
 Add the marketplace, then install the plugin:
 
 ```sh
@@ -18,3 +24,10 @@ In Claude Code, ask to expose a local service, for example: “Expose my dev
 server on port 3000.” The skill checks for the agent, installs it without
 `sudo` when needed, asks for confirmation before making anything public, and
 reports the public URL.
+
+## Evals
+
+`evals/` holds `claude plugin eval` cases that run against a mocked `cruma` MCP
+server: one checks that "expose my dev server on port 3000" reaches a public URL
+and a healthy status through the MCP tools, the other that nothing is exposed
+without a named port. Run them with `claude plugin eval . --trust-plugin`.
