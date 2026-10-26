@@ -36,7 +36,8 @@ It is not the user's own Cruma. When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
 "add a password to my staging site", "what's running in my Cruma?"), or they
 want their own tunnel, a custom domain or a named profile, call `list_agents`
-**before any other Cruma tool**. The session agent is empty, so reading it
+**before any tool that reads or changes an agent** (`describe_cruma` and
+`cruma://about` are fine first). The session agent is empty, so reading it
 answers "nothing is configured" about a setup that is not theirs.
 
 - **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
