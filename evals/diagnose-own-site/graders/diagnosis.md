@@ -2,7 +2,6 @@
 type: llm
 ---
 
-The final message passes if ALL of these are present: (1) the cause: the `api`
-process failed to start because `node` is not installed / not found (exit status
-127), (2) the 502 comes from that process not running, (3) it did not change
-anything.
+The final message passes if BOTH of these are present: (1) it names the crashed
+`api` process and that `node` is missing (command not found, exit status 127),
+(2) it says nothing was changed. Wording, order and extra detail do not matter.

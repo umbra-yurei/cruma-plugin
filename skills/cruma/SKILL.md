@@ -37,13 +37,19 @@ app, sites, routes, domains, processes or logs: "why does my site return 502?",
 "add a password to my staging site", "what's running in my Cruma?"), or they
 want their own tunnel, a custom domain or a named profile, call `list_agents`
 **before any tool that reads or changes an agent** (`describe_cruma` and
-`cruma://about` are fine first). The session agent is empty, so reading it
-answers "nothing is configured" about a setup that is not theirs.
+`cruma://about` are fine first). Reading the session agent answers about a
+setup that is not theirs, so never read it for such a request.
 
 - **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
   profile and domain, and wait for the answer. Never switch for a plain share.
   The share tools then work on that agent. Switching withdraws the shares you
   made on the previous one.
+- **Before the switch, say only which agent you would switch to and ask.** Do
+  not describe what either agent holds (the session agent's included), and do
+  not state or hint at a cause, a diagnosis or what is configured, even when
+  `list_agents` shows a process summary (a phase such as `Failed`) or site
+  names: that is a listing, not a diagnosis. Name the target (kind, profile,
+  domain), ask, and stop. Diagnose after the switch, from the user's agent.
 - `use_agent` never starts an agent. If none is running for what the user
   means, say so and ask them to open the desktop app, or run
   `cruma --profile <name>` (use the name `list_agents` gives for a stopped
@@ -68,9 +74,17 @@ On the user's own agent, after they agreed to the switch:
   (`mcp.local_socket.allow_persistent_changes`; desktop MCP page, "Coding
   Agents on This Computer"). Never quietly make an in-memory change instead.
   Explain the setting and ask them to turn it on, or to make the change in the
-  app. Once it is on, describe the exact change (frontend, backend,
-  middleware), get approval, then pass `persist: true`. This is the only use of
-  `persist`, and never on the session agent.
+  app. Once it is on (`allow_persistent_changes` is `true` in `list_agents`),
+  do **not** call a write tool with `persist: true` yet: first describe the
+  exact change (frontend, backend, middleware) as your reply and ask whether to
+  save it. Pass `persist: true` only after the user clearly approved that exact
+  change: a yes to your description in a later turn, or, in the same message,
+  an explicit approval that names the backend and the frontend by kind and name
+  as a saved change ("I approve exactly this saved change: ..."). Asking for a
+  "permanent" or "saved" site, even with a name and a path, is a request, not
+  approval: describe the change and ask. Never re-send an existing setting
+  with `persist: true` to make it permanent without the same approval. This is
+  the only use of `persist`, and never on the session agent.
 
 ### What to use for what
 
