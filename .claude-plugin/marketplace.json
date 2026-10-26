@@ -8,8 +8,8 @@
     {
       "name": "cruma",
       "source": "./",
-      "description": "Install the Cruma tunnel agent, expose a local development server and drive it over MCP.",
-      "version": "0.2.1"
+      "description": "Install the Cruma tunnel agent, publish a dev server or a folder (several sites at once) and drive it over MCP.",
+      "version": "0.3.0"
     }
   ]
 }

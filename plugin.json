@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cruma",
-  "version": "0.2.1",
-  "description": "Install the Cruma tunnel agent and expose local development servers with explicit approval.",
+  "version": "0.3.0",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, several sites at once, with explicit approval.",
   "author": {
     "name": "Cruma"
   },
@@ -18,7 +18,7 @@
       "interface": {
         "displayName": "Cruma",
         "shortDescription": "Share local dev servers",
-        "longDescription": "Install the Cruma agent and share a local development server after you approve making it public.",
+        "longDescription": "Install the Cruma agent and share a dev server or a folder, several sites at once, after you approve making it public.",
         "developerName": "Cruma",
         "category": "Developer Tools",
         "capabilities": [
