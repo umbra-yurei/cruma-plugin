@@ -36,9 +36,8 @@ not possible.
 | Several things | One call per share. One agent serves many sites and ports at once, each at `<name>.<assigned domain>`: frontend and API, docs and app, two versions side by side. Name each by what it is (`docs`, `api`, `preview-v2`). |
 
 If `expose_local_directory` or `expose_local_port` is missing (an older agent),
-use `upsert_backend` (`kind` `http` with `destination` `127.0.0.1:<port>`, or
-`local-directory` with the folder path as `destination`) and `upsert_frontend`
-at `<name>.<assigned_domain>`, without `persist`. Get `assigned_domain` from
+use `upsert_backend` (`http` for a port, `local-directory` for a folder) and
+`upsert_frontend` at `<name>.<assigned_domain>`, without `persist`. Get `assigned_domain` from
 `get_runtime_summary`; it is `null` for a few seconds while the tunnel
 connects, so call it again. Do not stop at "update cruma".
 
@@ -58,8 +57,10 @@ Say all of these in the final message:
    `upsert_process`, or `upsert_backend`/`upsert_frontend`.
 4. That the URLs end with the session and anonymous tunnels last at most
    3 hours, and that nothing is written to disk.
-5. How to take one down: ask you, and you call `unexpose` with its name. For
-   a folder share, that editing the files updates the site immediately.
+5. How to take one down: ask you, and you call `unexpose` with its name for
+   an `expose_*` share, or `remove_frontend`, `remove_backend` and
+   `remove_process` for an `upsert_*` one. For a folder share, that editing
+   the files updates the site immediately.
 
 Take down only what the user asks. Shares from `expose_*` are withdrawn by
 `unexpose`. What you created with `upsert_*` outlives this window (windows share
