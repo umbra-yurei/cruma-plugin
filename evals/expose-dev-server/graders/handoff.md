@@ -6,5 +6,6 @@ The final message hands over what was shared. It passes if ALL of these facts
 are present. Exact wording does not matter, and nothing else is required.
 
 1. Every URL it created, of the form `https://<label>.demo1234.tun.example.test/` for any label (a trailing slash is optional).
-2. It says the share ends with the session, or within 3 hours.
-3. It gives some way to take the share down.
+2. It names what the URL serves: the dev server on local port 3000.
+3. It says the share ends with the session, or within 3 hours.
+4. It gives some way to take the share down.
