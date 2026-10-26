@@ -54,7 +54,8 @@ Say all of these in the final message:
 2. That `get_health_summary` reported `ok`, called after the expose step; if
    not, the status and issues instead of claiming success.
 3. Which path you used: `expose_local_port`, `expose_local_directory`,
-   `upsert_process`, or `upsert_backend`/`upsert_frontend`.
+   `upsert_process` (the agent hosts and supervises the app, so its logs are
+   available through `get_process_logs`), or `upsert_backend`/`upsert_frontend`.
 4. That the URLs end with the session and anonymous tunnels last at most
    3 hours, and that nothing is written to disk.
 5. How to take one down: ask you, and you call `unexpose` with its name for

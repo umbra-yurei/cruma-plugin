@@ -1,1 +1,1 @@
-{"schema_version":"2026-04-22","kind":"cruma.runtime.summary","assigned_domain":"demo1234.tun.example.test","tunnel_plan":"anonymous","transport_count":2,"listener_status_count":0,"active_listener_count":0,"process_count":0}
+{"schema_version":"2026-04-22","kind":"cruma.runtime.summary","assigned_domain":"demo1234.tun.example.test","tunnel_plan":"anonymous","transport_count":2,"listener_status_count":0,"active_listener_count":0,"process_count":1}

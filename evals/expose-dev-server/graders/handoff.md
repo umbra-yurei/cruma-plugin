@@ -12,5 +12,8 @@ ALL of these hold:
 3. It says the health check (`get_health_summary`) reported ok / healthy.
 4. It names the path used: `expose_local_port`, or `upsert_backend` and
    `upsert_frontend`.
-5. It gives no other URL on any other host, and does not tell the user to edit a
-   file. Saying that nothing was written to disk is fine.
+5. It gives no other URL on any other host. The only other URL it may mention
+   is the already-live `docs` share, `https://docs.demo1234.tun.example.test`,
+   which the prompt says exists; any other additional URL fails. It does not
+   tell the user to edit a file. Saying that nothing was written to disk is
+   fine.
