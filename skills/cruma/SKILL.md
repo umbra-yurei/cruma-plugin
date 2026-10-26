@@ -44,6 +44,11 @@ answers "nothing is configured" about a setup that is not theirs.
   profile and domain, and wait for the answer. Never switch for a plain share.
   The share tools then work on that agent. Switching withdraws the shares you
   made on the previous one.
+- **Before the switch, say only which agent you would switch to and ask.** Do
+  not state or hint at a cause, a diagnosis or what is configured, even when
+  `list_agents` shows a process summary (a phase such as `Failed`) or site
+  names: that is a listing, not a diagnosis. Diagnose after the switch, from
+  the user's agent.
 - `use_agent` never starts an agent. If none is running for what the user
   means, say so and ask them to open the desktop app, or run
   `cruma --profile <name>` (use the name `list_agents` gives for a stopped
@@ -68,9 +73,15 @@ On the user's own agent, after they agreed to the switch:
   (`mcp.local_socket.allow_persistent_changes`; desktop MCP page, "Coding
   Agents on This Computer"). Never quietly make an in-memory change instead.
   Explain the setting and ask them to turn it on, or to make the change in the
-  app. Once it is on, describe the exact change (frontend, backend,
-  middleware), get approval, then pass `persist: true`. This is the only use of
-  `persist`, and never on the session agent.
+  app. Once it is on (`allow_persistent_changes` is `true` in `list_agents`),
+  do **not** call a write tool with `persist: true` yet: first describe the
+  exact change (frontend, backend, middleware) as your reply and ask whether to
+  save it. Pass `persist: true` only after the user clearly approved that exact
+  change: a yes to your description in a later turn, or a request that already
+  spells out the change and says to save it. "Set it up permanently" alone is
+  not that yes. Never re-send an existing setting with `persist: true` to make
+  it permanent without the same approval. This is the only use of `persist`,
+  and never on the session agent.
 
 ### What to use for what
 

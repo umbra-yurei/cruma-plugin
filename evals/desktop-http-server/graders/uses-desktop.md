@@ -1,5 +1,6 @@
 ---
-type: tool_used
-tool: mcp__cruma-app__get_proxy_routes
-min: 1
+type: regex
+target: mock_calls
+pattern: 'mcp__cruma-app__get_(site_summary|proxy_routes|runtime_summary)'
+match: contains
 ---
