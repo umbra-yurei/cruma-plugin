@@ -77,11 +77,13 @@ On the user's own agent, after they agreed to the switch:
   do **not** call a write tool with `persist: true` yet: first describe the
   exact change (frontend, backend, middleware) as your reply and ask whether to
   save it. Pass `persist: true` only after the user clearly approved that exact
-  change: a yes to your description in a later turn, or a request that already
-  spells out the change and says to save it. "Set it up permanently" alone is
-  not that yes. Never re-send an existing setting with `persist: true` to make
-  it permanent without the same approval. This is the only use of `persist`,
-  and never on the session agent.
+  change: a yes to your description in a later turn, or, in the same message,
+  an explicit approval that names the backend and the frontend by kind and name
+  as a saved change ("I approve exactly this saved change: ..."). Asking for a
+  "permanent" or "saved" site, even with a name and a path, is a request, not
+  approval: describe the change and ask. Never re-send an existing setting
+  with `persist: true` to make it permanent without the same approval. This is
+  the only use of `persist`, and never on the session agent.
 
 ### What to use for what
 
