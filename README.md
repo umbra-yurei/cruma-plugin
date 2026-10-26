@@ -35,6 +35,11 @@ name and URL (`<name>.<your tunnel domain>`), the final message lists each one
 and what it serves, and the URLs end with the session (anonymous tunnels last
 at most 3 hours).
 
+To work on your own running Cruma (the desktop app or a headless agent: its
+sites, routes, processes and logs) instead of the temporary session tunnel,
+ask for it; the skill lists your running agents and asks before switching to
+one.
+
 Add the marketplace, then install the plugin:
 
 ```sh
@@ -59,6 +64,11 @@ server:
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |
 | `hosted-app` | an app that is not running is hosted by the agent (`upsert_process`) |
+| `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
+| `confirmed-switch-expose`, `diagnose-own-site` | after a confirmed switch the order is `list_agents`, `use_agent`, then the work; diagnosis reads logs and changes nothing |
+| `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |
+| `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
+| `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.
