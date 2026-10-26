@@ -5,5 +5,4 @@ allowed_tools: [Skill, mcp__plugin_cruma_cruma__describe_cruma, mcp__plugin_crum
 ---
 
 Expose my dev server on port 3000. Yes, I confirm that port 3000 may be made
-publicly reachable. (My docs folder is already shared from earlier in this
-session as `docs`; leave it as it is.)
+publicly reachable.
