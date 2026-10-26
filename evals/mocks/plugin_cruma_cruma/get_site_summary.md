@@ -1,0 +1,1 @@
+{"schema_version":"2026-04-22","kind":"cruma.site.summary","sites":[{"hostname":"docs.acme.tun.example.test","backend":{"id":"docs","kind":"local-directory","destination":"/home/dev/docs"},"listeners":["cruma"]},{"hostname":"api.acme.tun.example.test","process":{"id":"api","phase":"Failed"},"listeners":["cruma"]}]}

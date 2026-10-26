@@ -26,6 +26,51 @@ not possible.
 `npx serve` or any other file server, and do not run `cruma serve` or
 `cruma proxy`: with MCP connected they start a second agent with its own tunnel.
 
+### Whose Cruma
+
+The tools start attached to a **temporary session agent**: an anonymous tunnel
+that your windows share and that holds nothing the user saved. For "expose my
+dev server" and "serve this folder", use it as is and report the URLs.
+
+It is not the user's own Cruma. When the request is about *their* Cruma (their
+app, sites, routes, domains, processes or logs: "why does my site return 502?",
+"add a password to my staging site", "what's running in my Cruma?"), or they
+want their own tunnel, a custom domain or a named profile, call `list_agents`
+**before any other Cruma tool**. The session agent is empty, so reading it
+answers "nothing is configured" about a setup that is not theirs.
+
+- **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
+  profile and domain, and wait for the answer. Never switch for a plain share.
+  The share tools then work on that agent. Switching withdraws the shares you
+  made on the previous one.
+- `use_agent` never starts an agent. If none is running for what the user
+  means, say so and ask them to open the desktop app, or run
+  `cruma --profile <name>` (use the name `list_agents` gives for a stopped
+  profile). Do not fall back to the temporary tunnel for a request about their
+  own sites.
+- No `list_agents` among your tools means an older agent: use the temporary
+  tunnel for shares and say a newer `cruma` is needed for the user's own.
+- A Cruma HTTP MCP server already in the user's client (for example
+  `cruma-app`) *is* their own agent. Use its tools for requests about their
+  Cruma and this plugin's for temporary shares. If it failed to connect, say
+  so rather than using the session agent. `list_agents` marks the agent that
+  serves HTTP `/mcp`.
+
+On the user's own agent, after they agreed to the switch:
+
+- **Reading** is free: `get_health_summary`, `get_site_summary`,
+  `get_proxy_routes`, `probe_route`, `get_process_logs`,
+  `list_recorded_requests`.
+- **Changes** apply to the running agent and are gone when it restarts. Say so.
+- **Permanent changes** ("set up a site for good") need `persist: true`, and
+  the agent refuses it unless the user turned on "Let them save changes"
+  (`mcp.local_socket.allow_persistent_changes`; desktop MCP page, "Coding
+  Agents on This Computer"). Never quietly make an in-memory change instead.
+  Explain the setting and ask them to turn it on, or to make the change in the
+  app. Once it is on, describe the exact change (frontend, backend,
+  middleware), get approval, then pass `persist: true`. This is the only use of
+  `persist`, and never on the session agent.
+
 ### What to use for what
 
 | The user wants to share | Do this |
@@ -56,9 +101,13 @@ Say all of these in the final message:
 3. Which path you used: `expose_local_port`, `expose_local_directory`,
    `upsert_process` (the agent hosts and supervises the app, so its logs are
    available through `get_process_logs`), or `upsert_backend`/`upsert_frontend`.
-4. That the URLs end with the session and anonymous tunnels last at most
-   3 hours, and that nothing is written to disk.
-5. How to take one down: ask you, and you call `unexpose` with its name for
+4. Which agent you acted on: kind (desktop, headless or temporary session),
+   profile and domain, so a temporary share is never taken for a change to
+   the user's app.
+5. For the session agent: the URLs end with the session, anonymous tunnels
+   last at most 3 hours, and nothing is written to disk. For the user's own
+   agent: whether the change is temporary or saved.
+6. How to take one down: ask you, and you call `unexpose` with its name for
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
    the files updates the site immediately.
