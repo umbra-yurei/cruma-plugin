@@ -2,8 +2,9 @@
 type: llm
 ---
 
-The final message reports two live shares, each with its own URL: the docs
-folder at `https://docs.demo1234.tun.example.test` and the app on local port
-3000 at `https://port-3000.demo1234.tun.example.test`. It says what each URL
-serves, how to take them down, and that they end with the session (anonymous
-tunnels at most 3 hours). It gives no other URL.
+The final message hands over what was shared. It passes if ALL of these facts
+are present. Exact wording does not matter, and nothing else is required.
+
+1. Every URL it created (two here), each of the form `https://<label>.demo1234.tun.example.test/` for any label (a trailing slash is optional).
+2. It says the share ends with the session, or within 3 hours.
+3. It gives some way to take the share down.
