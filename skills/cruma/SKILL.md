@@ -152,7 +152,20 @@ Claude.ai chat or Cowork). Use the shell path below.
 ## Detect and install
 
 First run `cruma --version`. If it succeeds, use that installation. If it is
-missing, install without `sudo` for the user's platform.
+missing, identify the user's platform before installing. On Windows, check for
+the Store package before treating the command failure as a missing install:
+
+```powershell
+Get-AppxPackage -Name 'Umbra-Yurei.Cruma'
+```
+
+If that returns a package, Cruma is already installed. Do not install it again.
+The installed version must contain the `cruma` command alias, and Windows may
+need a newly opened terminal or Claude session before that alias is available.
+Tell the user to update Cruma in Microsoft Store, then open a new terminal and
+restart Claude. This branch is terminal: stop until `cruma --version` succeeds
+or the MCP tools connect. Never start Python, Node, or another file server as a
+workaround, and never claim or invent a public URL.
 
 ### macOS
 
@@ -197,12 +210,10 @@ Then install the matching product ID with:
 winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements
 ```
 
-If Winget or its Microsoft Store source is unavailable, use the PowerShell
-installer instead:
-
-```powershell
-irm https://files.cruma.io/files/tunnel-agent/install/win-install.ps1 | iex
-```
+If Winget or its Microsoft Store source is unavailable, use the Microsoft
+Store application or the [Cruma Microsoft Store
+listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Do not suggest a
+direct Windows installer.
 
 ## Without the MCP tools
 
@@ -226,6 +237,12 @@ There is no one-line command for a folder. Do not start a Python or other file
 server: install `cruma`, tell the user to restart the session so the MCP tools
 connect, then use `expose_local_directory`.
 
+If the Windows Store package is installed but `cruma` is unavailable, do not
+run this shell fallback at all. Explain the update/new-session alias steps from
+**Detect and install**, then stop until `cruma --version` succeeds or MCP is
+available. In particular, do not start an ad-hoc file server for a folder and
+do not report a public URL.
+
 To stop a tunnel started with `cruma proxy`, end that background process (for
 example, send it Ctrl-C in the terminal where it runs, or stop the process
 started for this request). Tell the user that the public URL stops working once
@@ -234,7 +251,8 @@ the process ends.
 ## Update
 
 For Homebrew installations, update with `brew upgrade`. For the Linux curl
-installer or Windows PowerShell installer, re-run the corresponding installer.
+installer, re-run it. Update a Windows Store installation through Microsoft
+Store.
 
 ## Environments without a shell
 
