@@ -69,11 +69,21 @@ server:
 | `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
+| `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.
 
-The suite does not cover installing `cruma`: the MCP server only connects once
-`cruma` is installed, and an install case would need Bash granted
-(`--allow-tools`) so the real installer runs on the machine running the eval.
-The install path is checked by hand in a fresh session without `cruma` on PATH.
+The suite does not run an installer: the MCP server only connects once `cruma`
+is available. The `windows-store-alias-missing` case is shell- and
+PowerShell-dependent, so run it on Windows with the Microsoft Store Cruma app
+installed and its `cruma` app execution alias unavailable in that session:
+
+```powershell
+claude plugin eval . --trust-plugin --case windows-store-alias-missing --allow-tools Bash
+```
+
+Before running it, verify that `cruma --version` fails and that
+`Get-AppxPackage -Name 'Umbra-Yurei.Cruma'` returns the installed package. The
+remaining install paths are checked by hand in a fresh session without
+`cruma` on `PATH`.
