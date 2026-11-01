@@ -1,0 +1,1 @@
+{"schema_version":"2026-04-22","kind":"cruma.expose.exposed","public_url":"https://docs.demo1234.tun.example.test","public_hostname":"docs.demo1234.tun.example.test","local_target":"/tmp/docs","name":"docs","frontend_id":"docs","backend_id":"mcp-expose-docs","updated":false,"account":{"state":"signed_in"}}

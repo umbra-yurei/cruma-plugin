@@ -126,6 +126,14 @@ Say all of these in the final message:
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
    the files updates the site immediately.
+7. The account notice, **once per session**, when a tool result's
+   `account.state` is `anonymous`: the tunnel is anonymous and time-limited,
+   signing in to a free Cruma account keeps the same tunnel working past the
+   limit, and the link `account.sign_up_url`, quoted exactly as given (one
+   plain URL, written once). Every result carries the same block: once you
+   have given the notice in this conversation, do not give it again, in this
+   message or on later tool calls. When `account.state` is `signed_in`, say
+   nothing about accounts or signing up.
 
 Take down only what the user asks. Shares from `expose_*` are withdrawn by
 `unexpose`. What you created with `upsert_*` outlives this window (windows share
