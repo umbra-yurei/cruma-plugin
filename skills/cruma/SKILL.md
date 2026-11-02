@@ -75,7 +75,8 @@ setup that is not theirs, so never read it for such a request.
   profile). Do not fall back to the temporary tunnel for a request about their
   own sites.
 - No `list_agents` among your tools means an older agent: use the temporary
-  tunnel for shares and say a newer `cruma` is needed for the user's own.
+  tunnel for shares and say a newer `cruma` is needed for the user's own
+  (**Update** has the upgrade command).
 - A Cruma HTTP MCP server already in the user's client (for example
   `cruma-app`) *is* their own agent. Use its tools for requests about their
   Cruma and this plugin's for temporary shares. If it failed to connect, say
@@ -142,7 +143,8 @@ use `upsert_backend` (`http` for a port, `local-directory` for a folder) and
 connects, so call it again. Do not stop at "update cruma".
 
 After exposing, call `get_health_summary`; `status` should be `ok`. Use
-`list_shares` to report every live URL.
+`list_shares` to report every live URL. Once per session, also call
+`get_runtime_summary` and read its `version` block (see **Versions** below).
 
 ### Hand-off
 
@@ -178,6 +180,11 @@ Say all of these in the final message:
    have given the notice in this conversation, do not give it again, in this
    message or on later tool calls. When `account.state` is `signed_in`, say
    nothing about accounts or signing up.
+9. The update notice, **once per session**, when `version.update_available` is
+   `true`: the installed `version.installed_version`, the newer
+   `version.latest_stable_version`, and `version.upgrade_hint` as given. Say
+   nothing about versions when `update_available` is `false` or
+   `latest_stable_version` is absent (offline).
 
 Take down only what the user asks. Shares from `expose_*` are withdrawn by
 `unexpose`. What you created with `upsert_*` outlives this window (windows share
@@ -203,8 +210,8 @@ Claude.ai chat or Cowork). Use the shell path below.
 
 ## Detect and install
 
-First run `cruma --version`. If it succeeds, use that installation. If it is
-missing, identify the user's platform before installing. On Windows, check for
+First run `cruma --version`. If it succeeds, check it against the minimum
+version below, then use that installation. If it is missing, identify the user's platform before installing. On Windows, check for
 the Store package before treating the command failure as a missing install:
 
 ```powershell
@@ -218,6 +225,24 @@ Tell the user to update Cruma in Microsoft Store, then open a new terminal and
 restart Claude. This branch is terminal: stop until `cruma --version` succeeds
 or the MCP tools connect. Never start Python, Node, or another file server as a
 workaround, and never claim or invent a public URL.
+
+### Versions
+
+The **minimum version is 1.0.12**: older agents lose sessions (for example the
+second Claude window exits) and lack tools this skill uses. `cruma --version`
+prints `cruma <version>`.
+
+- **Older than 1.0.12:** before doing anything else, tell the user their Cruma
+  is too old and give the upgrade command for their install method (see
+  **Update**). Do not start a tunnel on it. Continue once they have upgraded
+  and `cruma --version` shows 1.0.12 or newer.
+- **1.0.12 or newer:** use it. With the MCP tools connected, a newer stable
+  release shows up in `get_runtime_summary` as `version.update_available`
+  (`version.latest_stable_version`, `version.upgrade_hint`); mention it once, as
+  in the hand-off, and carry on. Never block a share on an optional update.
+  Read it after a plain share, or on the user's own agent after a confirmed
+  switch; never read the temporary session agent for a request about the
+  user's own Cruma.
 
 ### macOS
 
@@ -239,14 +264,12 @@ On x86_64 or arm64, when Homebrew is available, run:
 brew install umbra-yurei/brew/cruma
 ```
 
-Otherwise, the x86_64-only installer is:
+Otherwise, the installer works on x86_64 and arm64, installs into
+`~/.local/bin` without `sudo` and verifies the download's checksum:
 
 ```sh
 curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh | bash
 ```
-
-On Linux arm64 without Homebrew, explain that the curl installer does not yet
-support that architecture.
 
 ### Windows
 
@@ -302,9 +325,23 @@ the process ends.
 
 ## Update
 
-For Homebrew installations, update with `brew upgrade`. For the Linux curl
-installer, re-run it. Update a Windows Store installation through Microsoft
-Store.
+Updating the plugin and updating the `cruma` agent are separate: a new plugin
+does not change the installed agent. Upgrade the agent the way it was
+installed. With the MCP tools connected, `version.installed_via` and
+`version.upgrade_hint` in `get_runtime_summary` already name the command; use
+it as given. Otherwise pick by how Cruma was installed:
+
+| Installed with | Upgrade |
+| --- | --- |
+| Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
+| Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
+| The Linux curl installer (`~/.local/bin/cruma`) | re-run the curl command from **Linux** |
+| npm | `npm update -g cruma` |
+| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
+
+If the method is not known, ask the user; do not guess one. After upgrading,
+the running MCP server keeps the old agent until the Claude session is
+restarted. Tell the user to restart it.
 
 ## Environments without a shell
 
