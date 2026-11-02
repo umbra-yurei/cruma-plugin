@@ -1,0 +1,1 @@
+{"schema_version":"2026-04-22","kind":"cruma.runtime.inventory","counts":{"frontends":1,"backends":0,"processes":1,"listeners":1,"oauth2_providers":1},"sections":{"frontends":[{"hostname":"api.acme.tun.example.test"}],"backends":[],"processes":[{"id":"api","phase":"Failed"}],"oauth2_providers":[{"id":"google","label":"Sign in with Google"}]}}

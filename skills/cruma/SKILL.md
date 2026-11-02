@@ -1,6 +1,6 @@
 ---
 name: cruma
-description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), and for installing Cruma. Asks before exposing anything.
+description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
 ---
 
 # Cruma tunnels
@@ -16,11 +16,30 @@ This plugin starts `cruma mcp`, a local MCP server named `cruma` that runs the
 installed `cruma` binary. When its tools are in your tool list, use them, not
 shell commands. The server starts with nothing exposed.
 
-**Before choosing an approach**, read the resource `cruma://about` (or call
-`describe_cruma`) and load the schemas of the tools you will call. It says what
-Cruma can do; do not guess from this file. If the user wants a password or IP
-allowlist on a share, find out there how, before exposing, and say so if it is
-not possible.
+### Find out; do not guess
+
+This file is a map, not the manual. For one plain share of a port or folder,
+use the tools below. For anything else (auth, filters, domains, routing,
+processes, rules, a setting you have not used), first read what Cruma says
+about itself, then use the tool it points to:
+
+1. The resource `cruma://about` (or `describe_cruma`): what Cruma can do and
+   which tool does it. Then `get_config_model_reference` with a `section`
+   (`middleware_model` for access control and request filters, `backend_kinds`,
+   `listener_model`, `recommended_mcp_usage`; the whole reference is large) and
+   `get_cruma_glossary` for terms. On the user's own agent (see below),
+   `get_runtime_inventory` shows what is already configured. Load the schemas of the tools you will call.
+2. If those do not cover it, the docs as Markdown: `https://cruma.io/llms.txt`,
+   the chapter list `https://cruma.io/book/cruma-tunnels.md`, and any chapter
+   at `https://cruma.io/book/cruma-tunnels/<chapter>.md`. They are written for
+   the command line (`cruma serve`, `cruma proxy`): take what Cruma can do from
+   them and apply it through the MCP tools.
+3. For a CLI-only path, `cruma --help` and `cruma <command> --help`.
+
+Shortcuts such as `expose_local_port` cover the common case. Whatever they do
+not cover is done with the general `upsert_*` tools; never present a
+shortcut's limits as Cruma's limits. If the reference and the docs do not
+support what the user asked for, say so; do not invent a setting or a tool.
 
 **Never serve things yourself.** Do not start `python3 -m http.server`,
 `npx serve` or any other file server, and do not run `cruma serve` or
@@ -36,8 +55,8 @@ It is not the user's own Cruma. When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
 "add a password to my staging site", "what's running in my Cruma?"), or they
 want their own tunnel, a custom domain or a named profile, call `list_agents`
-**before any tool that reads or changes an agent** (`describe_cruma` and
-`cruma://about` are fine first). Reading the session agent answers about a
+**before any tool that reads or changes an agent** (`describe_cruma`, `cruma://about`,
+`get_config_model_reference` and `get_cruma_glossary` are fine first). Reading the session agent answers about a
 setup that is not theirs, so never read it for such a request.
 
 - **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
@@ -86,6 +105,25 @@ On the user's own agent, after they agreed to the switch:
   with `persist: true` to make it permanent without the same approval. This is
   the only use of `persist`, and never on the session agent.
 
+### Protect what looks private
+
+Before exposing something that looks private (an admin UI, a database tool,
+internal docs, a folder with credentials, `.env` files or personal data), ask
+whether to protect it, and suggest a password. Wait for the answer; do not
+expose first. If the user already asked for protection, do not ask again.
+
+- A password or an IP allowlist: pass `access` to `expose_local_port` or
+  `expose_local_directory` (the tool schema lists the types). A generated
+  password is returned once. Without an `access` argument in the schema (an
+  older agent), build the site with `upsert_backend` and `upsert_frontend` and
+  a `basic_auth` middleware; read `middleware_model` for its shape.
+- Sign-in with an account or a provider (Google, GitHub): `access` `sign_in`
+  answers `sign_in_unavailable` until a sign-in provider is configured. Do not
+  retry it or work around it. On the user's own agent, look for an already
+  configured provider (`get_runtime_inventory`, `middleware_model`) and, if one
+  exists, use `upsert_frontend` with the auth middleware that references it.
+  Otherwise say sign-in needs a configured provider and offer a password.
+
 ### What to use for what
 
 | The user wants to share | Do this |
@@ -126,7 +164,11 @@ Say all of these in the final message:
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
    the files updates the site immediately.
-7. The account notice, **once per session**, when a tool result's
+7. For a protected share: what protects it (password, allowed networks or
+   sign-in), the credential once if you generated one (username `cruma`), and
+   that the protection ends with the share. A share with no protection is
+   public: say so.
+8. The account notice, **once per session**, when a tool result's
    `account.state` is `anonymous`: the tunnel is anonymous and time-limited,
    signing in to a free Cruma account keeps the same tunnel working past the
    limit, and the link `account.sign_up_url`, quoted exactly as given (one

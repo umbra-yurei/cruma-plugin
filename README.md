@@ -35,6 +35,16 @@ name and URL (`<name>.<your tunnel domain>`), the final message lists each one
 and what it serves, and the URLs end with the session (anonymous tunnels last
 at most 3 hours).
 
+For anything beyond sharing one port or folder (sign-in, IP filters, WAF rules,
+custom domains, routing), the skill does not guess: it reads what Cruma says
+about itself first (the agent's `cruma://about` and config model reference,
+then the docs at [cruma.io](https://cruma.io/llms.txt) as Markdown, then
+`cruma <command> --help`) and uses the tool they point to. Before it exposes
+something that looks private (an admin UI, a database tool, internal docs,
+credentials) it asks whether to protect it and suggests a password; sign-in
+needs a sign-in provider configured on your own Cruma, otherwise it offers a
+password.
+
 To work on your own running Cruma (the desktop app or a headless agent: its
 sites, routes, processes and logs) instead of the temporary session tunnel,
 ask for it; the skill lists your running agents and asks before switching to
@@ -72,6 +82,10 @@ server:
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
+| `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the model reference and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
+| `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
+| `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
+| `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.
