@@ -211,8 +211,9 @@ Claude.ai chat or Cowork). Use the shell path below.
 ## Detect and install
 
 First run `cruma --version`. If it succeeds, check it against the minimum
-version below, then use that installation. If it is missing, identify the user's platform before installing. On Windows, check for
-the Store package before treating the command failure as a missing install:
+version below, then use that installation. If it is missing, identify the
+user's platform before installing. On Windows, check for the Store package
+before treating the command failure as a missing install:
 
 ```powershell
 Get-AppxPackage -Name 'Umbra-Yurei.Cruma'
