@@ -82,7 +82,7 @@ server:
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
-| `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the model reference and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
+| `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
 | `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
 | `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |

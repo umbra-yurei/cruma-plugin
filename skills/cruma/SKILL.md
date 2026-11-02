@@ -117,12 +117,14 @@ expose first. If the user already asked for protection, do not ask again.
   password is returned once. Without an `access` argument in the schema (an
   older agent), build the site with `upsert_backend` and `upsert_frontend` and
   a `basic_auth` middleware; read `middleware_model` for its shape.
-- Sign-in with an account or a provider (Google, GitHub): `access` `sign_in`
-  answers `sign_in_unavailable` until a sign-in provider is configured. Do not
-  retry it or work around it. On the user's own agent, look for an already
-  configured provider (`get_runtime_inventory`, `middleware_model`) and, if one
-  exists, use `upsert_frontend` with the auth middleware that references it.
-  Otherwise say sign-in needs a configured provider and offer a password.
+- Sign-in with an account or a provider (Google, GitHub): `access` `sign_in` is
+  not available for shares yet. Do not try it or work around it. Sign-in goes
+  through `upsert_frontend` with an `oauth2` middleware that references a
+  provider the user's own agent already has. Find the provider ids in the
+  `oauth2` middlewares of existing frontends (`get_runtime_inventory` with
+  `full: true` and `sections: ["frontends"]`), or ask the user which provider
+  to use. Read `middleware_model` for the middleware's shape. If there is no
+  provider, say sign-in needs one configured first and offer a password.
 
 ### What to use for what
 
