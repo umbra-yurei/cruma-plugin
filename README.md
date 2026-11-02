@@ -99,6 +99,10 @@ Run them with `claude plugin eval . --trust-plugin`.
 - An `llm` judge checks facts, never wording, and lists equivalents: "saved",
   "saved permanently", "saved to disk", "saved to the config" and "kept after a
   restart" are one fact; "asks" is any question or request for a go-ahead.
+- The canonical "asks" regex, copied into each `asks*` case's `graders/asks.md`
+  (the eval CLI has no shared graders; `persist-enabled` adds `approve`):
+  `\?|\b(confirm|let me know|shall i|should i|want me to|would you like|okay to|ok to)\b`, flag `i`.
+  A regex that bans words only bans claims that are wrong in every context.
 - Mocks are static: the eval CLI answers a tool with one canned result (no
   sequenced responses; a `_server.md` agent mock is LLM-simulated and cannot
   override a fixed `<tool>.md`). A case that switches agents therefore gives

@@ -103,7 +103,8 @@ On the user's own agent, after they agreed to the switch:
   (`mcp.local_socket.allow_persistent_changes`; desktop MCP page, "Coding
   Agents on This Computer"). Never quietly make an in-memory change instead.
   Explain the setting and ask them to turn it on, or to make the change in the
-  app. Once it is on (`allow_persistent_changes` is `true` in `list_agents`),
+  app. Once it is on (`allow_persistent_changes` is `true` in the `use_agent`
+  result, or in `list_agents` before the switch),
   do **not** call a write tool with `persist: true` yet: first describe the
   exact change (frontend, backend, middleware) as your reply and ask whether to
   save it, saying plainly that it would be saved to disk in the agent's config
