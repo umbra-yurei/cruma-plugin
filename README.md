@@ -35,6 +35,16 @@ name and URL (`<name>.<your tunnel domain>`), the final message lists each one
 and what it serves, and the URLs end with the session (or earlier, when an
 anonymous tunnel reaches its time limit; the skill tells you how long is left).
 
+For anything beyond sharing one port or folder (sign-in, IP filters, WAF rules,
+custom domains, routing), the skill does not guess: it reads what Cruma says
+about itself first (the agent's `cruma://about` and config model reference,
+then the docs at [cruma.io](https://cruma.io/llms.txt) as Markdown, then
+`cruma <command> --help`) and uses the tool they point to. Before it exposes
+something that looks private (an admin UI, a database tool, internal docs,
+credentials) it asks whether to protect it and suggests a password; sign-in
+needs a sign-in provider configured on your own Cruma, otherwise it offers a
+password.
+
 To work on your own running Cruma (the desktop app or a headless agent: its
 sites, routes, processes and logs) instead of the temporary session tunnel,
 ask for it; the skill lists your running agents and asks before switching to
@@ -72,6 +82,10 @@ server:
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
+| `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
+| `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
+| `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
+| `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.
@@ -89,3 +103,43 @@ Before running it, verify that `cruma --version` fails and that
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'` returns the installed package. The
 remaining install paths are checked by hand in a fresh session without
 `cruma` on `PATH`.
+
+### Proving a skill change
+
+A change to the skill, a case, a grader or a mock is accepted when its eval
+cases pass. The evals need model credentials, so the proof comes in two steps.
+
+**Before review (any machine, no credentials).** Run both and post the output
+with the change:
+
+```sh
+claude plugin validate --strict .
+for c in evals/*/prompt.md evals/*/case.yaml; do
+  [ -e "$c" ] || continue
+  claude plugin eval . --trust-plugin --case "$(basename "$(dirname "$c")")" 2>&1 \
+    | grep -E 'mocked:|failed to load|invalid|Not logged in'
+done
+```
+
+`eval` only parses the cases its `--case` filter selects, so the loop runs
+each case (each directory with a `prompt.md` or `case.yaml`) on its own. A
+case whose prompt, graders and mocks are valid prints its `mocked:` line and
+stops at the first model call with `Not logged in`; a broken one prints `failed to load` and the parse error. This proves
+the suite loads; it does not prove a case passes.
+
+**After landing (operator, logged-in machine).** On `main`, with the released
+`cruma` agent version the skill needs on `PATH`:
+
+```sh
+cruma --version
+claude plugin eval . --trust-plugin
+```
+
+Add `--case <glob>` to run only the cases the change touched, and
+`--allow-tools` where a case needs it (see above). Post on the task's thread:
+the agent version, the exit code, the cost line, and the per-case table
+(`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
+no-plugin baseline arm).
+
+If a case fails, post the failing cases with their grader lines (`✗ …`) on
+the same thread and file a follow-up task to fix the skill or the graders.

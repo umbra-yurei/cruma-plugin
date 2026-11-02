@@ -1,0 +1,7 @@
+---
+max_turns: 14
+timeout_seconds: 300
+allowed_tools: [Skill, mcp__plugin_cruma_cruma__describe_cruma, mcp__plugin_cruma_cruma__get_cruma_glossary, mcp__plugin_cruma_cruma__get_config_model_reference, mcp__plugin_cruma_cruma__get_runtime_inventory, mcp__plugin_cruma_cruma__get_runtime_summary, mcp__plugin_cruma_cruma__get_health_summary, mcp__plugin_cruma_cruma__list_agents, mcp__plugin_cruma_cruma__use_agent, mcp__plugin_cruma_cruma__expose_local_port, mcp__plugin_cruma_cruma__expose_local_directory, mcp__plugin_cruma_cruma__list_shares, mcp__plugin_cruma_cruma__unexpose, mcp__plugin_cruma_cruma__upsert_backend, mcp__plugin_cruma_cruma__upsert_frontend, mcp__plugin_cruma_cruma__get_firewall_rules, mcp__plugin_cruma_cruma__upsert_firewall_rule, mcp__plugin_cruma_cruma__get_waf_rules, mcp__plugin_cruma_cruma__upsert_waf_rule]
+---
+
+Add a WAF rule for /admin that denies it, on my desktop Cruma (profile work). Yes, you may switch to that agent, and yes, apply the rule once you have checked how Cruma wants it.
