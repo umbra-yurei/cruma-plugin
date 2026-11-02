@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "cruma": {
+      "type": "stdio",
+      "command": "cruma",
+      "args": ["mcp"]
+    },
+    "cruma-cloud": {
+      "type": "streamable-http",
+      "url": "https://mcp.cruma.io/mcp"
+    }
+  }
+}

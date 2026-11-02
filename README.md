@@ -17,6 +17,10 @@ Install the included `skills/cruma/SKILL.md` skill with:
 npx skills add umbra-yurei/cruma-plugin
 ```
 
+Clients that load Agent Plugins read `mcp.json`, which declares the same two
+MCP servers as Claude Code's `.mcp.json`: the local `cruma` (`cruma mcp`) and
+`cruma-cloud` (`https://mcp.cruma.io/mcp`, Streamable HTTP).
+
 Then ask your agent to expose a local service, for example: “Expose my dev
 server on port 3000.” The skill checks for the agent, installs it without
 `sudo` when needed, asks for confirmation before making anything public, and
@@ -40,6 +44,12 @@ sites, routes, processes and logs) instead of the temporary session tunnel,
 ask for it; the skill lists your running agents and asks before switching to
 one.
 
+The plugin also connects `cruma-cloud`, Cruma's hosted MCP server at
+`https://mcp.cruma.io/mcp`, for questions about your Cruma account: your plan,
+the tunnels and sites on the account, and the other services it lists. The
+first call opens your browser to sign in with your Cruma account. Sharing a
+local port or folder stays with the local `cruma` server.
+
 Add the marketplace, then install the plugin:
 
 ```sh
@@ -54,8 +64,8 @@ reports the public URL.
 
 ## Evals
 
-`evals/` holds `claude plugin eval` cases that run against a mocked `cruma` MCP
-server:
+`evals/` holds `claude plugin eval` cases that run against mocked `cruma` and
+`cruma-cloud` MCP servers:
 
 | Case | Checks |
 | --- | --- |
@@ -72,6 +82,10 @@ server:
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
+| `cloud-plan` | "what's my Cruma plan?" calls `list_services` before the subscription tool and reads nothing from the local agent |
+| `cloud-list-tunnels` | "list my tunnels" answers from the cloud server's tunnels service, found through `list_services`, not from the local agent |
+| `cloud-local-share` | "share port 3000" uses the local `expose_local_port` and never calls `cruma-cloud` |
+| `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.

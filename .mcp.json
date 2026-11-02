@@ -2,5 +2,9 @@
   "cruma": {
     "command": "cruma",
     "args": ["mcp"]
+  },
+  "cruma-cloud": {
+    "type": "http",
+    "url": "https://mcp.cruma.io/mcp"
   }
 }
