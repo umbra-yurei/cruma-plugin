@@ -120,8 +120,8 @@ Say all of these in the final message:
    profile and domain, so a temporary share is never taken for a change to
    the user's app.
 5. For the session agent: the URLs end with the session, an anonymous tunnel
-   also ends at its time limit (item 7), and nothing is written to disk. For the user's own
-   agent: whether the change is temporary or saved.
+   also ends at its time limit (item 7), and nothing is written to disk. For
+   the user's own agent: whether the change is temporary or saved.
 6. How to take one down: ask you, and you call `unexpose` with its name for
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
@@ -130,12 +130,13 @@ Say all of these in the final message:
    `account.state` is `anonymous`: the tunnel is anonymous and time-limited,
    with the time left from `account.remaining_secs` in hours and minutes
    (or `account.expires_at`) when the result carries it, and no number when
-   it does not (never assume one), signing in to a free Cruma account keeps the same tunnel working past the
-   limit, and the link `account.sign_up_url`, quoted exactly as given (one
-   plain URL, written once). Every result carries the same block: once you
-   have given the notice in this conversation, do not give it again, in this
-   message or on later tool calls. When `account.state` is `signed_in`, say
-   nothing about accounts or signing up.
+   it does not (never assume one), signing in to a free Cruma account keeps
+   the same tunnel working past the limit, and the link `account.sign_up_url`,
+   quoted exactly as given (one plain URL, written once). Every result
+   carries the same block: once you have given the notice in this
+   conversation, do not give it again, in this message or on later tool
+   calls. When `account.state` is `signed_in`, say nothing about accounts or
+   signing up.
 
 Take down only what the user asks. Shares from `expose_*` are withdrawn by
 `unexpose`. What you created with `upsert_*` outlives this window (windows share
