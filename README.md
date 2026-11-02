@@ -103,3 +103,43 @@ Before running it, verify that `cruma --version` fails and that
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'` returns the installed package. The
 remaining install paths are checked by hand in a fresh session without
 `cruma` on `PATH`.
+
+### Proving a skill change
+
+A change to the skill, a case, a grader or a mock is accepted when its eval
+cases pass. The evals need model credentials, so the proof comes in two steps.
+
+**Before review (any machine, no credentials).** Run both and post the output
+with the change:
+
+```sh
+claude plugin validate --strict .
+for c in evals/*/prompt.md evals/*/case.yaml; do
+  [ -e "$c" ] || continue
+  claude plugin eval . --trust-plugin --case "$(basename "$(dirname "$c")")" 2>&1 \
+    | grep -E 'mocked:|failed to load|invalid|Not logged in'
+done
+```
+
+`eval` only parses the cases its `--case` filter selects, so the loop runs
+each case (each directory with a `prompt.md` or `case.yaml`) on its own. A
+case whose prompt, graders and mocks are valid prints its `mocked:` line and
+stops at the first model call with `Not logged in`; a broken one prints `failed to load` and the parse error. This proves
+the suite loads; it does not prove a case passes.
+
+**After landing (operator, logged-in machine).** On `main`, with the released
+`cruma` agent version the skill needs on `PATH`:
+
+```sh
+cruma --version
+claude plugin eval . --trust-plugin
+```
+
+Add `--case <glob>` to run only the cases the change touched, and
+`--allow-tools` where a case needs it (see above). Post on the task's thread:
+the agent version, the exit code, the cost line, and the per-case table
+(`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
+no-plugin baseline arm).
+
+If a case fails, post the failing cases with their grader lines (`✗ …`) on
+the same thread and file a follow-up task to fix the skill or the graders.
