@@ -32,8 +32,8 @@ back to `cruma proxy http <port> --json` for a port; a folder waits for the MCP
 tools. With the tools connected the skill never starts a Python or other file
 server and never runs `cruma serve` or `cruma proxy`. Every share has its own
 name and URL (`<name>.<your tunnel domain>`), the final message lists each one
-and what it serves, and the URLs end with the session (anonymous tunnels last
-at most 3 hours).
+and what it serves, and the URLs end with the session (or earlier, when an
+anonymous tunnel reaches its time limit; the skill tells you how long is left).
 
 To work on your own running Cruma (the desktop app or a headless agent: its
 sites, routes, processes and logs) instead of the temporary session tunnel,
@@ -63,7 +63,7 @@ server:
 | `asks-before-exposing` | nothing is exposed without a named port or folder |
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |
-| `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice, across several tool results that all carry it |
+| `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice and the time left (`account.remaining_secs`), across several tool results that all carry it |
 | `signed-in-no-sign-up` | a signed-in tunnel gets no sign-up or account text |
 | `hosted-app` | an app that is not running is hosted by the agent (`upsert_process`) |
 | `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
