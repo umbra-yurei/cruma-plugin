@@ -225,10 +225,10 @@ Claude.ai chat or Cowork). Use the shell path below.
 
 ## Detect and install
 
-First run `cruma --version`. If it succeeds, check it against the minimum
-version below, then use that installation. If it is missing, identify the
-user's platform before installing. On Windows, check for the Store package
-before treating the command failure as a missing install:
+First run `cruma --version`. If it succeeds, Cruma is already installed: use
+that installation and check it against the minimum version below. If it is
+missing, identify the user's platform before installing. On Windows, check for
+the Store package before treating the command failure as a missing install:
 
 ```powershell
 Get-AppxPackage -Name 'Umbra-Yurei.Cruma'
@@ -242,11 +242,38 @@ restart Claude. This branch is terminal: stop until `cruma --version` succeeds
 or the MCP tools connect. Never start Python, Node, or another file server as a
 workaround, and never claim or invent a public URL.
 
+### An existing install
+
+**Keep the install method.** Never install or upgrade an existing Cruma through
+a different package method (a cask over an npm install, `curl` over Homebrew,
+Winget over a curl copy, and so on): that leaves two `cruma` binaries on `PATH`
+and the older one can win. Upgrade it the way it was installed (**Update**),
+and if the method is not known, ask the user. Only the user may choose to
+move to another method, and then you ask first.
+
+**Read the build flavour from the typed response.** `cruma --version --json`
+prints one JSON line, for example `{"version":"1.0.17","build_flavor":"gui"}`.
+`build_flavor` is `gui` (the desktop application and its terminal command) or
+`server-agent` (no desktop window). Read that field. Never work out the flavour
+by parsing the human text of `cruma --version`, a file path or a package name.
+If `cruma --version --json` does not print a JSON line (an older agent treats
+`--json` as nothing and prints `cruma <version>`, or rejects it), the agent is
+older than the field: treat the flavour as unknown, and that is not a reason to
+reinstall.
+
+On a machine with a desktop, a `server-agent` build means the user has no
+Cruma window. Say so once, keep using it for shares, and do not replace it. If
+the user wants the desktop app, name the GUI-capable package for their OS
+(**Fresh install**), warn that the older `cruma` must be removed or it may stay
+first on `PATH`, and wait for their go-ahead.
+
 ### Versions
 
 The **minimum version is 1.0.12**: older agents lose sessions (for example the
-second Claude window exits) and lack tools this skill uses. `cruma --version`
-prints `cruma <version>`.
+second Claude window exits) and lack tools this skill uses. Take the version
+from the `version` field of `cruma --version --json`. When no JSON line comes
+back, read the `cruma <version>` line that `cruma --version` prints; that is
+the only human text you read.
 
 - **Older than 1.0.12:** before doing anything else, tell the user their Cruma
   is too old and give the upgrade command for their install method (see
@@ -260,9 +287,27 @@ prints `cruma <version>`.
   switch; never read the temporary session agent for a request about the
   user's own Cruma.
 
-### macOS
+### Fresh install
 
-Apple Silicon Macs can install the signed and notarized application with:
+Install only when `cruma --version` fails and no Windows Store package exists.
+A desktop is present on macOS and Windows (unless the user says the machine is
+remote or headless) and on Linux when `WAYLAND_DISPLAY` or `DISPLAY` is set.
+On a desktop use the GUI-capable package for the OS:
+
+| OS | Package |
+| --- | --- |
+| macOS | the Homebrew cask (the signed application) |
+| Linux | the glibc curl installer, or the Homebrew formula |
+| Windows | Microsoft Store |
+
+Never recommend a musl or server-agent artifact, or a direct download of a
+binary, for a desktop. Without a desktop (a server, container or SSH session)
+the Linux commands below still apply.
+
+#### macOS
+
+Apple Silicon Macs can install the signed and notarized application (the
+GUI-capable package) with:
 
 ```sh
 brew install --cask umbra-yurei/brew/cruma
@@ -272,20 +317,22 @@ Use `--cask`: the formula with the same name is Linux-only. There is no Intel
 Mac build yet; explain that limitation rather than suggesting an unsupported
 installation.
 
-### Linux
+#### Linux
 
-On x86_64 or arm64 (glibc), run the installer. It asks nothing, needs no
-`sudo`, installs into `~/.local/bin` and replaces an existing copy only after
-the download matches its published checksum:
+On x86_64 or arm64 (glibc), run the installer. It installs the GNU build, which
+is GUI-capable; it asks nothing, needs no `sudo`, installs
+into `~/.local/bin` and replaces an existing copy only after the download
+matches its published checksum:
 
 ```sh
 curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh | bash
 ```
 
 Add `~/.local/bin` to `PATH` if it is not there. When Homebrew is available,
-`brew install umbra-yurei/brew/cruma` installs the same glibc build.
+`brew install umbra-yurei/brew/cruma` installs the same glibc build. Pick one
+of the two and do not run both.
 
-### Windows
+#### Windows
 
 Find the current Microsoft Store product ID:
 
@@ -304,9 +351,10 @@ Store application or the [Cruma Microsoft Store
 listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Do not suggest a
 direct Windows installer.
 
-### With Node.js
+#### With Node.js
 
-When none of the above fits and `npx` is available, `npx -y cruma proxy http
+Only when none of the above fits, or the user already uses npm for Cruma, and
+`npx` is available: `npx -y cruma proxy http
 <port> --json` runs the agent without installing it (Linux x86_64 and arm64,
 macOS Apple Silicon, Windows x64; not on other systems). The same package
 serves MCP: `npx -y cruma mcp`.
@@ -361,7 +409,9 @@ it as given. Otherwise pick by how Cruma was installed:
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
 
-If the method is not known, ask the user; do not guess one. After upgrading,
+Give only the command for the install the user has: never a command from another
+row, even when that package is newer or has a desktop window (**An existing
+install**). If the method is not known, ask the user; do not guess one. After upgrading,
 the running MCP server keeps the old agent until the Claude session is
 restarted. Tell the user to restart it.
 
