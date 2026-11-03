@@ -1,6 +1,6 @@
 # Cruma coding-agent plugin
 
-This plugin gives coding agents a `cruma` skill for installing the Cruma tunnel
+This plugin gives coding agents a skill named `agent` (`cruma:agent` in Claude Code) for installing the Cruma tunnel
 agent and publishing local things: a dev server port, a folder of files served
 by the agent itself (no separate file server), an app the agent hosts for you,
 or several named sites at once. The installer downloads the agent
@@ -11,7 +11,7 @@ signup is required to start one.
 
 ## Codex and other skills-compatible agents
 
-Install the included `skills/cruma/SKILL.md` skill with:
+Install the included `skills/agent/SKILL.md` skill with:
 
 ```sh
 npx skills add umbra-yurei/cruma-plugin
@@ -25,9 +25,13 @@ reports the public URL.
 ## Claude Code
 
 The plugin also connects a local MCP server named `cruma` (`.mcp.json` runs
-`cruma mcp`). It runs the `cruma` binary installed on your machine, with its
+`node ${CLAUDE_PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, a short launcher in this
+repository that needs Node.js). The launcher starts `cruma mcp` from the `cruma`
+installed on your machine (the macOS app, Homebrew, `/usr/local/bin`,
+`~/.local/bin`, the Windows Store alias, then `PATH`; the newest wins) with its
 own anonymous agent, and exposes nothing until Claude calls a tool that does.
-When `cruma` is not installed, the MCP server fails to start and the skill falls
+It downloads nothing. When `cruma` is not installed, it prints how to install
+it and the MCP server fails to start and the skill falls
 back to `cruma proxy http <port> --json` for a port; a folder waits for the MCP
 tools. With the tools connected the skill never starts a Python or other file
 server and never runs `cruma serve` or `cruma proxy`. Every share has its own
@@ -81,7 +85,7 @@ change the other.
   | --- | --- |
   | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
   | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
-  | Linux installer | `curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh \| bash` |
+  | Linux installer | `bash skills/agent/scripts/linux-install.sh` (the copy in the plugin; the same script as `curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh \| bash`) |
   | npm | `npm update -g cruma` |
   | Microsoft Store (Windows) | update Cruma in Microsoft Store |
 
@@ -117,7 +121,7 @@ server:
 | `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
 | `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
 | `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |
-| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the glibc curl installer or formula on Linux), never npm, musl or a server artifact |
+| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the bundled glibc installer or formula on Linux), never npm, musl or a server artifact |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |
 | `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
@@ -126,6 +130,13 @@ server:
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.
+
+`node scripts/check-plugin.mjs` checks that `.mcp.json` runs a file inside the
+plugin, the skill is named `agent` and pipes nothing into a shell, and the
+versions agree. `node scripts/check-installer.mjs` fails when the installer in
+`skills/agent/scripts/linux-install.sh` differs from cruma-cli's
+`installers/linux-install.sh` (a checkout at `CRUMA_CLI_DIR` or `../cruma-cli`,
+otherwise the published installer); both run in CI.
 
 ### Grader conventions
 

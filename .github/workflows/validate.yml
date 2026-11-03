@@ -19,3 +19,5 @@ jobs:
           node-version: 22
       - run: npx -y @anthropic-ai/claude-code@2.1.280 --version
       - run: npx -y @anthropic-ai/claude-code@2.1.280 plugin validate --strict .
+      - run: node scripts/check-plugin.mjs
+      - run: node scripts/check-installer.mjs
