@@ -20,9 +20,14 @@ if (!/^name: agent$/m.test(skill)) failures.push("skills/agent/SKILL.md must hav
 if (/\|\s*(ba)?sh\b/.test(skill)) failures.push("skills/agent/SKILL.md pipes into a shell");
 if (!existsSync(join(root, "skills/agent/scripts/linux-install.sh"))) failures.push("bundled Linux installer is missing");
 
+// Claude Code's manifest `version` overrides the marketplace entry's, so the entry must not carry one;
+// the Codex manifest at the repository root must match the Claude one.
 const versions = [".claude-plugin/plugin.json", "plugin.json"].map((file) => JSON.parse(readFileSync(join(root, file), "utf8")).version);
-const marketplace = JSON.parse(readFileSync(join(root, ".claude-plugin/marketplace.json"), "utf8")).plugins[0].version;
-if (new Set([...versions, marketplace]).size !== 1) failures.push(`plugin versions differ: ${[...versions, marketplace].join(", ")}`);
+if (new Set(versions).size !== 1 || !versions[0]) failures.push(`plugin.json versions differ or are missing: ${versions.join(", ")}`);
+const marketplace = JSON.parse(readFileSync(join(root, ".claude-plugin/marketplace.json"), "utf8"));
+for (const plugin of marketplace.plugins) {
+  if ("version" in plugin) failures.push(`.claude-plugin/marketplace.json entry ${plugin.name} must not set \`version\`; .claude-plugin/plugin.json is the single source`);
+}
 
 if (failures.length > 0) {
   console.error(failures.map((failure) => `check-plugin: ${failure}`).join("\n"));
