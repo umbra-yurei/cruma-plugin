@@ -68,12 +68,18 @@ setup that is not theirs, so never read it for such a request.
   not state or hint at a cause, a diagnosis or what is configured, even when
   `list_agents` shows a process summary (a phase such as `Failed`) or site
   names: that is a listing, not a diagnosis. Name the target (kind, profile,
-  domain), ask, and stop. Diagnose after the switch, from the user's agent.
+  domain), ask, say that nothing is changed until they answer, and stop.
+  Diagnose after the switch, from the user's agent.
 - `use_agent` never starts an agent. If none is running for what the user
   means, say so and ask them to open the desktop app, or run
   `cruma --profile <name>` (use the name `list_agents` gives for a stopped
   profile). Do not fall back to the temporary tunnel for a request about their
   own sites.
+- **Say only what a tool returned.** `list_agents` lists the agents it knows;
+  from it you may say which agents are running and their kind, profile and
+  domain. Do not claim that profiles, sites, settings or an account exist or
+  are missing unless a tool result says so (for example, never "no saved
+  profiles turned up" or "nothing is configured").
 - No `list_agents` among your tools means an older agent: use the temporary
   tunnel for shares and say a newer `cruma` is needed for the user's own
   (**Update** has the upgrade command).
@@ -85,6 +91,10 @@ setup that is not theirs, so never read it for such a request.
 
 On the user's own agent, after they agreed to the switch:
 
+- A successful `use_agent` result is the state of the agent you are now
+  attached to (domain, frontends, processes, `allow_persistent_changes`). Work
+  from it; do not call `list_agents` again just to confirm the switch.
+
 - **Reading** is free: `get_health_summary`, `get_site_summary`,
   `get_proxy_routes`, `probe_route`, `get_process_logs`,
   `list_recorded_requests`.
@@ -94,10 +104,12 @@ On the user's own agent, after they agreed to the switch:
   (`mcp.local_socket.allow_persistent_changes`; desktop MCP page, "Coding
   Agents on This Computer"). Never quietly make an in-memory change instead.
   Explain the setting and ask them to turn it on, or to make the change in the
-  app. Once it is on (`allow_persistent_changes` is `true` in `list_agents`),
+  app. Once it is on (`allow_persistent_changes` is `true` in the `use_agent`
+  result, or in `list_agents` before the switch),
   do **not** call a write tool with `persist: true` yet: first describe the
   exact change (frontend, backend, middleware) as your reply and ask whether to
-  save it. Pass `persist: true` only after the user clearly approved that exact
+  save it, saying plainly that it would be saved to disk in the agent's config
+  and stay after a restart. Pass `persist: true` only after the user clearly approved that exact
   change: a yes to your description in a later turn, or, in the same message,
   an explicit approval that names the backend and the frontend by kind and name
   as a saved change ("I approve exactly this saved change: ..."). Asking for a
@@ -161,9 +173,9 @@ Say all of these in the final message:
 4. Which agent you acted on: kind (desktop, headless or temporary session),
    profile and domain, so a temporary share is never taken for a change to
    the user's app.
-5. For the session agent: the URLs end with the session, anonymous tunnels
-   last at most 3 hours, and nothing is written to disk. For the user's own
-   agent: whether the change is temporary or saved.
+5. For the session agent: the URLs end with the session, an anonymous tunnel
+   also ends at its time limit (item 7), and nothing is written to disk. For
+   the user's own agent: whether the change is temporary or saved.
 6. How to take one down: ask you, and you call `unexpose` with its name for
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
@@ -174,12 +186,15 @@ Say all of these in the final message:
    public: say so.
 8. The account notice, **once per session**, when a tool result's
    `account.state` is `anonymous`: the tunnel is anonymous and time-limited,
-   signing in to a free Cruma account keeps the same tunnel working past the
-   limit, and the link `account.sign_up_url`, quoted exactly as given (one
-   plain URL, written once). Every result carries the same block: once you
-   have given the notice in this conversation, do not give it again, in this
-   message or on later tool calls. When `account.state` is `signed_in`, say
-   nothing about accounts or signing up.
+   with the time left from `account.remaining_secs` in hours and minutes
+   (or `account.expires_at`) when the result carries it, and no number when
+   it does not (never assume one), signing in to a free Cruma account keeps
+   the same tunnel working past the limit, and the link `account.sign_up_url`,
+   quoted exactly as given (one plain URL, written once). Every result
+   carries the same block: once you have given the notice in this
+   conversation, do not give it again, in this message or on later tool
+   calls. When `account.state` is `signed_in`, say nothing about accounts or
+   signing up.
 9. The update notice, **once per session**, when `version.update_available` is
    `true`: the installed `version.installed_version`, the newer
    `version.latest_stable_version`, and `version.upgrade_hint` as given. Say
@@ -259,18 +274,16 @@ installation.
 
 ### Linux
 
-On x86_64 or arm64, when Homebrew is available, run:
-
-```sh
-brew install umbra-yurei/brew/cruma
-```
-
-Otherwise, the installer works on x86_64 and arm64, installs into
-`~/.local/bin` without `sudo` and verifies the download's checksum:
+On x86_64 or arm64 (glibc), run the installer. It asks nothing, needs no
+`sudo`, installs into `~/.local/bin` and replaces an existing copy only after
+the download matches its published checksum:
 
 ```sh
 curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh | bash
 ```
+
+Add `~/.local/bin` to `PATH` if it is not there. When Homebrew is available,
+`brew install umbra-yurei/brew/cruma` installs the same glibc build.
 
 ### Windows
 
@@ -290,6 +303,13 @@ If Winget or its Microsoft Store source is unavailable, use the Microsoft
 Store application or the [Cruma Microsoft Store
 listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Do not suggest a
 direct Windows installer.
+
+### With Node.js
+
+When none of the above fits and `npx` is available, `npx -y cruma proxy http
+<port> --json` runs the agent without installing it (Linux x86_64 and arm64,
+macOS Apple Silicon, Windows x64; not on other systems). The same package
+serves MCP: `npx -y cruma mcp`.
 
 ## Without the MCP tools
 
@@ -337,7 +357,8 @@ it as given. Otherwise pick by how Cruma was installed:
 | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
 | The Linux curl installer (`~/.local/bin/cruma`) | re-run the curl command from **Linux** |
-| npm | `npm update -g cruma` |
+| npm install | `npm update -g cruma` |
+| `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
 
 If the method is not known, ask the user; do not guess one. After upgrading,

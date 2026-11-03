@@ -32,8 +32,8 @@ back to `cruma proxy http <port> --json` for a port; a folder waits for the MCP
 tools. With the tools connected the skill never starts a Python or other file
 server and never runs `cruma serve` or `cruma proxy`. Every share has its own
 name and URL (`<name>.<your tunnel domain>`), the final message lists each one
-and what it serves, and the URLs end with the session (anonymous tunnels last
-at most 3 hours).
+and what it serves, and the URLs end with the session (or earlier, when an
+anonymous tunnel reaches its time limit; the skill tells you how long is left).
 
 For anything beyond sharing one port or folder (sign-in, IP filters, WAF rules,
 custom domains, routing), the skill does not guess: it reads what Cruma says
@@ -95,7 +95,7 @@ server:
 | `asks-before-exposing` | nothing is exposed without a named port or folder |
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |
-| `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice, across several tool results that all carry it |
+| `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice and the time left (`account.remaining_secs`), across several tool results that all carry it |
 | `signed-in-no-sign-up` | a signed-in tunnel gets no sign-up or account text |
 | `hosted-app` | an app that is not running is hosted by the agent (`upsert_process`) |
 | `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
@@ -114,6 +114,25 @@ server:
 
 Run them with `claude plugin eval . --trust-plugin`.
 
+### Grader conventions
+
+- Deterministic graders first: a fact that tools or the message text can show
+  (a tool called or not, a name or path in the message, a question asked) is a
+  `tool_used`, `tool_order` or `regex` grader. The `asks*` cases are regexes plus
+  the tool graders that show nothing was exposed or changed.
+- An `llm` judge checks facts, never wording, and lists equivalents: "saved",
+  "saved permanently", "saved to disk", "saved to the config" and "kept after a
+  restart" are one fact; "asks" is any question or request for a go-ahead.
+- The canonical "asks" regex, copied into each `asks*` case's `graders/asks.md`
+  (the eval CLI has no shared graders; `persist-enabled` adds `approve`):
+  `\?|\b(confirm|let me know|shall i|should i|want me to|would you like|okay to|ok to)\b`, flag `i`.
+  A regex that bans words only bans claims that are wrong in every context.
+- Mocks are static: the eval CLI answers a tool with one canned result (no
+  sequenced responses; a `_server.md` agent mock is LLM-simulated and cannot
+  override a fixed `<tool>.md`). A case that switches agents therefore gives
+  `get_runtime_summary` the switched-to agent's values, and the skill works from
+  the `use_agent` result instead of re-listing agents.
+
 The suite does not run an installer: the MCP server only connects once `cruma`
 is available. The `windows-store-alias-missing` case is shell- and
 PowerShell-dependent, so run it on Windows with the Microsoft Store Cruma app
@@ -127,3 +146,43 @@ Before running it, verify that `cruma --version` fails and that
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'` returns the installed package. The
 remaining install paths are checked by hand in a fresh session without
 `cruma` on `PATH`.
+
+### Proving a skill change
+
+A change to the skill, a case, a grader or a mock is accepted when its eval
+cases pass. The evals need model credentials, so the proof comes in two steps.
+
+**Before review (any machine, no credentials).** Run both and post the output
+with the change:
+
+```sh
+claude plugin validate --strict .
+for c in evals/*/prompt.md evals/*/case.yaml; do
+  [ -e "$c" ] || continue
+  claude plugin eval . --trust-plugin --case "$(basename "$(dirname "$c")")" 2>&1 \
+    | grep -E 'mocked:|failed to load|invalid|Not logged in'
+done
+```
+
+`eval` only parses the cases its `--case` filter selects, so the loop runs
+each case (each directory with a `prompt.md` or `case.yaml`) on its own. A
+case whose prompt, graders and mocks are valid prints its `mocked:` line and
+stops at the first model call with `Not logged in`; a broken one prints `failed to load` and the parse error. This proves
+the suite loads; it does not prove a case passes.
+
+**After landing (operator, logged-in machine).** On `main`, with the released
+`cruma` agent version the skill needs on `PATH`:
+
+```sh
+cruma --version
+claude plugin eval . --trust-plugin
+```
+
+Add `--case <glob>` to run only the cases the change touched, and
+`--allow-tools` where a case needs it (see above). Post on the task's thread:
+the agent version, the exit code, the cost line, and the per-case table
+(`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
+no-plugin baseline arm).
+
+If a case fails, post the failing cases with their grader lines (`✗ …`) on
+the same thread and file a follow-up task to fix the skill or the graders.
