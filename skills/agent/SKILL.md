@@ -1,6 +1,6 @@
 ---
 name: agent
-description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
+description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), for questions about the user's Cruma account (plan, the tunnels and sites on the account), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
 ---
 
 # Cruma tunnels
@@ -9,6 +9,31 @@ Use this skill when the user wants to publish something from their machine,
 manage what Cruma already serves, or install or stop Cruma. Anything shared is
 public: ask before sharing and say exactly which port or folder becomes
 reachable. Anonymous tunnels need no signup.
+
+## The user's Cruma account
+
+Their account (plan and subscription, the tunnels and sites on the account,
+and whatever else it lists) is served by Cruma's hosted MCP server
+`cruma-cloud` (`https://mcp.cruma.io/mcp`). It is an optional add-on: this
+plugin does not connect it.
+
+- **Connected** (`cruma-cloud` tools in your tool list, for example from the
+  `cruma-cloud` plugin): use it for account questions. Start with
+  `list_services`, then `describe_service` for the service you need; its tools
+  appear after that. The server describes itself: do not guess tool or service
+  names. Never mention or offer a service `list_services` does not show; say
+  it is not available on their account.
+- **Not connected**, and the user asks something account-side: say the cloud
+  server is optional and give the command to add it. Claude Code:
+  `claude plugin install cruma-cloud@cruma-plugin` (or
+  `claude mcp add --transport http cruma-cloud https://mcp.cruma.io/mcp`).
+  Codex: `codex plugin add cruma-cloud@cruma-plugin` (or
+  `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`). Do not run it
+  unless they ask; it connects in a new session and asks them to sign in. Do
+  not answer account questions from the local agent instead.
+- **Never for local work.** Sharing a port or folder and the user's running
+  agents stay on the local `cruma` server; do not mention or add the cloud
+  server for them.
 
 ## With the cruma MCP tools
 
@@ -87,10 +112,13 @@ set `persist` for them.
 When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
 "add a password to my staging site", "what's running in my Cruma?"), or they
-want their own tunnel, a custom domain or a named profile, call `list_agents`
+want to share through their own tunnel, a custom domain or a named profile,
+call `list_agents`
 **before any tool that reads or changes an agent** (`describe_cruma`, `cruma://about`,
 `get_config_model_reference` and `get_cruma_glossary` are fine first). Reading the session agent answers about a
-setup that is not theirs, so never read it for such a request.
+setup that is not theirs, so never read it for such a request. Listing or
+creating the tunnels on their account is the account's (see above), not
+`list_agents`'.
 
 - **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
   profile and domain, and wait for the answer. For a plain share, the question

@@ -1,0 +1,6 @@
+{
+  "cruma-cloud": {
+    "type": "http",
+    "url": "https://mcp.cruma.io/mcp"
+  }
+}
