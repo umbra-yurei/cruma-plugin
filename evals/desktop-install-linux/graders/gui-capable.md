@@ -4,7 +4,7 @@ type: llm
 
 The response passes only if ALL of these are true:
 
-1. It gives the glibc curl installer command or the Homebrew formula
+1. It gives the glibc Linux installer (`linux-install.sh`) command or the Homebrew formula
    `brew install umbra-yurei/brew/cruma` for Linux.
 2. It does not recommend a musl build, a server-agent artifact or a direct
    binary download for this desktop; if it mentions one, it is only to say it is

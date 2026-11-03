@@ -1,5 +1,5 @@
 ---
-name: cruma
+name: agent
 description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
 ---
 
@@ -12,8 +12,8 @@ reachable. Anonymous tunnels need no signup.
 
 ## With the cruma MCP tools
 
-This plugin starts `cruma mcp`, a local MCP server named `cruma` that runs the
-installed `cruma` binary. When its tools are in your tool list, use them, not
+This plugin starts `cruma mcp` through its launcher (`mcp/cruma-mcp.mjs`), a
+local MCP server named `cruma` that runs the installed `cruma` binary. When its tools are in your tool list, use them, not
 shell commands. The server starts with nothing exposed.
 
 ### Find out; do not guess
@@ -279,8 +279,8 @@ workaround, and never claim or invent a public URL.
 ### An existing install
 
 **Keep the install method.** Never install or upgrade an existing Cruma through
-a different package method (a cask over an npm install, `curl` over Homebrew,
-Winget over a curl copy, and so on): that leaves two `cruma` binaries on `PATH`
+a different package method (a cask over an npm install, the Linux installer over Homebrew,
+Winget over an installer copy, and so on): that leaves two `cruma` binaries on `PATH`
 and the older one can win. Upgrade it the way it was installed (**Update**),
 and if the method is not known, ask the user. Only the user may choose to
 move to another method, and then you ask first.
@@ -331,7 +331,7 @@ On a desktop use the GUI-capable package for the OS:
 | OS | Package |
 | --- | --- |
 | macOS | the Homebrew cask (the signed application) |
-| Linux | the glibc curl installer, or the Homebrew formula |
+| Linux | the bundled glibc installer, or the Homebrew formula |
 | Windows | Microsoft Store |
 
 Never recommend a musl or server-agent artifact, or a direct download of a
@@ -353,14 +353,19 @@ installation.
 
 #### Linux
 
-On x86_64 or arm64 (glibc), run the installer. It installs the GNU build, which
-is GUI-capable; it asks nothing, needs no `sudo`, installs
-into `~/.local/bin` and replaces an existing copy only after the download
-matches its published checksum:
+On x86_64 or arm64 (glibc), run the installer that ships with this skill. It
+installs the GNU build, which is GUI-capable; it asks nothing, needs no `sudo`,
+installs into `~/.local/bin` and replaces an existing copy only after the
+download matches its published checksum:
 
 ```sh
-curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh | bash
+bash "${CLAUDE_SKILL_DIR}/scripts/linux-install.sh"
 ```
+
+`${CLAUDE_SKILL_DIR}` is this skill's directory; other agents run
+`scripts/linux-install.sh` from where the skill is installed. Never download a
+script and pipe it to a shell. When the user wants to run the installer
+themselves, give them that command with the real path.
 
 Add `~/.local/bin` to `PATH` if it is not there. When Homebrew is available,
 `brew install umbra-yurei/brew/cruma` installs the same glibc build. Pick one
@@ -390,8 +395,7 @@ direct Windows installer.
 Only when none of the above fits, or the user already uses npm for Cruma, and
 `npx` is available: `npx -y cruma proxy http
 <port> --json` runs the agent without installing it (Linux x86_64 and arm64,
-macOS Apple Silicon, Windows x64; not on other systems). The same package
-serves MCP: `npx -y cruma mcp`.
+macOS Apple Silicon, Windows x64; not on other systems).
 
 ## Without the MCP tools
 
@@ -438,7 +442,7 @@ it as given. Otherwise pick by how Cruma was installed:
 | --- | --- |
 | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
-| The Linux curl installer (`~/.local/bin/cruma`) | re-run the curl command from **Linux** |
+| The Linux installer (`~/.local/bin/cruma`) | re-run the bundled installer from **Linux** |
 | npm install | `npm update -g cruma` |
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
