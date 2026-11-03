@@ -84,7 +84,8 @@ plugin when, in a session:
 Suggestions appear only when your organization has listed this marketplace
 (`cruma-plugin`) or the official directory in `pluginSuggestionMarketplaces`
 in its managed settings, and at most once every three sessions. Setting
-`spinnerTipsEnabled` to `false` turns off the spinner tip and the session-start notice.
+`spinnerTipsEnabled` to `false` turns off the spinner tip and the
+session-start notice.
 
 ## Updating
 
