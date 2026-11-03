@@ -68,6 +68,24 @@ server on port 3000.” The skill checks for the agent, installs it without
 `sudo` when needed, asks for confirmation before making anything public, and
 reports the public URL.
 
+### When Claude Code suggests the plugin
+
+The marketplace entry declares `relevance` signals, so Claude Code can suggest
+installing the plugin ("Working with tunnels? Install the cruma plugin: …").
+Matching happens locally on your machine; nothing is reported to Cruma or
+Anthropic, and nothing installs until you confirm. Claude Code suggests the
+plugin when, in a session:
+
+- Claude runs a command that starts with `ngrok`, `cloudflared`, `localtunnel`,
+  `lt` or `cruma` (only the first word of a command counts), or
+- Claude reads a `package.json` that depends on `vite`, `next`,
+  `@sveltejs/kit` or `webpack-dev-server`.
+
+Suggestions appear only when your organization has listed this marketplace
+(`cruma-plugin`) or the official directory in `pluginSuggestionMarketplaces`
+in its managed settings, and at most once every three sessions. Setting
+`spinnerTipsEnabled` to `false` turns off the spinner tip and the session-start notice.
+
 ## Updating
 
 The plugin and the `cruma` agent update separately; updating one does not
