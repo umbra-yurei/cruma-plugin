@@ -1,10 +1,6 @@
 {
   "cruma": {
-    "command": "cruma",
-    "args": ["mcp"]
-  },
-  "cruma-cloud": {
-    "type": "http",
-    "url": "https://mcp.cruma.io/mcp"
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/cruma-mcp.mjs"]
   }
 }
