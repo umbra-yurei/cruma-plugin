@@ -62,6 +62,28 @@ server on port 3000.” The skill checks for the agent, installs it without
 `sudo` when needed, asks for confirmation before making anything public, and
 reports the public URL.
 
+## Updating
+
+The plugin and the `cruma` agent update separately; updating one does not
+change the other.
+
+- **The plugin** (this skill): `claude plugin marketplace update cruma-plugin`,
+  then `claude plugin update cruma@cruma-plugin`, and restart Claude Code.
+- **The agent**, the way you installed it:
+
+  | Installed with | Upgrade |
+  | --- | --- |
+  | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
+  | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
+  | Linux installer | `curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh \| bash` |
+  | npm | `npm update -g cruma` |
+  | Microsoft Store (Windows) | update Cruma in Microsoft Store |
+
+  The skill needs agent 1.0.12 or newer. It checks `cruma --version`, and with
+  the MCP tools connected it mentions a newer stable release once, from the
+  `version` block of `get_runtime_summary`. Restart Claude Code after
+  upgrading so the MCP server starts the new agent.
+
 ## Evals
 
 `evals/` holds `claude plugin eval` cases that run against a mocked `cruma` MCP
@@ -81,6 +103,8 @@ server:
 | `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
+| `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
+| `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
 | `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
