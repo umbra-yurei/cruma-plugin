@@ -111,7 +111,7 @@ server:
 | `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
 | `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |
 | `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the glibc curl installer or formula on Linux), never npm, musl or a server artifact |
-| `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
+| `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |
 | `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
 | `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
@@ -140,18 +140,13 @@ Run them with `claude plugin eval . --trust-plugin`.
   the `use_agent` result instead of re-listing agents.
 
 The suite does not run an installer: the MCP server only connects once `cruma`
-is available. The `windows-store-alias-missing` case is shell- and
-PowerShell-dependent, so run it on Windows with the Microsoft Store Cruma app
-installed and its `cruma` app execution alias unavailable in that session:
-
-```powershell
-claude plugin eval . --trust-plugin --case windows-store-alias-missing --allow-tools Bash
-```
-
-Before running it, verify that `cruma --version` fails and that
-`Get-AppxPackage -Name 'Umbra-Yurei.Cruma'` returns the installed package. The
-remaining install paths are checked by hand in a fresh session without
-`cruma` on `PATH`.
+is available. The `windows-store-alias-missing` case runs with no shell and no
+Cruma tools (Bash is an operator-gated tool), like a session where the MCP
+server never connected. It is judged from the reply alone, so it passes under a
+plain `claude plugin eval . --trust-plugin`. The remaining install paths are checked
+by hand in a fresh session without `cruma` on `PATH`; for the Store path, verify
+that `cruma --version` fails and that `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`
+returns the installed package.
 
 ### Proving a skill change
 
