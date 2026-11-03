@@ -248,20 +248,16 @@ installation.
 
 ### Linux
 
-On x86_64 or arm64, when Homebrew is available, run:
-
-```sh
-brew install umbra-yurei/brew/cruma
-```
-
-Otherwise, the x86_64-only installer is:
+On x86_64 or arm64 (glibc), run the installer. It asks nothing, needs no
+`sudo`, installs into `~/.local/bin` and replaces an existing copy only after
+the download matches its published checksum:
 
 ```sh
 curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh | bash
 ```
 
-On Linux arm64 without Homebrew, explain that the curl installer does not yet
-support that architecture.
+Add `~/.local/bin` to `PATH` if it is not there. When Homebrew is available,
+`brew install umbra-yurei/brew/cruma` installs the same glibc build.
 
 ### Windows
 
@@ -281,6 +277,13 @@ If Winget or its Microsoft Store source is unavailable, use the Microsoft
 Store application or the [Cruma Microsoft Store
 listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Do not suggest a
 direct Windows installer.
+
+### With Node.js
+
+When none of the above fits and `npx` is available, `npx -y cruma proxy http
+<port> --json` runs the agent without installing it (Linux x86_64 and arm64,
+macOS Apple Silicon, Windows x64; not on other systems). The same package
+serves MCP: `npx -y cruma mcp`.
 
 ## Without the MCP tools
 
@@ -317,9 +320,11 @@ the process ends.
 
 ## Update
 
-For Homebrew installations, update with `brew upgrade`. For the Linux curl
-installer, re-run it. Update a Windows Store installation through Microsoft
-Store.
+Update the way Cruma was installed: re-run the Linux curl installer, run
+`brew upgrade --cask umbra-yurei/brew/cruma` (macOS) or
+`brew upgrade umbra-yurei/brew/cruma` (Linux), run the `npx -y cruma` command
+again (it fetches the newest release), or update Cruma in Microsoft Store on
+Windows.
 
 ## Environments without a shell
 
