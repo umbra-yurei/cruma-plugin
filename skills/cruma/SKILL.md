@@ -48,10 +48,43 @@ support what the user asked for, say so; do not invent a setting or a tool.
 ### Whose Cruma
 
 The tools start attached to a **temporary session agent**: an anonymous tunnel
-that your windows share and that holds nothing the user saved. For "expose my
-dev server" and "serve this folder", use it as is and report the URLs.
+that your windows share and that holds nothing the user saved. It is not the
+user's own Cruma.
 
-It is not the user's own Cruma. When the request is about *their* Cruma (their
+**Before the first share in a session**, call `list_agents` once (it reads
+nothing from any agent, so it is fine first). Look for a running agent that is
+not the session agent and whose `tunnel_account` is `registered` (the desktop
+app or a headless agent, signed in or with tunnel credentials). A running agent
+with `tunnel_account` `anonymous` is not one.
+
+- **One such agent runs: ask once, before sharing anything.** Name the choice
+  with its kind, profile, domain and what the other option means, for example:
+  "Use your running Cruma (desktop, profile `work`, `acme.tun.example.test`) or a
+  temporary anonymous tunnel (random address, browser warning page, time-limited,
+  gone with the session)?" Share nothing, and call no other tool that reads or
+  changes an agent, until they answer. If several run, list them in the same
+  question.
+  - They pick their own: call `use_agent` on that agent (this is the
+    confirmation **Ask before `use_agent`** asks for) and make every share of
+    the session there. Mention the known limit when it applies: a share made on
+    one agent of a tunnel that several agents serve is reachable only through
+    that agent.
+  - They pick the temporary tunnel: stay on the session agent.
+  - Remember the answer for the rest of the session. Do not ask again for later
+    shares, and do not call `list_agents` again for them. Ask again only if the
+    user raises it.
+- **No such agent runs** (none, or only anonymous ones such as the session
+  agent): no question. Use the session agent as is and report the URLs.
+- **You cannot ask** (a non-interactive run, or no way to get an answer): use
+  the session agent, and say in the hand-off that you did, and that a running
+  signed-in Cruma was available when `list_agents` showed one.
+- The question is not needed when the user already named where the share goes
+  ("on my desktop Cruma", "use a temporary tunnel"): follow that.
+
+The shares stay session-owned and are withdrawn when the session ends; never
+set `persist` for them.
+
+When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
 "add a password to my staging site", "what's running in my Cruma?"), or they
 want their own tunnel, a custom domain or a named profile, call `list_agents`
@@ -60,8 +93,8 @@ want their own tunnel, a custom domain or a named profile, call `list_agents`
 setup that is not theirs, so never read it for such a request.
 
 - **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
-  profile and domain, and wait for the answer. Never switch for a plain share.
-  The share tools then work on that agent. Switching withdraws the shares you
+  profile and domain, and wait for the answer. For a plain share, the question
+  above is that ask; never switch without it. The share tools then work on that agent. Switching withdraws the shares you
   made on the previous one.
 - **Before the switch, say only which agent you would switch to and ask.** Do
   not describe what either agent holds (the session agent's included), and do
@@ -172,7 +205,8 @@ Say all of these in the final message:
    available through `get_process_logs`), or `upsert_backend`/`upsert_frontend`.
 4. Which agent you acted on: kind (desktop, headless or temporary session),
    profile and domain, so a temporary share is never taken for a change to
-   the user's app.
+   the user's app. When you used the session agent because you could not ask,
+   say so.
 5. For the session agent: the URLs end with the session, an anonymous tunnel
    also ends at its time limit (item 7), and nothing is written to disk. For
    the user's own agent: whether the change is temporary or saved.

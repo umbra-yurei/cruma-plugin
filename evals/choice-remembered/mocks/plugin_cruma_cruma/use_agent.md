@@ -1,0 +1,1 @@
+{"switched":true,"attached":"desk-91c3","kind":"desktop","profile":"work","withdrawn_shares":[],"tunnel_domain":"acme.tun.example.test","tunnel_account":"registered","frontend_count":1,"frontend_hostnames":["api.acme.tun.example.test"],"processes":[{"id":"api","phase":"Failed"}],"allow_persistent_changes":false,"http_mcp":{"enabled":true,"url":"http://mcp.localhost/mcp"}}
