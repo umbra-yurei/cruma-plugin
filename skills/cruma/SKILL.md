@@ -256,8 +256,10 @@ prints one JSON line, for example `{"version":"1.0.17","build_flavor":"gui"}`.
 `build_flavor` is `gui` (the desktop application and its terminal command) or
 `server-agent` (no desktop window). Read that field. Never work out the flavour
 by parsing the human text of `cruma --version`, a file path or a package name.
-An agent that rejects `--json` is older than the field: treat the flavour as
-unknown, and that is not a reason to reinstall.
+If `cruma --version --json` does not print a JSON line (an older agent treats
+`--json` as nothing and prints `cruma <version>`, or rejects it), the agent is
+older than the field: treat the flavour as unknown, and that is not a reason to
+reinstall.
 
 On a machine with a desktop, a `server-agent` build means the user has no
 Cruma window. Say so once, keep using it for shares, and do not replace it. If
@@ -269,9 +271,9 @@ first on `PATH`, and wait for their go-ahead.
 
 The **minimum version is 1.0.12**: older agents lose sessions (for example the
 second Claude window exits) and lack tools this skill uses. Take the version
-from the `version` field of `cruma --version --json`; an agent that rejects
-`--json` prints `cruma <version>` for `cruma --version`, and that is the only
-text you read.
+from the `version` field of `cruma --version --json`. When no JSON line comes
+back, read the `cruma <version>` line that `cruma --version` prints; that is
+the only human text you read.
 
 - **Older than 1.0.12:** before doing anything else, tell the user their Cruma
   is too old and give the upgrade command for their install method (see
