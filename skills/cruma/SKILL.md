@@ -261,25 +261,29 @@ Add `~/.local/bin` to `PATH` if it is not there. When Homebrew is available,
 
 ### Windows
 
-Install the Microsoft Store listing without prompts:
+Find the current Microsoft Store product ID:
 
 ```powershell
-winget install --id 9NXKT3W34HVL --source msstore --accept-package-agreements --accept-source-agreements
+winget search Cruma --source msstore
 ```
 
-A new terminal then has `cruma` on its PATH; check with `cruma --version`.
+Then install the matching product ID with:
+
+```powershell
+winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements
+```
 
 If Winget or its Microsoft Store source is unavailable, use the Microsoft
 Store application or the [Cruma Microsoft Store
 listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Do not suggest a
 direct Windows installer.
 
-### With Node.js (any platform)
+### With Node.js
 
 When none of the above fits and `npx` is available, `npx -y cruma proxy http
 <port> --json` runs the agent without installing it (Linux x86_64 and arm64,
-macOS Apple Silicon, Windows x64). The same package serves MCP:
-`npx -y cruma mcp`.
+macOS Apple Silicon, Windows x64; not on other systems). The same package
+serves MCP: `npx -y cruma mcp`.
 
 ## Without the MCP tools
 
