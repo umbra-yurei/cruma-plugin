@@ -68,12 +68,18 @@ setup that is not theirs, so never read it for such a request.
   not state or hint at a cause, a diagnosis or what is configured, even when
   `list_agents` shows a process summary (a phase such as `Failed`) or site
   names: that is a listing, not a diagnosis. Name the target (kind, profile,
-  domain), ask, and stop. Diagnose after the switch, from the user's agent.
+  domain), ask, say that nothing is changed until they answer, and stop.
+  Diagnose after the switch, from the user's agent.
 - `use_agent` never starts an agent. If none is running for what the user
   means, say so and ask them to open the desktop app, or run
   `cruma --profile <name>` (use the name `list_agents` gives for a stopped
   profile). Do not fall back to the temporary tunnel for a request about their
   own sites.
+- **Say only what a tool returned.** `list_agents` lists the agents it knows;
+  from it you may say which agents are running and their kind, profile and
+  domain. Do not claim that profiles, sites, settings or an account exist or
+  are missing unless a tool result says so (for example, never "no saved
+  profiles turned up" or "nothing is configured").
 - No `list_agents` among your tools means an older agent: use the temporary
   tunnel for shares and say a newer `cruma` is needed for the user's own.
 - A Cruma HTTP MCP server already in the user's client (for example
@@ -84,6 +90,10 @@ setup that is not theirs, so never read it for such a request.
 
 On the user's own agent, after they agreed to the switch:
 
+- A successful `use_agent` result is the state of the agent you are now
+  attached to (domain, frontends, processes, `allow_persistent_changes`). Work
+  from it; do not call `list_agents` again just to confirm the switch.
+
 - **Reading** is free: `get_health_summary`, `get_site_summary`,
   `get_proxy_routes`, `probe_route`, `get_process_logs`,
   `list_recorded_requests`.
@@ -93,10 +103,12 @@ On the user's own agent, after they agreed to the switch:
   (`mcp.local_socket.allow_persistent_changes`; desktop MCP page, "Coding
   Agents on This Computer"). Never quietly make an in-memory change instead.
   Explain the setting and ask them to turn it on, or to make the change in the
-  app. Once it is on (`allow_persistent_changes` is `true` in `list_agents`),
+  app. Once it is on (`allow_persistent_changes` is `true` in the `use_agent`
+  result, or in `list_agents` before the switch),
   do **not** call a write tool with `persist: true` yet: first describe the
   exact change (frontend, backend, middleware) as your reply and ask whether to
-  save it. Pass `persist: true` only after the user clearly approved that exact
+  save it, saying plainly that it would be saved to disk in the agent's config
+  and stay after a restart. Pass `persist: true` only after the user clearly approved that exact
   change: a yes to your description in a later turn, or, in the same message,
   an explicit approval that names the backend and the frontend by kind and name
   as a saved change ("I approve exactly this saved change: ..."). Asking for a
