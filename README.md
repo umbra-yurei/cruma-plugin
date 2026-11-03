@@ -98,6 +98,9 @@ change the other.
 
 - **The plugin** (this skill): `claude plugin marketplace update cruma-plugin`,
   then `claude plugin update cruma@cruma-plugin`, and restart Claude Code.
+  Installed copies only update when `version` in `.claude-plugin/plugin.json` changes
+  (the Codex manifest `plugin.json` must match; the marketplace entry carries none),
+  so every change to the plugin bumps it. `node scripts/check-plugin.mjs` enforces this.
 - **The agent**, the way you installed it:
 
   | Installed with | Upgrade |
