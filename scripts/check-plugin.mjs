@@ -18,7 +18,7 @@ if (server.command !== "node" || extra.length > 0 || !launcher.startsWith("${CLA
 const skill = readFileSync(join(root, "skills/agent/SKILL.md"), "utf8");
 if (!/^name: agent$/m.test(skill)) failures.push("skills/agent/SKILL.md must have `name: agent`");
 if (/\|\s*(ba)?sh\b/.test(skill)) failures.push("skills/agent/SKILL.md pipes into a shell");
-if (!existsSync(join(root, "skills/agent/scripts/linux-install.sh"))) failures.push("bundled Linux installer is missing");
+if (existsSync(join(root, "skills/agent/scripts"))) failures.push("skills/agent/scripts must not exist: the plugin ships no download-and-run installer");
 
 // Claude Code's manifest `version` overrides the marketplace entry's, so the entry must not carry one;
 // the Codex manifest at the repository root must match the Claude one.

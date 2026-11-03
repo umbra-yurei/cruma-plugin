@@ -3,6 +3,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { buildEnvironment } from "./environment.mjs";
 
 const home = homedir();
 const candidates = [
@@ -16,9 +17,7 @@ const candidates = [
   "cruma", // whatever is first on PATH
 ];
 
-// An npm-installed `cruma` is a launcher that looks for an installed agent itself;
-// this variable makes it run its own agent instead of looking again.
-const environment = { ...process.env, CRUMA_NPM_LAUNCHER: "1" };
+const environment = buildEnvironment(process.env);
 
 function versionOf(executable) {
   const probe = spawnSync(executable, ["--version"], {
