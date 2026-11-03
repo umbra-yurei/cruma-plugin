@@ -45,6 +45,12 @@ credentials) it asks whether to protect it and suggests a password; sign-in
 needs a sign-in provider configured on your own Cruma, otherwise it offers a
 password.
 
+When a signed-in Cruma of yours is running (the desktop app or a headless agent
+with tunnel credentials), the skill asks once, before the first share, whether
+to use it or a temporary anonymous tunnel, and keeps your answer for the
+session. With no such agent running, or where it cannot ask, it uses the
+temporary tunnel without a question and says so.
+
 To work on your own running Cruma (the desktop app or a headless agent: its
 sites, routes, processes and logs) instead of the temporary session tunnel,
 ask for it; the skill lists your running agents and asks before switching to
@@ -95,13 +101,14 @@ server:
 
 | Case | Checks |
 | --- | --- |
-| `expose-dev-server` | "expose port 3000" reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) |
+| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) |
 | `asks-before-exposing` | nothing is exposed without a named port or folder |
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |
 | `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice and the time left (`account.remaining_secs`), across several tool results that all carry it |
 | `signed-in-no-sign-up` | a signed-in tunnel gets no sign-up or account text |
 | `hosted-app` | an app that is not running is hosted by the agent (`upsert_process`) |
+| `asks-signed-in-agent`, `uses-signed-in-agent-after-yes`, `answer-temporary-stays-on-session`, `choice-remembered`, `anonymous-only-no-question` | with a signed-in desktop agent running, a plain share asks once whether to use it or a temporary tunnel and shares nothing before the answer; "yes" means `list_agents`, `use_agent`, then the share on that agent; "temporary" stays on the session agent; the answer covers every share (one `list_agents`, one `use_agent`); with only anonymous agents there is no question |
 | `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
 | `confirmed-switch-expose`, `diagnose-own-site` | after a confirmed switch the order is `list_agents`, `use_agent`, then the work; diagnosis reads logs and changes nothing |
 | `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |

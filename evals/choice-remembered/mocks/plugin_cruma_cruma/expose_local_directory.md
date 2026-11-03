@@ -1,0 +1,1 @@
+{"schema_version":"2026-04-22","kind":"cruma.expose.exposed","public_url":"https://docs.acme.tun.example.test","public_hostname":"docs.acme.tun.example.test","local_target":"/home/dev/docs","name":"docs","frontend_id":"docs","backend_id":"mcp-expose-docs","updated":false}

@@ -1,0 +1,1 @@
+{"attached":"ses-4f2a","agents":[{"id":"ses-4f2a","running":true,"kind":"mcp_session","profile":null,"attached":true,"tunnel_domain":"demo1234.tun.example.test","tunnel_account":"anonymous","frontend_count":0,"frontend_hostnames":[],"processes":[],"allow_persistent_changes":false,"http_mcp":{"enabled":false}}]}
