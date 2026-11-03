@@ -79,6 +79,10 @@ change the other.
   | npm | `npm update -g cruma` |
   | Microsoft Store (Windows) | update Cruma in Microsoft Store |
 
+  The skill upgrades an installed agent only with the command for its own
+  install method, and installs the GUI-capable package on a desktop (the macOS
+  cask, the Linux glibc installer or formula, Microsoft Store); it reads the build
+  flavour from `cruma --version --json`.
   The skill needs agent 1.0.12 or newer. It checks `cruma --version`, and with
   the MCP tools connected it mentions a newer stable release once, from the
   `version` block of `get_runtime_summary`. Restart Claude Code after
@@ -105,6 +109,8 @@ server:
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
 | `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
+| `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json`, and no other package method is suggested |
+| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the glibc curl installer or formula on Linux), never npm, musl or a server artifact |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance and never falls back to a file server or invented URL |
 | `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
