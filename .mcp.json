@@ -1,6 +1,6 @@
 {
   "cruma": {
     "command": "node",
-    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/cruma-mcp.mjs", "--origin", "plugin"]
+    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/cruma-mcp.mjs"]
   }
 }

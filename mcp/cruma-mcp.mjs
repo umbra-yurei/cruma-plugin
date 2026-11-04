@@ -3,7 +3,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { candidatePaths, launch } from "./launcher.mjs";
 
 launch({
-  originArgs: process.argv.slice(2),
   source: process.env,
   candidates: candidatePaths(process.env),
   spawnSync,

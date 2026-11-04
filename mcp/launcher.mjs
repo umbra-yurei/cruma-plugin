@@ -19,7 +19,13 @@ export function candidatePaths(source) {
   ];
 }
 
+// The one flag every plugin launch hands `cruma mcp`, so what a coding agent shares is attributed
+// to the plugin. It is fixed here, not read from the plugin's configuration or argv.
+export const ORIGIN_ARGS = ["--origin", "plugin"];
+
 // The first agent version whose `cruma mcp` accepts `--origin plugin`; an older one rejects the flag.
+// cruma-sdk was at 1.0.17 (the stable agent) when the flag was added, so 1.0.18, the next
+// release, is the first to ship it; lower this only if a release before it carries the flag.
 const ORIGIN_FLAG_MIN_VERSION = [1, 0, 18];
 
 function isNewer(left, right) {
@@ -53,9 +59,9 @@ export function findCruma({ environment, candidates, spawnSync }) {
   return chosen;
 }
 
-// `originArgs` is the fixed `--origin plugin` that .mcp.json passes; it is added to `cruma mcp` only
-// for an agent new enough to accept it. `spawnSync` and `spawn` are node:child_process's; tests pass recording stand-ins.
-export function launch({ originArgs = [], source, candidates, spawnSync, spawn, exit, onSignal, error }) {
+// `ORIGIN_ARGS` is added to `cruma mcp` only for an agent new enough to accept it. `spawnSync` and
+// `spawn` are node:child_process's; tests pass recording stand-ins.
+export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, error }) {
   const environment = buildEnvironment(source);
   const chosen = findCruma({ environment, candidates, spawnSync });
 
@@ -69,7 +75,7 @@ export function launch({ originArgs = [], source, candidates, spawnSync, spawn, 
 
   const { executable, version } = chosen;
   const knowsOrigin = !isNewer(ORIGIN_FLAG_MIN_VERSION, version);
-  const args = knowsOrigin ? ["mcp", ...originArgs] : ["mcp"];
+  const args = knowsOrigin ? ["mcp", ...ORIGIN_ARGS] : ["mcp"];
   const child = spawn(executable, args, { env: environment, stdio: "inherit" });
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) onSignal(signal, () => child.kill(signal));
   child.on("error", (failure) => {
