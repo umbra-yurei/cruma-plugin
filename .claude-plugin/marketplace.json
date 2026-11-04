@@ -29,6 +29,13 @@
           ]
         }
       }
+    },
+    {
+      "name": "cruma-cloud",
+      "source": "./plugins/cruma-cloud",
+      "description": "Optional: Cruma's hosted MCP server for your Cruma account (plan, account tunnels, sites). Asks you to sign in. Not needed for local tunnels.",
+      "homepage": "https://cruma.io",
+      "repository": "https://github.com/umbra-yurei/cruma-plugin"
     }
   ]
 }

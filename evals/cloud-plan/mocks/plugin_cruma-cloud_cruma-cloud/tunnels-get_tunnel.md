@@ -1,0 +1,1 @@
+{"id":"t-41a7","name":"laptop","description":null,"status":"active","public_domain":"laptop-41a7.tun.example.test","custom_domain_name":null,"custom_domain":"none","requested_tier":"pro","effective_tier":"pro","entitlement_reason":"subscribed","online":true,"last_seen_online":"2026-11-02T12:00:00Z","created_at":"2026-09-01T10:00:00Z","org_id":null}
