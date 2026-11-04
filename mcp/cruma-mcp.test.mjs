@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
 import { readFileSync } from "node:fs";
-import { AGENT_CONTEXT_TIMEOUT_MS, ORIGIN_ARGS, launch, sessionNote } from "./launcher.mjs";
+import { test } from "node:test";
+import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma/mcp/environment.mjs";
+import { ORIGIN_ARGS, launch } from "../plugins/cruma/mcp/launcher.mjs";
+import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
+import { buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
   const environment = buildEnvironment({
@@ -102,7 +104,7 @@ function startedArgs(version) {
 
 test("the launcher hands `cruma mcp` the fixed origin flag, and the configs pass the launcher no arguments", () => {
   for (const [file, key] of [[".mcp.json", "cruma"], ["mcp.json", "cruma"]]) {
-    const parsed = JSON.parse(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"));
+    const parsed = JSON.parse(readFileSync(new URL(`../plugins/cruma/${file}`, import.meta.url), "utf8"));
     const args = (parsed.mcpServers ?? parsed)[key].args;
     assert.equal(args.length, 1, `${file} passes only the launcher file`);
     assert.match(args[0], /\/mcp\/cruma-mcp\.mjs$/);
@@ -134,7 +136,7 @@ test("the session note comes from `cruma agent-context` on the newest install, w
   assert.deepEqual(calls.at(-1), {
     executable: "/new",
     args: ["agent-context"],
-    env: buildEnvironment(source),
+    env: buildCloudEnvironment(source),
     timeout: AGENT_CONTEXT_TIMEOUT_MS,
   });
 });

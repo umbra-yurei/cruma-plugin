@@ -1,5 +1,5 @@
-// Finds the installed Cruma agent and starts `cruma mcp` with the allowlisted environment, or
-// runs `cruma agent-context` for the SessionStart hook. It downloads nothing: when no agent is
+// Finds the installed Cruma agent and starts `cruma mcp` with the allowlisted environment. It
+// downloads nothing: when no agent is
 // found, `cruma mcp` prints how to install one and exits, and the hook prints nothing.
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -85,25 +85,4 @@ export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, e
   child.on("exit", (code, signal) => {
     exit(code ?? (signal ? 1 : 0));
   });
-}
-
-// `cruma agent-context` limits each request to 2 s and falls back to its cache; this bounds
-// the whole command, so a session start never waits longer.
-export const AGENT_CONTEXT_TIMEOUT_MS = 8000;
-
-// The account's session note from `cruma agent-context`, for the SessionStart hook: the
-// same install `launch` would start, with the same environment. Empty when no agent is
-// installed, the command fails or times out (an agent older than the subcommand exits
-// non-zero), or the agent prints nothing (not signed in, or the board and memory are off).
-export function sessionNote({ source, candidates, spawnSync }) {
-  const environment = buildEnvironment(source);
-  const chosen = findCruma({ environment, candidates, spawnSync });
-  if (!chosen) return "";
-  const result = spawnSync(chosen.executable, ["agent-context"], {
-    env: environment,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-    timeout: AGENT_CONTEXT_TIMEOUT_MS,
-  });
-  return result.status === 0 && typeof result.stdout === "string" ? result.stdout.trim() : "";
 }
