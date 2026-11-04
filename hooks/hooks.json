@@ -1,0 +1,17 @@
+{
+  "description": "Adds the Cruma account's coding-agent note (boards and memory to use) at session start, only when the user turned the board or memory on.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-context.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

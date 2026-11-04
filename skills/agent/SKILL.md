@@ -31,6 +31,12 @@ plugin does not connect it.
   `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`). Do not run it
   unless they ask; it connects in a new session and asks them to sign in. Do
   not answer account questions from the local agent instead.
+- **The session note.** Clients without a session-start hook (Codex and
+  others): when `cruma-cloud` is connected, call `session_context` once at the
+  start of a session and follow the note it returns (empty means the user has
+  turned the board and memory off). In Claude Code the plugin's session-start
+  hook adds the note; do not call it there. `/cruma:board on|off` and
+  `/cruma:memory on|off` change these settings, only when the user runs them.
 - **Never for local work.** Sharing a port or folder and the user's running
   agents stay on the local `cruma` server; do not mention or add the cloud
   server for them.

@@ -1,0 +1,1 @@
+{"settings": {"board_enabled": false, "memory_enabled": false, "agents_may_write": true, "boards": [{"id": "brd_7f3a", "label": "Cruma tunnels"}], "default_board_id": "brd_7f3a", "spaces": [], "default_space_id": null}, "session_note": null}
