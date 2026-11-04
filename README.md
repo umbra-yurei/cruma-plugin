@@ -301,10 +301,14 @@ with the change:
 claude plugin validate --strict .
 for c in evals/*/prompt.md evals/*/case.yaml; do
   [ -e "$c" ] || continue
-  claude plugin eval . --trust-plugin --case "$(basename "$(dirname "$c")")" 2>&1 \
+  env -u ANTHROPIC_API_KEY claude plugin eval . --trust-plugin --case "$(basename "$(dirname "$c")")" 2>&1 \
     | grep -E 'mocked:|failed to load|invalid|Not logged in'
 done
 ```
+
+`env -u ANTHROPIC_API_KEY` keeps the loop from spending model calls in a shell
+that exports an API key (agent sandboxes do); a machine logged in through
+`claude login` still runs the cases, so run the loop logged out.
 
 `eval` only parses the cases its `--case` filter selects, so the loop runs
 each case (each directory with a `prompt.md` or `case.yaml`) on its own. A
