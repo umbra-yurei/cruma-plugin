@@ -1,0 +1,1 @@
+{"id":"t-5e10","name":"new","description":null,"status":"active","public_domain":"new-5e10.tun.example.test","custom_domain_name":null,"custom_domain":"none","requested_tier":null,"effective_tier":"free","entitlement_reason":"free_tier","online":false,"last_seen_online":null,"created_at":"2026-11-02T12:30:00Z","org_id":null}

@@ -30,7 +30,10 @@ repository that needs Node.js). The launcher starts `cruma mcp` from the `cruma`
 installed on your machine (the macOS app, Homebrew, `/usr/local/bin`,
 `~/.local/bin`, the Windows Store alias, then `PATH`; the newest wins) with its
 own anonymous agent, and exposes nothing until Claude calls a tool that does.
-It downloads nothing. When `cruma` is not installed, it prints how to install
+It passes `cruma mcp` only the environment variables named in
+`mcp/environment.mjs`, so a process the agent hosts for you (started with
+`upsert_process`) does not inherit the rest of your shell's environment, such as
+`NODE_ENV` or `GOPATH`: put what it needs in the process's own settings. It downloads nothing. When `cruma` is not installed, it prints how to install
 it and the MCP server fails to start and the skill falls
 back to `cruma proxy http <port> --json` for a port; a folder waits for the MCP
 tools. With the tools connected the skill never starts a Python or other file
@@ -91,6 +94,25 @@ in its managed settings, and at most once every three sessions. Setting
 `spinnerTipsEnabled` to `false` turns off the spinner tip and the
 session-start notice.
 
+## Cruma cloud (optional)
+
+`cruma-cloud` is a second plugin in this marketplace. It holds one MCP server,
+Cruma's hosted `https://mcp.cruma.io/mcp`, for questions about your Cruma
+account: your plan, the tunnels and sites on the account, and the other
+services it lists. Its first use opens your browser to sign in. The `cruma`
+plugin does not include it, so local tunnels never ask you to sign in.
+
+```sh
+claude plugin install cruma-cloud@cruma-plugin   # Claude Code
+codex plugin add cruma-cloud@cruma-plugin        # Codex, after `codex plugin marketplace add umbra-yurei/cruma-plugin`
+```
+
+Or add the server by hand: `claude mcp add --transport http cruma-cloud
+https://mcp.cruma.io/mcp`, or `codex mcp add cruma-cloud --url
+https://mcp.cruma.io/mcp`. With it connected, the skill starts account
+questions with `list_services` and `describe_service`; without it, it says the
+server is optional and gives these commands.
+
 ## Updating
 
 The plugin and the `cruma` agent update separately; updating one does not
@@ -150,14 +172,19 @@ server:
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
 | `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
 | `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
+| `cloud-plan`, `cloud-list-tunnels` | with the cloud server connected (as the `cruma-cloud` plugin, or added by hand), "what's my Cruma plan?" and "list my tunnels" call `list_services` before the service's tool and read nothing from the local agent |
+| `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the command to add it, with no plan invented |
+| `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |
+| `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Run them with `claude plugin eval . --trust-plugin`.
 
-`node scripts/check-plugin.mjs` checks that `.mcp.json` runs a file inside the
-plugin, the skill is named `agent` and pipes nothing into a shell, and the
-versions agree. `node --test mcp/cruma-mcp.test.mjs` checks that the launcher
-passes `cruma mcp` only the environment variables named in `mcp/environment.mjs`;
+`node scripts/check-plugin.mjs` checks that `.mcp.json` declares only the local
+`cruma` server and runs a file inside the plugin, that only `plugins/cruma-cloud`
+declares the cloud server, the skill is named `agent` and pipes nothing into a shell, the plugin
+ships no installer script, and the versions agree. `node --test mcp/cruma-mcp.test.mjs` checks that
+the launcher passes `cruma mcp` only the environment variables named in `mcp/environment.mjs`;
 both run in CI.
 
 ### Grader conventions

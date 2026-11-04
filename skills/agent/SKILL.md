@@ -1,6 +1,6 @@
 ---
 name: agent
-description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
+description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), for questions about the user's Cruma account (plan, the tunnels and sites on the account), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
 ---
 
 # Cruma tunnels
@@ -9,6 +9,31 @@ Use this skill when the user wants to publish something from their machine,
 manage what Cruma already serves, or install or stop Cruma. Anything shared is
 public: ask before sharing and say exactly which port or folder becomes
 reachable. Anonymous tunnels need no signup.
+
+## The user's Cruma account
+
+Their account (plan and subscription, the tunnels and sites on the account,
+and whatever else it lists) is served by Cruma's hosted MCP server
+`cruma-cloud` (`https://mcp.cruma.io/mcp`). It is an optional add-on: this
+plugin does not connect it.
+
+- **Connected** (`cruma-cloud` tools in your tool list, for example from the
+  `cruma-cloud` plugin): use it for account questions. Start with
+  `list_services`, then `describe_service` for the service you need; its tools
+  appear after that. The server describes itself: do not guess tool or service
+  names. Never mention or offer a service `list_services` does not show; say
+  it is not available on their account.
+- **Not connected**, and the user asks something account-side: say the cloud
+  server is optional and give the command to add it. Claude Code:
+  `claude plugin install cruma-cloud@cruma-plugin` (or
+  `claude mcp add --transport http cruma-cloud https://mcp.cruma.io/mcp`).
+  Codex: `codex plugin add cruma-cloud@cruma-plugin` (or
+  `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`). Do not run it
+  unless they ask; it connects in a new session and asks them to sign in. Do
+  not answer account questions from the local agent instead.
+- **Never for local work.** Sharing a port or folder and the user's running
+  agents stay on the local `cruma` server; do not mention or add the cloud
+  server for them.
 
 ## With the cruma MCP tools
 
@@ -87,10 +112,13 @@ set `persist` for them.
 When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
 "add a password to my staging site", "what's running in my Cruma?"), or they
-want their own tunnel, a custom domain or a named profile, call `list_agents`
+want to share through their own tunnel, a custom domain or a named profile,
+call `list_agents`
 **before any tool that reads or changes an agent** (`describe_cruma`, `cruma://about`,
 `get_config_model_reference` and `get_cruma_glossary` are fine first). Reading the session agent answers about a
-setup that is not theirs, so never read it for such a request.
+setup that is not theirs, so never read it for such a request. Listing or
+creating the tunnels on their account is the account's (see above), not
+`list_agents`'.
 
 - **Ask before `use_agent`**, naming the agent's kind (desktop, headless),
   profile and domain, and wait for the answer. For a plain share, the question
@@ -296,10 +324,16 @@ older than the field: treat the flavour as unknown, and that is not a reason to
 reinstall.
 
 On a machine with a desktop, a `server-agent` build means the user has no
-Cruma window. Say so once, keep using it for shares, and do not replace it. If
-the user wants the desktop app, name the GUI-capable package for their OS
-(**Fresh install**), warn that the older `cruma` must be removed or it may stay
-first on `PATH`, and wait for their go-ahead.
+Cruma window. Say so once, keep using it for shares, and do not replace it. Offer
+no other package unprompted. Only when the user asks for the desktop app, name
+the GUI-capable package for their OS (**Fresh install**), warn that the older
+`cruma` must be removed or it may stay first on `PATH`, and wait for their
+go-ahead.
+
+When the user asks whether anything must be installed and their Cruma meets the
+minimum version, the answer is no: say that they can use the installed one, say
+what its build flavour means, and stop there. It names no install command of
+any kind.
 
 ### Versions
 
@@ -331,12 +365,13 @@ On a desktop use the GUI-capable package for the OS:
 | OS | Package |
 | --- | --- |
 | macOS | the Homebrew cask (the signed application) |
-| Linux | the Homebrew formula (the glibc build) when `brew` is installed, otherwise npm |
+| Linux | the Homebrew formula (the glibc build, GUI-capable) when `brew` is installed |
 | Windows | Microsoft Store |
 
 Never recommend a musl or server-agent artifact, or a direct download of a
 binary, for a desktop. Without a desktop (a server, container or SSH session)
-the Linux commands below still apply; `npm install -g cruma` is the usual choice there.
+the Linux section below applies as well; `npm install -g cruma` is the usual
+choice there.
 
 #### macOS
 
@@ -353,20 +388,22 @@ installation.
 
 #### Linux
 
-Ask first, name the command and what it installs, and run it only after the
-user says yes (or give it to them when they will run it themselves). The plugin
-ships no installer script, and you never download a script and pipe it to a
-shell. Pick one of these and do not run both:
+Offer exactly one command, chosen by what the machine has, and offer nothing
+else. Ask first: your reply names the command, says what it installs, and ends
+with a question such as "Run `npm install -g cruma`?". Run it only after the
+user says yes, or just give it to them when they will run it themselves. The
+only install routes are the ones listed here.
 
-- `brew install umbra-yurei/brew/cruma` when `brew` is installed. It is the
-  GUI-capable glibc build, so it is the one for a desktop.
-- `npm install -g cruma` when `npm` is available and Homebrew is not. It
-  installs the terminal agent for x86_64 and arm64 and needs no `sudo` with a
-  user-level npm prefix. It has no desktop window; for one, point the user to
-  https://cruma.io for the other install methods.
+| The machine has | The command | What it installs |
+| --- | --- | --- |
+| `brew` | `brew install umbra-yurei/brew/cruma` | the glibc build, which is GUI-capable: the one for a desktop |
+| `npm`, no `brew` | `npm install -g cruma` | the terminal agent for x86_64 and arm64; no `sudo` with a user-level npm prefix; no desktop window |
+| neither | none | point the user to https://cruma.io for the install methods, and stop |
 
-With neither, point the user to https://cruma.io for the install methods and
-stop. Do not fetch and run anything yourself.
+Never name the command of a row the machine does not qualify for (no Homebrew
+command on a machine without `brew`), and never run two. Someone who wants a
+desktop window on a machine with `npm` but no `brew` is pointed to
+https://cruma.io for the other install methods.
 
 #### Windows
 
@@ -444,9 +481,11 @@ it as given. Otherwise pick by how Cruma was installed:
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
 
-Give only the command for the install the user has: never a command from another
-row, even when that package is newer or has a desktop window (**An existing
-install**). If the method is not known, ask the user; do not guess one. After upgrading,
+Give the command of the row for the install the user has, exactly as the row
+writes it and in a code block, even when you offer to run it. Name no other
+row's command, not even to say it is not used, and not when that package is newer
+or has a desktop window (**An existing install**). If the method is not known,
+ask the user; do not guess one. After upgrading,
 the running MCP server keeps the old agent until the Claude session is
 restarted. Tell the user to restart it.
 

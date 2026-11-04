@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cruma-cloud",
+  "version": "0.1.0",
+  "description": "Connect Cruma's hosted MCP server (mcp.cruma.io) for your Cruma account: your plan, the tunnels and sites on the account. Signs in with your Cruma account in the browser.",
+  "author": {
+    "name": "Cruma"
+  },
+  "homepage": "https://cruma.io",
+  "repository": "https://github.com/umbra-yurei/cruma-plugin",
+  "license": "MIT",
+  "keywords": [
+    "tunnels",
+    "account"
+  ]
+}
