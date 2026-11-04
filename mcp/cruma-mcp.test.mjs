@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
+import { readFileSync } from "node:fs";
 import { launch } from "./launcher.mjs";
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
@@ -80,4 +81,36 @@ test("the launcher prefers the strictly newer install", () => {
     error() {},
   });
   assert.deepEqual(starts, ["/new"]);
+});
+
+function startedArgs(version, originArgs) {
+  const starts = [];
+  launch({
+    originArgs,
+    source: {},
+    candidates: ["/opt/cruma"],
+    spawnSync: () => ({ status: 0, stdout: `cruma ${version}` }),
+    spawn: (executable, args) => {
+      starts.push(args);
+      return { on() {}, kill() {} };
+    },
+    exit() {},
+    onSignal() {},
+    error() {},
+  });
+  return starts;
+}
+
+test(".mcp.json passes the fixed origin flag to the launcher, which hands it to `cruma mcp`", () => {
+  const servers = JSON.parse(readFileSync(new URL("../.mcp.json", import.meta.url), "utf8"));
+  const [file, ...originArgs] = servers.cruma.args;
+  assert.match(file, /\/mcp\/cruma-mcp\.mjs$/);
+  assert.deepEqual(originArgs, ["--origin", "plugin"]);
+  assert.deepEqual(startedArgs("1.0.18", originArgs), [["mcp", "--origin", "plugin"]]);
+  assert.deepEqual(startedArgs("2.0.0", originArgs), [["mcp", "--origin", "plugin"]]);
+});
+
+test("an agent older than the origin flag is started without it", () => {
+  assert.deepEqual(startedArgs("1.0.17", ["--origin", "plugin"]), [["mcp"]]);
+  assert.deepEqual(startedArgs("1.0.12", ["--origin", "plugin"]), [["mcp"]]);
 });

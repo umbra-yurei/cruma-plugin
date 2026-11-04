@@ -14,8 +14,9 @@ if (Object.keys(servers).join() !== "cruma") failures.push(".mcp.json must decla
 if (existsSync(join(root, "mcp.json"))) failures.push("mcp.json must not exist: Codex reads it, and the cruma plugin adds no server beyond .mcp.json's");
 const server = servers.cruma;
 const [launcher, ...extra] = server.args;
-if (server.command !== "node" || extra.length > 0 || !launcher.startsWith("${CLAUDE_PLUGIN_ROOT}/")) {
-  failures.push('.mcp.json must run `node ${CLAUDE_PLUGIN_ROOT}/<file>` with no other arguments');
+// The one flag the launcher hands `cruma mcp`, so what a coding agent shares is attributed to the plugin.
+if (server.command !== "node" || extra.join(" ") !== "--origin plugin" || !launcher.startsWith("${CLAUDE_PLUGIN_ROOT}/")) {
+  failures.push('.mcp.json must run `node ${CLAUDE_PLUGIN_ROOT}/<file> --origin plugin` with no other arguments');
 } else if (!existsSync(join(root, launcher.replace("${CLAUDE_PLUGIN_ROOT}/", "")))) {
   failures.push(`.mcp.json runs ${launcher}, which is not in the plugin`);
 }

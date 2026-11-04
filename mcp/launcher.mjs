@@ -18,6 +18,9 @@ export function candidatePaths(source) {
   ];
 }
 
+// The first agent version whose `cruma mcp` accepts `--origin plugin`; an older one rejects the flag.
+const ORIGIN_FLAG_MIN_VERSION = [1, 0, 18];
+
 function isNewer(left, right) {
   for (let index = 0; index < 3; index += 1) {
     if (left[index] !== right[index]) return left[index] > right[index];
@@ -25,8 +28,9 @@ function isNewer(left, right) {
   return false;
 }
 
-// `spawnSync` and `spawn` are node:child_process's; tests pass recording stand-ins.
-export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, error }) {
+// `originArgs` is the fixed `--origin plugin` that .mcp.json passes; it is added to `cruma mcp` only
+// for an agent new enough to accept it. `spawnSync` and `spawn` are node:child_process's; tests pass recording stand-ins.
+export function launch({ originArgs = [], source, candidates, spawnSync, spawn, exit, onSignal, error }) {
   const environment = buildEnvironment(source);
 
   function versionOf(executable) {
@@ -55,7 +59,9 @@ export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, e
     return;
   }
 
-  const child = spawn(chosen.executable, ["mcp"], { env: environment, stdio: "inherit" });
+  const knowsOrigin = !isNewer(ORIGIN_FLAG_MIN_VERSION, chosen.version);
+  const args = knowsOrigin ? ["mcp", ...originArgs] : ["mcp"];
+  const child = spawn(chosen.executable, args, { env: environment, stdio: "inherit" });
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) onSignal(signal, () => child.kill(signal));
   child.on("error", (failure) => {
     error(`cruma: unable to start ${chosen.executable}: ${failure.message}`);
