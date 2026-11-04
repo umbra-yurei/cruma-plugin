@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
-
-const launcher = join(dirname(fileURLToPath(import.meta.url)), "cruma-mcp.mjs");
+import { launch } from "./launcher.mjs";
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
   const environment = buildEnvironment({
@@ -26,26 +20,64 @@ test("buildEnvironment lists exact names, never prefixes", () => {
   assert.equal(new Set(FORWARDED_NAMES).size, FORWARDED_NAMES.length);
 });
 
-test("the agent started by the launcher receives only allowlisted names", { skip: process.platform === "win32" }, () => {
-  const directory = mkdtempSync(join(tmpdir(), "cruma-launcher-"));
-  try {
-    const fake = join(directory, "cruma");
-    writeFileSync(fake, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cruma 99.0.0"; exit 0; fi\nenv\n');
-    chmodSync(fake, 0o755);
+test("the launcher gives the probe and the started agent exactly the allowlisted environment", () => {
+  const source = { PATH: "/bin", HOME: "/home/user", ANTHROPIC_API_KEY: "secret", SECRET_TOKEN: "secret" };
+  const expected = buildEnvironment(source);
+  const probes = [];
+  const starts = [];
+  const exits = [];
+  const child = { on() {}, kill() {} };
+  launch({
+    source,
+    candidates: ["/opt/cruma"],
+    spawnSync: (executable, args, options) => {
+      probes.push({ executable, args, env: options.env });
+      return { status: 0, stdout: "cruma 99.0.0" };
+    },
+    spawn: (executable, args, options) => {
+      starts.push({ executable, args, env: options.env });
+      return child;
+    },
+    exit: (code) => exits.push(code),
+    onSignal() {},
+    error() {},
+  });
+  assert.deepEqual(expected, { PATH: "/bin", HOME: "/home/user", [LAUNCHER_FLAG]: "1" });
+  assert.deepEqual(probes, [{ executable: "/opt/cruma", args: ["--version"], env: expected }]);
+  assert.deepEqual(starts, [{ executable: "/opt/cruma", args: ["mcp"], env: expected }]);
+  assert.deepEqual(exits, []);
+});
 
-    const result = spawnSync(process.execPath, [launcher], {
-      env: { PATH: `${directory}:${process.env.PATH}`, HOME: directory, SECRET_TOKEN: "leak", ANTHROPIC_API_KEY: "leak" },
-      encoding: "utf8",
-    });
-    assert.equal(result.status, 0, result.stderr);
-    const names = result.stdout.split("\n").filter(Boolean).map((line) => line.slice(0, line.indexOf("=")));
-    assert.ok(names.includes(LAUNCHER_FLAG));
-    assert.ok(!result.stdout.includes("leak"));
-    // `sh` adds PWD, SHLVL, OLDPWD and `_` itself; they are not inherited from the launcher.
-    const shellOwn = new Set(["PWD", "OLDPWD", "SHLVL", "_"]);
-    const unexpected = names.filter((name) => !shellOwn.has(name) && !FORWARDED_NAMES.includes(name) && name !== LAUNCHER_FLAG);
-    assert.deepEqual(unexpected, []);
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
-  }
+test("the launcher exits 1 with install guidance and starts nothing when no agent answers", () => {
+  const errors = [];
+  const exits = [];
+  launch({
+    source: {},
+    candidates: ["/opt/cruma"],
+    spawnSync: () => ({ status: 1, stdout: "" }),
+    spawn: () => assert.fail("nothing may be started"),
+    exit: (code) => exits.push(code),
+    onSignal() {},
+    error: (message) => errors.push(message),
+  });
+  assert.deepEqual(exits, [1]);
+  assert.match(errors[0], /not found/);
+});
+
+test("the launcher prefers the strictly newer install", () => {
+  const versions = { "/old": "cruma 1.0.12", "/new": "cruma 1.0.17", "/same": "cruma 1.0.17" };
+  const starts = [];
+  launch({
+    source: {},
+    candidates: ["/old", "/new", "/same"],
+    spawnSync: (executable) => ({ status: 0, stdout: versions[executable] }),
+    spawn: (executable) => {
+      starts.push(executable);
+      return { on() {}, kill() {} };
+    },
+    exit() {},
+    onSignal() {},
+    error() {},
+  });
+  assert.deepEqual(starts, ["/new"]);
 });
