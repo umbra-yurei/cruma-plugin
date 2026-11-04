@@ -113,6 +113,32 @@ https://mcp.cruma.io/mcp`. With it connected, the skill starts account
 questions with `list_services` and `describe_service`; without it, it says the
 server is optional and gives these commands.
 
+## Board and memory for your coding agents (optional)
+
+Two skills turn Cruma's board and memory on or off for your coding agents. Only
+you run them; the model never loads them on its own:
+
+```text
+/cruma:board on     /cruma:board off
+/cruma:memory on    /cruma:memory off
+```
+
+They need `cruma-cloud` signed in. `on` turns the setting on, lists your boards
+(or memory spaces), asks which to enable and which is the default, and asks
+whether agents may write (one permission covers the board and memory). `off`
+turns it off and keeps your choices for the next `on`. The settings live on
+your Cruma account, so they apply to every new session on every machine signed
+in to it, not to one folder or repository.
+
+At session start, the plugin's `SessionStart` hook (`hooks/hooks.json`) runs
+`cruma agent-context` from the same installed `cruma` the MCP launcher uses
+(`mcp/launcher.mjs`, with the same environment) and adds what it prints to the
+session. It prints a short note naming the boards and memory to use only when
+one of them is on and the `cruma` on this machine is signed in to the account
+(`cruma auth login`); with both off, no `cruma`, no sign-in or an agent older
+than the command, the session gets nothing. Clients without hooks, such as
+Codex, call `session_context` on `cruma-cloud` once at session start instead.
+
 ## Updating
 
 The plugin and the `cruma` agent update separately; updating one does not
@@ -177,15 +203,26 @@ server:
 | `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the command to add it, with no plan invented |
 | `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |
 | `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
+| `settings-never-on`, `settings-off-no-note` | with the board and memory off, the session starts without a note, and neither "fix this issue" nor a question about the note touches the board or memory services |
+| `settings-on-note` | with both on, a session in an empty (non-git) directory starts with the note, recalls from the default memory space before filing, and "file this as a bug" files one bug on the default board and reports its id |
+| `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma:board off` changes only `board_enabled`; each says it applies from the next session |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
-Run them with `claude plugin eval . --trust-plugin`.
+Run them with `claude plugin eval . --trust-plugin --scaffold`. The `settings-*`
+cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
+`evals/fake-cruma/install.sh`) in the run's own home directory, whose
+`agent-context` prints the case's note, so the hook runs exactly as with a real
+install and never reads the account of whoever runs the suite.
 
 `node scripts/check-plugin.mjs` checks that `.mcp.json` declares only the local
 `cruma` server and runs a file inside the plugin, that only `plugins/cruma-cloud`
-declares the cloud server, the skill is named `agent` and pipes nothing into a shell, the plugin
-ships no installer script, and the versions agree. `node --test mcp/cruma-mcp.test.mjs` checks that
-the launcher passes `cruma mcp` only the environment variables named in `mcp/environment.mjs`;
+declares the cloud server, the skills are named after their directories, `board` and
+`memory` set `disable-model-invocation: true`, no skill pipes into a shell, the
+`SessionStart` hook runs a file inside the plugin that finds `cruma` through
+`mcp/launcher.mjs`, the plugin ships no installer script, and the versions agree.
+`node --test mcp/cruma-mcp.test.mjs` checks that the launcher passes `cruma mcp` and
+`cruma agent-context` only the environment variables named in `mcp/environment.mjs`,
+and that the hook's note is empty whenever no agent answers or `agent-context` fails;
 both run in CI.
 
 ### Grader conventions
@@ -244,7 +281,7 @@ the suite loads; it does not prove a case passes.
 
 ```sh
 cruma --version
-claude plugin eval . --trust-plugin
+claude plugin eval . --trust-plugin --scaffold
 ```
 
 Add `--case <glob>` to run only the cases the change touched, and
