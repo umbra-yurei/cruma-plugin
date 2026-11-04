@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
-import { launch } from "./launcher.mjs";
+import { AGENT_CONTEXT_TIMEOUT_MS, launch, sessionNote } from "./launcher.mjs";
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
   const environment = buildEnvironment({
@@ -80,4 +80,47 @@ test("the launcher prefers the strictly newer install", () => {
     error() {},
   });
   assert.deepEqual(starts, ["/new"]);
+});
+
+test("the session note comes from `cruma agent-context` on the newest install, with the allowlisted environment", () => {
+  const source = { PATH: "/bin", HOME: "/home/user", ANTHROPIC_API_KEY: "secret" };
+  const versions = { "/old": "cruma 1.0.17", "/new": "cruma 1.0.18" };
+  const calls = [];
+  const note = sessionNote({
+    source,
+    candidates: ["/old", "/new"],
+    spawnSync: (executable, args, options) => {
+      calls.push({ executable, args, env: options.env, timeout: options.timeout });
+      if (args[0] === "--version") return { status: 0, stdout: versions[executable] };
+      return { status: 0, stdout: "Cruma coding-agent settings for this user\n" };
+    },
+  });
+  assert.equal(note, "Cruma coding-agent settings for this user");
+  assert.deepEqual(calls.at(-1), {
+    executable: "/new",
+    args: ["agent-context"],
+    env: buildEnvironment(source),
+    timeout: AGENT_CONTEXT_TIMEOUT_MS,
+  });
+});
+
+test("the session note is empty without an agent, on a failing or silent `agent-context`", () => {
+  const cases = [
+    { version: { status: 1, stdout: "" }, context: undefined },
+    { version: { status: 0, stdout: "cruma 1.0.17" }, context: { status: 2, stdout: "error: unrecognized subcommand" } },
+    { version: { status: 0, stdout: "cruma 1.0.18" }, context: { status: null, stdout: "partial", signal: "SIGTERM" } },
+    { version: { status: 0, stdout: "cruma 1.0.18" }, context: { status: 0, stdout: "" } },
+  ];
+  for (const { version, context } of cases) {
+    const note = sessionNote({
+      source: {},
+      candidates: ["/opt/cruma"],
+      spawnSync: (_executable, args) => {
+        if (args[0] === "--version") return version;
+        assert.ok(context, "agent-context runs only when an agent was found");
+        return context;
+      },
+    });
+    assert.equal(note, "");
+  }
 });
