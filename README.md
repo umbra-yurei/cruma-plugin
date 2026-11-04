@@ -256,6 +256,30 @@ both run in CI.
   `get_runtime_summary` the switched-to agent's values, and the skill works from
   the `use_agent` result instead of re-listing agents.
 
+### Generated mocks
+
+Mocks of `cruma mcp` results are generated, not written by hand. Every
+`evals/**/mocks/plugin_cruma_cruma/<tool>.md` and `evals/**/mocks/cruma-app/<tool>.md`
+of a typed tool, and every `_tools.json`, is written by cruma-sdk from typed
+fixtures (`cruma-core/src/mcp/plugin_mocks/`), through the same functions that
+build the real tool results. A field added to or renamed in a result therefore
+reaches the mocks on the next regeneration. To change what a case's tool returns,
+edit its fixture in cruma-sdk, not the `.md`. Then regenerate from a cruma-sdk
+checkout next to this repo:
+
+```sh
+cd ../cruma-sdk
+cargo run -p cruma-core --features plugin-mocks --example plugin-mocks -- generate --plugin-dir ../cruma-plugin
+cargo run -p cruma-core --features plugin-mocks --example plugin-mocks -- check --plugin-dir ../cruma-plugin
+```
+
+`check` exits non-zero and names every file that differs from the generator's
+output, is missing, or is a typed tool's mock the generator does not produce.
+The merge queue runs it on changes to `evals/` and to cruma-sdk, so a hand edit
+to a generated mock, or a result type changed in cruma-sdk without regenerating,
+fails the queue. Mocks of tools that are not typed yet (listed in the
+generator's `UNTYPED_TOOLS`) and the `cruma-cloud` mocks stay hand-written.
+
 The suite does not run an installer: the MCP server only connects once `cruma`
 is available. The `windows-store-alias-missing` case runs with no shell and no
 Cruma tools (Bash is an operator-gated tool), like a session where the MCP

@@ -1,1 +1,17 @@
-{"schema_version":"2026-04-22","kind":"cruma.expose.exposed","public_url":"https://app.demo1234.tun.example.test","public_hostname":"app.demo1234.tun.example.test","local_target":"127.0.0.1:3000","name":"app","frontend_id":"app","backend_id":"mcp-expose-app","updated":false,"account":{"state":"anonymous","sign_up_url":"https://dash.cruma.io/?ref=agent-mcp&client=claude-code","expires_at":"2026-11-02T14:30:00Z","remaining_secs":9000}}
+{
+  "schema_version": "2026-04-22",
+  "kind": "cruma.expose.exposed",
+  "public_url": "https://app.demo1234.tun.example.test",
+  "public_hostname": "app.demo1234.tun.example.test",
+  "local_target": "127.0.0.1:3000",
+  "name": "app",
+  "frontend_id": "app",
+  "backend_id": "mcp-expose-app",
+  "updated": false,
+  "account": {
+    "state": "anonymous",
+    "sign_up_url": "https://dash.cruma.io/?ref=agent-mcp&client=claude-code",
+    "expires_at": "2026-11-02T14:30:00Z",
+    "remaining_secs": 9000
+  }
+}
