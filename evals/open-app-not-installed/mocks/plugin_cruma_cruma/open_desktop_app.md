@@ -1,1 +1,1 @@
-{"status":"unavailable","reason":"not_installed","message":"the Cruma desktop app is not installed","install_hint":"Install the desktop build by running: curl -fsSL https://cruma.io/linux-install.sh | sh"}
+{"status":"unavailable","reason":"not_installed","message":"the Cruma desktop app is not installed","install_hint":"Install the desktop build by running: curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh | bash"}

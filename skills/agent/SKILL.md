@@ -310,10 +310,12 @@ workaround, and never claim or invent a public URL.
 already running, so the user can see their tunnels and settings. It is a
 session tool: it does not need `use_agent` and changes nothing.
 
-- Call it when the user asks to see their tunnels, sites or settings in the
-  app. After the first successful share on what looks like a desktop machine,
-  you may offer it in one sentence ("Want me to open the Cruma app so you can
-  see it?") and call it only after a yes.
+- Call it when the user asks to see, look at or review their tunnels, sites or
+  settings; they do not have to name the app.
+- After the first successful share on what looks like a desktop machine (the
+  user is at a screen, not in CI or over SSH), offer it once in one sentence
+  ("Want me to open the Cruma app so you can see it?") and call it only after
+  a yes. One offer per session.
 - Never call it unprompted, and never in CI, over SSH or in any headless or
   non-interactive session. If you cannot ask, do not open it.
 - `status` is `opened` or `focused`: say so. `unavailable` carries a `reason`
