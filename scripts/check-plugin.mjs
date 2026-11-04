@@ -16,7 +16,8 @@ const codexServers = JSON.parse(readFileSync(join(root, "mcp.json"), "utf8")).mc
 if (Object.keys(codexServers).join() !== "cruma") failures.push("mcp.json must declare only the local `cruma` server");
 const server = servers.cruma;
 const [launcher, ...extra] = server.args;
-if (server.command !== "node" || extra.length > 0 || !launcher.startsWith("${CLAUDE_PLUGIN_ROOT}/")) {
+// The launcher holds the one `--origin plugin` flag it hands `cruma mcp`; the config passes nothing.
+if (server.command !== "node" || extra.length !== 0 || !launcher.startsWith("${CLAUDE_PLUGIN_ROOT}/")) {
   failures.push('.mcp.json must run `node ${CLAUDE_PLUGIN_ROOT}/<file>` with no other arguments');
 } else if (!existsSync(join(root, launcher.replace("${CLAUDE_PLUGIN_ROOT}/", "")))) {
   failures.push(`.mcp.json runs ${launcher}, which is not in the plugin`);

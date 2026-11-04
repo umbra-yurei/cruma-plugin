@@ -19,6 +19,15 @@ export function candidatePaths(source) {
   ];
 }
 
+// The one flag every plugin launch hands `cruma mcp`, so what a coding agent shares is attributed
+// to the plugin. It is fixed here, not read from the plugin's configuration or argv.
+export const ORIGIN_ARGS = ["--origin", "plugin"];
+
+// The first agent version whose `cruma mcp` accepts `--origin plugin`; an older one rejects the flag.
+// cruma-sdk was at 1.0.17 (the stable agent) when the flag was added, so 1.0.18, the next
+// release, is the first to ship it; lower this only if a release before it carries the flag.
+const ORIGIN_FLAG_MIN_VERSION = [1, 0, 18];
+
 function isNewer(left, right) {
   for (let index = 0; index < 3; index += 1) {
     if (left[index] !== right[index]) return left[index] > right[index];
@@ -28,7 +37,7 @@ function isNewer(left, right) {
 
 // The installed agent to run, probing each candidate with `cruma --version` under
 // `environment`: the first working install wins, and a later one replaces it only when
-// strictly newer. `undefined` when none answers. `spawnSync` is node:child_process's;
+// strictly newer. `{ executable, version }`, or `undefined` when none answers. `spawnSync` is node:child_process's;
 // tests pass a recording stand-in.
 export function findCruma({ environment, candidates, spawnSync }) {
   function versionOf(executable) {
@@ -47,15 +56,16 @@ export function findCruma({ environment, candidates, spawnSync }) {
     const version = versionOf(executable);
     if (version && (!chosen || isNewer(version, chosen.version))) chosen = { executable, version };
   }
-  return chosen?.executable;
+  return chosen;
 }
 
-// `spawnSync` and `spawn` are node:child_process's; tests pass recording stand-ins.
+// `ORIGIN_ARGS` is added to `cruma mcp` only for an agent new enough to accept it. `spawnSync` and
+// `spawn` are node:child_process's; tests pass recording stand-ins.
 export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, error }) {
   const environment = buildEnvironment(source);
-  const executable = findCruma({ environment, candidates, spawnSync });
+  const chosen = findCruma({ environment, candidates, spawnSync });
 
-  if (!executable) {
+  if (!chosen) {
     error(
       "cruma: the Cruma agent (1.0.12 or newer) was not found. Ask the cruma:agent skill to install it, or see https://cruma.io/book/cruma-tunnels/coding-agents.md, then restart Claude Code.",
     );
@@ -63,7 +73,10 @@ export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, e
     return;
   }
 
-  const child = spawn(executable, ["mcp"], { env: environment, stdio: "inherit" });
+  const { executable, version } = chosen;
+  const knowsOrigin = !isNewer(ORIGIN_FLAG_MIN_VERSION, version);
+  const args = knowsOrigin ? ["mcp", ...ORIGIN_ARGS] : ["mcp"];
+  const child = spawn(executable, args, { env: environment, stdio: "inherit" });
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) onSignal(signal, () => child.kill(signal));
   child.on("error", (failure) => {
     error(`cruma: unable to start ${executable}: ${failure.message}`);
@@ -84,9 +97,9 @@ export const AGENT_CONTEXT_TIMEOUT_MS = 8000;
 // non-zero), or the agent prints nothing (not signed in, or the board and memory are off).
 export function sessionNote({ source, candidates, spawnSync }) {
   const environment = buildEnvironment(source);
-  const executable = findCruma({ environment, candidates, spawnSync });
-  if (!executable) return "";
-  const result = spawnSync(executable, ["agent-context"], {
+  const chosen = findCruma({ environment, candidates, spawnSync });
+  if (!chosen) return "";
+  const result = spawnSync(chosen.executable, ["agent-context"], {
     env: environment,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
