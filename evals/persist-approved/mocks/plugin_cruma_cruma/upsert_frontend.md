@@ -1,1 +1,13 @@
-{"schema_version":"2026-04-22","kind":"cruma.config.mutation","persisted":true,"path":"/home/dev/.config/cruma/cruma.yaml","counts":{"backends":1,"frontends":2,"processes":1,"listeners":1},"warnings":[]}
+{
+  "schema_version": "2026-04-22",
+  "kind": "cruma.config.mutation",
+  "persisted": true,
+  "path": "/home/dev/.config/cruma/cruma.yaml",
+  "counts": {
+    "backends": 1,
+    "frontends": 2,
+    "processes": 1,
+    "listeners": 1
+  },
+  "warnings": []
+}

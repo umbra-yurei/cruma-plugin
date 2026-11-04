@@ -1,1 +1,19 @@
-{"schema_version":"2026-04-22","kind":"cruma.expose.exposed","public_url":"https://port-8080.demo1234.tun.example.test","public_hostname":"port-8080.demo1234.tun.example.test","local_target":"127.0.0.1:8080","name":"port-8080","frontend_id":"port-8080","backend_id":"mcp-expose-port-8080","updated":false,"access":{"type":"password","username":"cruma","password":"mock-Pw-7Hq2xZ4n"},"account":{"state":"signed_in"}}
+{
+  "schema_version": "2026-04-22",
+  "kind": "cruma.expose.exposed",
+  "public_url": "https://port-8080.demo1234.tun.example.test",
+  "public_hostname": "port-8080.demo1234.tun.example.test",
+  "local_target": "127.0.0.1:8080",
+  "name": "port-8080",
+  "frontend_id": "port-8080",
+  "backend_id": "mcp-expose-port-8080",
+  "updated": false,
+  "access": {
+    "type": "password",
+    "username": "cruma",
+    "password": "mock-Pw-7Hq2xZ4n"
+  },
+  "account": {
+    "state": "signed_in"
+  }
+}
