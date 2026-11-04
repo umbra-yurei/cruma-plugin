@@ -160,6 +160,7 @@ server:
 | `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
 | `confirmed-switch-expose`, `diagnose-own-site` | after a confirmed switch the order is `list_agents`, `use_agent`, then the work; diagnosis reads logs and changes nothing |
 | `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |
+| `open-app-on-request`, `open-app-see-settings`, `open-app-not-installed`, `open-app-not-unprompted`, `open-app-offer-after-share` | "show me my tunnels in the app" and "I want to look at my tunnels and settings" each call `open_desktop_app` once; an `unavailable` answer (app not installed) is relayed with its install hint and not retried; a CI share request never opens the app; after a share on a desktop the app is offered as a question and not opened without a yes |
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
 | `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
