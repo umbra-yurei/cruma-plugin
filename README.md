@@ -3,8 +3,8 @@
 This plugin gives coding agents a skill named `agent` (`cruma:agent` in Claude Code) for installing the Cruma tunnel
 agent and publishing local things: a dev server port, a folder of files served
 by the agent itself (no separate file server), an app the agent hosts for you,
-or several named sites at once. The installer downloads the agent
-from [files.cruma.io](https://files.cruma.io). A tunnel makes the selected local
+or several named sites at once. The plugin ships no installer: on Linux the skill
+offers `npm install -g cruma` or Homebrew after you confirm. A tunnel makes the selected local
 service reachable at a public URL, so only expose a service after the user has
 confirmed that it is safe to share. Tunnels can be anonymous: no account or
 signup is required to start one.
@@ -30,7 +30,10 @@ repository that needs Node.js). The launcher starts `cruma mcp` from the `cruma`
 installed on your machine (the macOS app, Homebrew, `/usr/local/bin`,
 `~/.local/bin`, the Windows Store alias, then `PATH`; the newest wins) with its
 own anonymous agent, and exposes nothing until Claude calls a tool that does.
-It downloads nothing. When `cruma` is not installed, it prints how to install
+It passes `cruma mcp` only the environment variables named in
+`mcp/environment.mjs`, so a process the agent hosts for you (started with
+`upsert_process`) does not inherit the rest of your shell's environment, such as
+`NODE_ENV` or `GOPATH`: put what it needs in the process's own settings. It downloads nothing. When `cruma` is not installed, it prints how to install
 it and the MCP server fails to start and the skill falls
 back to `cruma proxy http <port> --json` for a port; a folder waits for the MCP
 tools. With the tools connected the skill never starts a Python or other file
@@ -126,13 +129,13 @@ change the other.
   | --- | --- |
   | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
   | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
-  | Linux installer | `bash skills/agent/scripts/linux-install.sh` (the copy in the plugin; the same script as `curl -fsSL https://files.cruma.io/files/tunnel-agent/install/linux-install.sh \| bash`) |
+  | Linux installer script | run the installer you used again; see [cruma.io](https://cruma.io) |
   | npm | `npm update -g cruma` |
   | Microsoft Store (Windows) | update Cruma in Microsoft Store |
 
   The skill upgrades an installed agent only with the command for its own
   install method, and installs the GUI-capable package on a desktop (the macOS
-  cask, the Linux glibc installer or formula, Microsoft Store); it reads the build
+  cask, the Linux Homebrew formula, Microsoft Store; `npm install -g cruma` on Linux without Homebrew); it reads the build
   flavour from `cruma --version --json`.
   The skill needs agent 1.0.12 or newer. It checks `cruma --version`, and with
   the MCP tools connected it mentions a newer stable release once, from the
@@ -162,7 +165,8 @@ server:
 | `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
 | `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
 | `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |
-| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the bundled glibc installer or formula on Linux), never npm, musl or a server artifact |
+| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on macOS, musl or a server artifact |
+| `linux-install-npm` | a fresh install on a Linux machine without Homebrew asks first, then ends at `npm install -g cruma`, with no script and no curl-to-shell |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |
 | `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
@@ -178,11 +182,10 @@ Run them with `claude plugin eval . --trust-plugin`.
 
 `node scripts/check-plugin.mjs` checks that `.mcp.json` declares only the local
 `cruma` server and runs a file inside the plugin, that only `plugins/cruma-cloud`
-declares the cloud server, the skill is named `agent` and pipes nothing into a shell, and the
-versions agree. `node scripts/check-installer.mjs` fails when the installer in
-`skills/agent/scripts/linux-install.sh` differs from cruma-cli's
-`installers/linux-install.sh` (a checkout at `CRUMA_CLI_DIR` or `../cruma-cli`,
-otherwise the published installer); both run in CI.
+declares the cloud server, the skill is named `agent` and pipes nothing into a shell, the plugin
+ships no installer script, and the versions agree. `node --test mcp/cruma-mcp.test.mjs` checks that
+the launcher passes `cruma mcp` only the environment variables named in `mcp/environment.mjs`;
+both run in CI.
 
 ### Grader conventions
 

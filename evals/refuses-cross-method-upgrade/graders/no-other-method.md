@@ -1,6 +1,6 @@
 ---
 type: regex
 flags: i
-pattern: 'brew (install|upgrade)|--cask|linux-install\.sh|winget'
+pattern: 'brew (install|upgrade)|--cask|winget'
 match: not_contains
 ---
