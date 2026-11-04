@@ -329,7 +329,7 @@ session tool: it does not need `use_agent` and changes nothing.
 ### An existing install
 
 **Keep the install method.** Never install or upgrade an existing Cruma through
-a different package method (a cask over an npm install, the Linux installer over Homebrew,
+a different package method (a cask over an npm install, Homebrew over an npm install,
 Winget over an installer copy, and so on): that leaves two `cruma` binaries on `PATH`
 and the older one can win. Upgrade it the way it was installed (**Update**),
 and if the method is not known, ask the user. Only the user may choose to
@@ -346,10 +346,16 @@ older than the field: treat the flavour as unknown, and that is not a reason to
 reinstall.
 
 On a machine with a desktop, a `server-agent` build means the user has no
-Cruma window. Say so once, keep using it for shares, and do not replace it. If
-the user wants the desktop app, name the GUI-capable package for their OS
-(**Fresh install**), warn that the older `cruma` must be removed or it may stay
-first on `PATH`, and wait for their go-ahead.
+Cruma window. Say so once, keep using it for shares, and do not replace it. Offer
+no other package unprompted. Only when the user asks for the desktop app, name
+the GUI-capable package for their OS (**Fresh install**), warn that the older
+`cruma` must be removed or it may stay first on `PATH`, and wait for their
+go-ahead.
+
+When the user asks whether anything must be installed and their Cruma meets the
+minimum version, the answer is no: say that they can use the installed one, say
+what its build flavour means, and stop there. It names no install command of
+any kind.
 
 ### Versions
 
@@ -381,12 +387,12 @@ On a desktop use the GUI-capable package for the OS:
 | OS | Package |
 | --- | --- |
 | macOS | the Homebrew cask (the signed application) |
-| Linux | the bundled glibc installer, or the Homebrew formula |
+| Linux | the Homebrew formula (the glibc build, GUI-capable) when `brew` is installed |
 | Windows | Microsoft Store |
 
 Never recommend a musl or server-agent artifact, or a direct download of a
 binary, for a desktop. Without a desktop (a server, container or SSH session)
-the Linux commands below still apply.
+the Linux section below applies as well.
 
 #### macOS
 
@@ -403,23 +409,24 @@ installation.
 
 #### Linux
 
-On x86_64 or arm64 (glibc), run the installer that ships with this skill. It
-installs the GNU build, which is GUI-capable; it asks nothing, needs no `sudo`,
-installs into `~/.local/bin` and replaces an existing copy only after the
-download matches its published checksum:
+Offer exactly one command, chosen by what the machine has, and mention no other
+install method, package manager or command.
 
-```sh
-bash "${CLAUDE_SKILL_DIR}/scripts/linux-install.sh"
-```
+| The machine has | Your reply |
+| --- | --- |
+| `brew` | the command `brew install umbra-yurei/brew/cruma` and that it installs the glibc build, which is GUI-capable (the one for a desktop). Nothing else: no alternative, no fallback, no terminal-only variant. |
+| `npm`, no `brew` | the command `npm install -g cruma` and that it installs the terminal agent for x86_64 and arm64 (no `sudo` with a user-level npm prefix, no desktop window). |
+| neither | none; point the user to https://cruma.io for the install methods, and stop. |
 
-`${CLAUDE_SKILL_DIR}` is this skill's directory; other agents run
-`scripts/linux-install.sh` from where the skill is installed. Never download a
-script and pipe it to a shell. When the user wants to run the installer
-themselves, give them that command with the real path.
+Someone who wants a desktop window on a machine with `npm` but no `brew` is
+pointed to https://cruma.io. Never run two commands.
 
-Add `~/.local/bin` to `PATH` if it is not there. When Homebrew is available,
-`brew install umbra-yurei/brew/cruma` installs the same glibc build. Pick one
-of the two and do not run both.
+**Always end the reply with a question.** When the user asked you to install it,
+ask whether to go ahead ("Shall I run it?"), and run it
+only after they say yes. The user's description of their machine is the machine
+you act for: do not discuss whether your own shell is on it. When they will run
+the command themselves, or you cannot run it, give it anyway and still end by
+asking whether they want to go ahead or need anything else.
 
 #### Windows
 
@@ -442,7 +449,8 @@ direct Windows installer.
 
 #### With Node.js
 
-Only when none of the above fits, or the user already uses npm for Cruma, and
+Never mention this when a Homebrew command or the Store above applies. Only when
+none of the above fits, or the user already uses npm for Cruma, and
 `npx` is available: `npx -y cruma proxy http
 <port> --json` runs the agent without installing it (Linux x86_64 and arm64,
 macOS Apple Silicon, Windows x64; not on other systems).
@@ -492,14 +500,16 @@ it as given. Otherwise pick by how Cruma was installed:
 | --- | --- |
 | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
-| The Linux installer (`~/.local/bin/cruma`) | re-run the bundled installer from **Linux** |
+| A Linux installer script (`~/.local/bin/cruma`) | run the installer you used again (see https://cruma.io); the plugin ships none |
 | npm install | `npm update -g cruma` |
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
 
-Give only the command for the install the user has: never a command from another
-row, even when that package is newer or has a desktop window (**An existing
-install**). If the method is not known, ask the user; do not guess one. After upgrading,
+Give the command of the row for the install the user has, exactly as the row
+writes it and in a code block, even when you offer to run it. Name no other
+row's command, not even to say it is not used, and not when that package is newer
+or has a desktop window (**An existing install**). If the method is not known,
+ask the user; do not guess one. After upgrading,
 the running MCP server keeps the old agent until the Claude session is
 restarted. Tell the user to restart it.
 
