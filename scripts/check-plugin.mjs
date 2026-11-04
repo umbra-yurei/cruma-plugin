@@ -1,7 +1,7 @@
 // Structural checks the plugin validator does not make: the MCP server and the SessionStart hook
 // run files inside the plugin, each skill directory matches its name, the board and memory skills
-// are user-invoked only, no skill pipes into a shell, and only the opt-in cruma-cloud plugin
-// declares the cloud server.
+// are user-invoked only, no skill pipes into a shell, the Codex mcp.json runs the same launcher as
+// .mcp.json, and only the opt-in cruma-cloud plugin declares the cloud server.
 import { existsSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,8 @@ const failures = [];
 const servers = JSON.parse(readFileSync(join(root, ".mcp.json"), "utf8"));
 // The cloud server asks to sign in, so it lives only in the opt-in cruma-cloud plugin.
 if (Object.keys(servers).join() !== "cruma") failures.push(".mcp.json must declare only the local `cruma` server");
-if (existsSync(join(root, "mcp.json"))) failures.push("mcp.json must not exist: Codex reads it, and the cruma plugin adds no server beyond .mcp.json's");
+const codexServers = JSON.parse(readFileSync(join(root, "mcp.json"), "utf8")).mcpServers;
+if (Object.keys(codexServers).join() !== "cruma") failures.push("mcp.json must declare only the local `cruma` server");
 const server = servers.cruma;
 const [launcher, ...extra] = server.args;
 // The one flag the launcher hands `cruma mcp`, so what a coding agent shares is attributed to the plugin.
@@ -20,6 +21,12 @@ if (server.command !== "node" || extra.join(" ") !== "--origin plugin" || !launc
   failures.push('.mcp.json must run `node ${CLAUDE_PLUGIN_ROOT}/<file> --origin plugin` with no other arguments');
 } else if (!existsSync(join(root, launcher.replace("${CLAUDE_PLUGIN_ROOT}/", "")))) {
   failures.push(`.mcp.json runs ${launcher}, which is not in the plugin`);
+}
+
+// Codex reads mcp.json, not .mcp.json: it must run the same launcher file.
+const codexServer = codexServers.cruma;
+if (codexServer?.type !== "stdio" || codexServer.command !== "node" || codexServer.args?.length !== 1 || codexServer.args[0].replace("${PLUGIN_ROOT}/", "") !== launcher.replace("${CLAUDE_PLUGIN_ROOT}/", "")) {
+  failures.push("mcp.json must run `node ${PLUGIN_ROOT}/<file>` with the same launcher file as .mcp.json");
 }
 
 const skill = readFileSync(join(root, "skills/agent/SKILL.md"), "utf8");

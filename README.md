@@ -9,7 +9,18 @@ service reachable at a public URL, so only expose a service after the user has
 confirmed that it is safe to share. Tunnels can be anonymous: no account or
 signup is required to start one.
 
-## Codex and other skills-compatible agents
+## Codex
+
+```sh
+codex plugin marketplace add umbra-yurei/cruma-plugin
+codex plugin add cruma@cruma-plugin
+```
+
+The plugin connects the same local `cruma` MCP server as Claude Code, through the root `mcp.json`
+(Agent Plugins form: `node ${PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, the launcher described below).
+It asks for no sign-in.
+
+## Other skills-compatible agents
 
 Install the included `skills/agent/SKILL.md` skill with:
 
@@ -215,7 +226,8 @@ cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 install and never reads the account of whoever runs the suite.
 
 `node scripts/check-plugin.mjs` checks that `.mcp.json` declares only the local
-`cruma` server and runs a file inside the plugin, that only `plugins/cruma-cloud`
+`cruma` server and runs a file inside the plugin, that `mcp.json` (read by Codex) declares only
+`cruma` and runs the same file, that only `plugins/cruma-cloud`
 declares the cloud server, the skills are named after their directories, `board` and
 `memory` set `disable-model-invocation: true`, no skill pipes into a shell, the
 `SessionStart` hook runs a file inside the plugin that finds `cruma` through
