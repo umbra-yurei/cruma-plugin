@@ -16,13 +16,13 @@ codex plugin marketplace add umbra-yurei/cruma-plugin
 codex plugin add cruma@cruma-plugin
 ```
 
-The plugin connects the same local `cruma` MCP server as Claude Code, through the root `mcp.json`
-(Agent Plugins form: `node ${PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, the launcher described below).
+The plugin connects the same local `cruma` MCP server as Claude Code, through its `mcp.json`
+(Agent Plugins form: `node ${PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, from the `plugins/cruma` tree).
 It asks for no sign-in.
 
 ## Other skills-compatible agents
 
-Install the included `skills/agent/SKILL.md` skill with:
+Install the included `plugins/cruma/skills/agent/SKILL.md` skill with:
 
 ```sh
 npx skills add umbra-yurei/cruma-plugin
@@ -35,14 +35,14 @@ reports the public URL.
 
 ## Claude Code
 
-The plugin also connects a local MCP server named `cruma` (`.mcp.json` runs
+The plugin also connects a local MCP server named `cruma` (`plugins/cruma/.mcp.json` runs
 `node ${CLAUDE_PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, a short launcher in this
 repository that needs Node.js). The launcher starts `cruma mcp` from the `cruma`
 installed on your machine (the macOS app, Homebrew, `/usr/local/bin`,
 `~/.local/bin`, the Windows Store alias, then `PATH`; the newest wins) with its
 own anonymous agent, and exposes nothing until Claude calls a tool that does.
 It passes `cruma mcp` only the environment variables named in
-`mcp/environment.mjs`, so a process the agent hosts for you (started with
+`plugins/cruma/mcp/environment.mjs`, so a process the agent hosts for you (started with
 `upsert_process`) does not inherit the rest of your shell's environment, such as
 `NODE_ENV` or `GOPATH`: put what it needs in the process's own settings. It downloads nothing. When `cruma` is not installed, it prints how to install
 it and the MCP server fails to start and the skill falls
@@ -130,8 +130,8 @@ Two skills turn Cruma's board and memory on or off for your coding agents. Only
 you run them; the model never loads them on its own:
 
 ```text
-/cruma:board on     /cruma:board off
-/cruma:memory on    /cruma:memory off
+/cruma-cloud:board on     /cruma-cloud:board off
+/cruma-cloud:memory on    /cruma-cloud:memory off
 ```
 
 They need `cruma-cloud` signed in. `on` turns the setting on, lists your boards
@@ -141,9 +141,8 @@ turns it off and keeps your choices for the next `on`. The settings live on
 your Cruma account, so they apply to every new session on every machine signed
 in to it, not to one folder or repository.
 
-At session start, the plugin's `SessionStart` hook (`hooks/hooks.json`) runs
-`cruma agent-context` from the same installed `cruma` the MCP launcher uses
-(`mcp/launcher.mjs`, with the same environment) and adds what it prints to the
+At session start, the cloud plugin's `SessionStart` hook (`plugins/cruma-cloud/hooks/hooks.json`) runs
+`cruma agent-context` through its bundled launcher (`mcp/launcher.mjs`) and adds what it prints to the
 session. It prints a short note naming the boards and memory to use only when
 one of them is on and the `cruma` on this machine is signed in to the account
 (`cruma auth login`); with both off, no `cruma`, no sign-in or an agent older
@@ -216,10 +215,12 @@ server:
 | `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
 | `settings-never-on`, `settings-off-no-note` | with the board and memory off, the session starts without a note, and neither "fix this issue" nor a question about the note touches the board or memory services |
 | `settings-on-note` | with both on, a session in an empty (non-git) directory starts with the note, recalls from the default memory space before filing, and "file this as a bug" files one bug on the default board and reports its id |
-| `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma:board off` changes only `board_enabled`; each says it applies from the next session |
+| `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma-cloud:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma-cloud:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma-cloud:board off` changes only `board_enabled`; each says it applies from the next session |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
-Run them with `claude plugin eval . --trust-plugin --scaffold`. The `settings-*`
+Stage the local cases with `node scripts/stage-evals.mjs cruma`, then run
+`claude plugin eval .eval-work/cruma --trust-plugin --scaffold`. For cloud cases,
+stage `cruma-cloud` and run the same command against `.eval-work/cruma-cloud`. The `settings-*`
 cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `evals/fake-cruma/install.sh`) in the run's own home directory, whose
 `agent-context` prints the case's note, so the hook runs exactly as with a real
@@ -260,7 +261,7 @@ The suite does not run an installer: the MCP server only connects once `cruma`
 is available. The `windows-store-alias-missing` case runs with no shell and no
 Cruma tools (Bash is an operator-gated tool), like a session where the MCP
 server never connected. It is judged from the reply alone, so it passes under a
-plain `claude plugin eval . --trust-plugin`. The remaining install paths are checked
+plain staged `claude plugin eval` with `--case windows-store-alias-missing`. The remaining install paths are checked
 by hand in a fresh session without `cruma` on `PATH`; for the Store path, verify
 that `cruma --version` fails and that `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`
 returns the installed package.
@@ -274,16 +275,15 @@ cases pass. The evals need model credentials, so the proof comes in two steps.
 with the change:
 
 ```sh
-claude plugin validate --strict .
-for c in evals/*/prompt.md evals/*/case.yaml; do
-  [ -e "$c" ] || continue
-  claude plugin eval . --trust-plugin --case "$(basename "$(dirname "$c")")" 2>&1 \
-    | grep -E 'mocked:|failed to load|invalid|Not logged in'
-done
+claude plugin validate --strict plugins/cruma
+claude plugin validate --strict plugins/cruma-cloud
+node scripts/stage-evals.mjs cruma
+claude plugin eval .eval-work/cruma --trust-plugin --case trigger-unrelated-vercel 2>&1 | grep -E 'Plugin under test:|mocked:|failed to load|invalid|Not logged in'
+node scripts/stage-evals.mjs cruma-cloud
+claude plugin eval .eval-work/cruma-cloud --trust-plugin --case board-off 2>&1 | grep -E 'Plugin under test:|mocked:|failed to load|invalid|Not logged in'
 ```
 
-`eval` only parses the cases its `--case` filter selects, so the loop runs
-each case (each directory with a `prompt.md` or `case.yaml`) on its own. A
+`eval` only parses the cases its `--case` filter selects. A
 case whose prompt, graders and mocks are valid prints its `mocked:` line and
 stops at the first model call with `Not logged in`; a broken one prints `failed to load` and the parse error. This proves
 the suite loads; it does not prove a case passes.
@@ -293,7 +293,10 @@ the suite loads; it does not prove a case passes.
 
 ```sh
 cruma --version
-claude plugin eval . --trust-plugin --scaffold
+node scripts/stage-evals.mjs cruma
+claude plugin eval .eval-work/cruma --trust-plugin --scaffold
+node scripts/stage-evals.mjs cruma-cloud
+claude plugin eval .eval-work/cruma-cloud --trust-plugin --scaffold
 ```
 
 Add `--case <glob>` to run only the cases the change touched, and

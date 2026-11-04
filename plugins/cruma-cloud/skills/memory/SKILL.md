@@ -1,6 +1,6 @@
 ---
 name: memory
-description: Turn Cruma memory on or off for the user's coding agents on every machine (`/cruma:memory on` or `off`). Only when the user invokes it.
+description: Turn Cruma memory on or off for the user's coding agents on every machine (`/cruma-cloud:memory on` or `off`). Only when the user invokes it.
 argument-hint: "on | off"
 disable-model-invocation: true
 ---
@@ -17,7 +17,7 @@ on every machine.
 
 Everything here goes through the `cruma-cloud` tools (`whoami`,
 `list_services`, `get_coding_agent_settings`, `update_coding_agent_settings`).
-When they are not in your tool list, say that `/cruma:memory` needs the
+When they are not in your tool list, say that `/cruma-cloud:memory` needs the
 optional `cruma-cloud` server signed in to their Cruma account, give the
 command (`claude plugin install cruma-cloud@cruma-plugin`, or
 `codex plugin add cruma-cloud@cruma-plugin`), and stop. Never use the local
@@ -49,7 +49,7 @@ command (`claude plugin install cruma-cloud@cruma-plugin`, or
 Call `update_coding_agent_settings` with `memory_enabled: false` and nothing
 else. Say exactly what changes: from the next session, coding agents get no
 memory note and the memory service is not listed. The enabled spaces and the
-write permission are kept for the next `/cruma:memory on`.
+write permission are kept for the next `/cruma-cloud:memory on`.
 
 ## Anything else
 
