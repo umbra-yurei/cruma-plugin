@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma/mcp/environment.mjs";
-import { launch } from "../plugins/cruma/mcp/launcher.mjs";
+import { ORIGIN_ARGS, launch } from "../plugins/cruma/mcp/launcher.mjs";
 import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
 import { buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
 
@@ -46,7 +47,7 @@ test("the launcher gives the probe and the started agent exactly the allowlisted
   });
   assert.deepEqual(expected, { PATH: "/bin", HOME: "/home/user", [LAUNCHER_FLAG]: "1" });
   assert.deepEqual(probes, [{ executable: "/opt/cruma", args: ["--version"], env: expected }]);
-  assert.deepEqual(starts, [{ executable: "/opt/cruma", args: ["mcp"], env: expected }]);
+  assert.deepEqual(starts, [{ executable: "/opt/cruma", args: ["mcp", ...ORIGIN_ARGS], env: expected }]);
   assert.deepEqual(exits, []);
 });
 
@@ -82,6 +83,40 @@ test("the launcher prefers the strictly newer install", () => {
     error() {},
   });
   assert.deepEqual(starts, ["/new"]);
+});
+
+function startedArgs(version) {
+  const starts = [];
+  launch({
+    source: {},
+    candidates: ["/opt/cruma"],
+    spawnSync: () => ({ status: 0, stdout: `cruma ${version}` }),
+    spawn: (executable, args) => {
+      starts.push(args);
+      return { on() {}, kill() {} };
+    },
+    exit() {},
+    onSignal() {},
+    error() {},
+  });
+  return starts;
+}
+
+test("the launcher hands `cruma mcp` the fixed origin flag, and the configs pass the launcher no arguments", () => {
+  for (const [file, key] of [[".mcp.json", "cruma"], ["mcp.json", "cruma"]]) {
+    const parsed = JSON.parse(readFileSync(new URL(`../plugins/cruma/${file}`, import.meta.url), "utf8"));
+    const args = (parsed.mcpServers ?? parsed)[key].args;
+    assert.equal(args.length, 1, `${file} passes only the launcher file`);
+    assert.match(args[0], /\/mcp\/cruma-mcp\.mjs$/);
+  }
+  assert.deepEqual(ORIGIN_ARGS, ["--origin", "plugin"]);
+  assert.deepEqual(startedArgs("1.0.18"), [["mcp", "--origin", "plugin"]]);
+  assert.deepEqual(startedArgs("2.0.0"), [["mcp", "--origin", "plugin"]]);
+});
+
+test("an agent older than the origin flag is started without it", () => {
+  assert.deepEqual(startedArgs("1.0.17"), [["mcp"]]);
+  assert.deepEqual(startedArgs("1.0.12"), [["mcp"]]);
 });
 
 test("the session note comes from `cruma agent-context` on the newest install, with the allowlisted environment", () => {

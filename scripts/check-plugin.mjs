@@ -13,6 +13,7 @@ function count(directory) { return readdirSync(directory, { recursive: true, wit
 const localClaude = json(local, ".mcp.json");
 const localCodex = json(local, "mcp.json").mcpServers;
 if (Object.keys(localClaude).join() !== "cruma" || Object.keys(localCodex).join() !== "cruma") failures.push("cruma manifests must declare only `cruma`");
+if (localClaude.cruma?.args?.length !== 1 || localCodex.cruma?.args?.length !== 1) failures.push("cruma manifests must pass only the launcher file; the launcher owns origin arguments");
 const claudeLauncher = localClaude.cruma?.args?.[0]?.replace("${CLAUDE_PLUGIN_ROOT}/", "");
 const codexLauncher = localCodex.cruma?.args?.[0]?.replace("${PLUGIN_ROOT}/", "");
 if (localClaude.cruma?.command !== "node" || claudeLauncher !== codexLauncher || !existsSync(join(local, claudeLauncher ?? ""))) failures.push("cruma manifests must run the same in-plugin Node launcher");
