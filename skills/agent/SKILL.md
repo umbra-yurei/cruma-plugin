@@ -304,6 +304,26 @@ restart Claude. This branch is terminal: stop until `cruma --version` succeeds
 or the MCP tools connect. Never start Python, Node, or another file server as a
 workaround, and never claim or invent a public URL.
 
+### Showing the desktop app
+
+`open_desktop_app` opens the Cruma desktop app, or brings it forward when it is
+already running, so the user can see their tunnels and settings. It is a
+session tool: it does not need `use_agent` and changes nothing.
+
+- Call it when the user asks to see their tunnels, sites or settings in the
+  app. After the first successful share on what looks like a desktop machine,
+  you may offer it in one sentence ("Want me to open the Cruma app so you can
+  see it?") and call it only after a yes.
+- Never call it unprompted, and never in CI, over SSH or in any headless or
+  non-interactive session. If you cannot ask, do not open it.
+- `status` is `opened` or `focused`: say so. `unavailable` carries a `reason`
+  (`no_gui_in_this_build`, `no_display`, `not_installed`, `launch_failed`) and
+  an `install_hint`: tell the user plainly, give the hint as the command for
+  them to run, and do not retry or work around it. A terminal-only build is not
+  replaced without the user's go-ahead (**An existing install**).
+- No `open_desktop_app` among your tools means an older agent: say a newer
+  `cruma` is needed, or ask the user to open the app themselves.
+
 ### An existing install
 
 **Keep the install method.** Never install or upgrade an existing Cruma through
