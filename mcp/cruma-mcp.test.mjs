@@ -23,6 +23,16 @@ test("buildEnvironment lists exact names, never prefixes", () => {
   assert.equal(new Set(FORWARDED_NAMES).size, FORWARDED_NAMES.length);
 });
 
+test("plugin entries read only named environment values", () => {
+  for (const file of [
+    "../plugins/cruma/mcp/cruma-mcp.mjs",
+    "../plugins/cruma-cloud/hooks/session-context.mjs",
+  ]) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /process\.env\b(?!\[name\])/g);
+  }
+});
+
 test("the launcher gives the probe and the started agent exactly the allowlisted environment", () => {
   const source = { PATH: "/bin", HOME: "/home/user", ANTHROPIC_API_KEY: "secret", SECRET_TOKEN: "secret" };
   const expected = buildEnvironment(source);

@@ -1,10 +1,11 @@
 {
   "name": "cruma-cloud",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Connect Cruma's hosted MCP server (mcp.cruma.io) for your Cruma account: your plan, the tunnels and sites on the account. Signs in with your Cruma account in the browser.",
   "author": {
     "name": "Cruma"
   },
   "homepage": "https://cruma.io",
+  "privacyPolicyUrl": "https://cruma.io/privacy",
   "repository": "https://github.com/umbra-yurei/cruma-plugin"
 }
