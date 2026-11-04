@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
-import { AGENT_CONTEXT_TIMEOUT_MS, launch, sessionNote } from "./launcher.mjs";
+import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma/mcp/environment.mjs";
+import { launch } from "../plugins/cruma/mcp/launcher.mjs";
+import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
+import { buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
   const environment = buildEnvironment({
@@ -99,7 +101,7 @@ test("the session note comes from `cruma agent-context` on the newest install, w
   assert.deepEqual(calls.at(-1), {
     executable: "/new",
     args: ["agent-context"],
-    env: buildEnvironment(source),
+    env: buildCloudEnvironment(source),
     timeout: AGENT_CONTEXT_TIMEOUT_MS,
   });
 });

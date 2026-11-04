@@ -4,4 +4,4 @@ timeout_seconds: 240
 allowed_tools: [Skill]
 ---
 
-/cruma:board on
+/cruma-cloud:board on

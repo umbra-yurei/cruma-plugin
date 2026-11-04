@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "cruma",
-      "source": "./",
+      "source": "./plugins/cruma",
       "description": "Install the Cruma tunnel agent, publish a dev server or a folder (several sites at once) and drive it over MCP.",
       "homepage": "https://cruma.io",
       "repository": "https://github.com/umbra-yurei/cruma-plugin",

@@ -1,6 +1,6 @@
 ---
 name: board
-description: Turn the Cruma board on or off for the user's coding agents on every machine (`/cruma:board on` or `off`), or use the board in this session. Only when the user invokes it.
+description: Turn the Cruma board on or off for the user's coding agents on every machine (`/cruma-cloud:board on` or `off`), or use the board in this session. Only when the user invokes it.
 argument-hint: "on | off | <request>"
 disable-model-invocation: true
 ---
@@ -17,7 +17,7 @@ on every machine.
 
 Everything here goes through the `cruma-cloud` tools (`whoami`,
 `list_services`, `get_coding_agent_settings`, `update_coding_agent_settings`).
-When they are not in your tool list, say that `/cruma:board` needs the optional
+When they are not in your tool list, say that `/cruma-cloud:board` needs the optional
 `cruma-cloud` server signed in to their Cruma account, give the command
 (`claude plugin install cruma-cloud@cruma-plugin`, or
 `codex plugin add cruma-cloud@cruma-plugin`), and stop. Never use the local
@@ -49,14 +49,14 @@ When they are not in your tool list, say that `/cruma:board` needs the optional
 Call `update_coding_agent_settings` with `board_enabled: false` and nothing
 else. Say exactly what changes: from the next session, coding agents get no
 board note and the board service is not listed. The enabled boards and the
-write permission are kept for the next `/cruma:board on`.
+write permission are kept for the next `/cruma-cloud:board on`.
 
 ## No argument, or a request
 
 Use the board in this session: `list_services`, then `describe_service` for
 the board service, then follow the guide it points to and act on the request.
 Report what you wrote, with ids. When the board service is not listed, say the
-board is off (`/cruma:board on` turns it on) or the account has no board
+board is off (`/cruma-cloud:board on` turns it on) or the account has no board
 access, and call no board tool.
 
 ## The session note

@@ -1,6 +1,6 @@
 ---
 name: agent
-description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), for questions about the user's Cruma account (plan, the tunnels and sites on the account), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
+description: Use Cruma to put local things on a public HTTPS URL and manage them - a dev server port, a folder of files, several named sites at once, password, sign-in or IP protection, agent-hosted dev servers. Also for inspecting or changing the user's own running Cruma desktop or headless agent (sites, routes, processes, logs), and for installing Cruma. Anything beyond a plain share is looked up in Cruma's own docs first. Asks before exposing anything.
 ---
 
 # Cruma tunnels
@@ -12,34 +12,10 @@ reachable. Anonymous tunnels need no signup.
 
 ## The user's Cruma account
 
-Their account (plan and subscription, the tunnels and sites on the account,
-and whatever else it lists) is served by Cruma's hosted MCP server
-`cruma-cloud` (`https://mcp.cruma.io/mcp`). It is an optional add-on: this
-plugin does not connect it.
-
-- **Connected** (`cruma-cloud` tools in your tool list, for example from the
-  `cruma-cloud` plugin): use it for account questions. Start with
-  `list_services`, then `describe_service` for the service you need; its tools
-  appear after that. The server describes itself: do not guess tool or service
-  names. Never mention or offer a service `list_services` does not show; say
-  it is not available on their account.
-- **Not connected**, and the user asks something account-side: say the cloud
-  server is optional and give the command to add it. Claude Code:
-  `claude plugin install cruma-cloud@cruma-plugin` (or
-  `claude mcp add --transport http cruma-cloud https://mcp.cruma.io/mcp`).
-  Codex: `codex plugin add cruma-cloud@cruma-plugin` (or
-  `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`). Do not run it
-  unless they ask; it connects in a new session and asks them to sign in. Do
-  not answer account questions from the local agent instead.
-- **The session note.** Clients without a session-start hook (Codex and
-  others): when `cruma-cloud` is connected, call `session_context` once at the
-  start of a session and follow the note it returns (empty means the user has
-  turned the board and memory off). In Claude Code the plugin's session-start
-  hook adds the note; do not call it there. `/cruma:board on|off` and
-  `/cruma:memory on|off` change these settings, only when the user runs them.
-- **Never for local work.** Sharing a port or folder and the user's running
-  agents stay on the local `cruma` server; do not mention or add the cloud
-  server for them.
+Account features, including plan details, account tunnels and sites, board and
+memory, come with the optional `cruma-cloud` plugin. Use its `cloud` skill for
+those requests. Sharing a port or folder and the user's running agents stay on
+the local `cruma` server.
 
 ## With the cruma MCP tools
 
