@@ -370,8 +370,7 @@ On a desktop use the GUI-capable package for the OS:
 
 Never recommend a musl or server-agent artifact, or a direct download of a
 binary, for a desktop. Without a desktop (a server, container or SSH session)
-the Linux section below applies as well; `npm install -g cruma` is the usual
-choice there.
+the Linux section below applies as well.
 
 #### macOS
 
@@ -388,22 +387,24 @@ installation.
 
 #### Linux
 
-Offer exactly one command, chosen by what the machine has, and offer nothing
-else. Ask first: your reply names the command, says what it installs, and ends
-with a question such as "Run `npm install -g cruma`?". Run it only after the
-user says yes, or just give it to them when they will run it themselves. The
-only install routes are the ones listed here.
+Offer exactly one command, chosen by what the machine has, and mention no other
+install method, package manager or command.
 
-| The machine has | The command | What it installs |
-| --- | --- | --- |
-| `brew` | `brew install umbra-yurei/brew/cruma` | the glibc build, which is GUI-capable: the one for a desktop |
-| `npm`, no `brew` | `npm install -g cruma` | the terminal agent for x86_64 and arm64; no `sudo` with a user-level npm prefix; no desktop window |
-| neither | none | point the user to https://cruma.io for the install methods, and stop |
+| The machine has | Your reply |
+| --- | --- |
+| `brew` | the command `brew install umbra-yurei/brew/cruma` and that it installs the glibc build, which is GUI-capable (the one for a desktop). Nothing else: no alternative, no fallback, no terminal-only variant. |
+| `npm`, no `brew` | the command `npm install -g cruma` and that it installs the terminal agent for x86_64 and arm64 (no `sudo` with a user-level npm prefix, no desktop window). |
+| neither | none; point the user to https://cruma.io for the install methods, and stop. |
 
-Never name the command of a row the machine does not qualify for (no Homebrew
-command on a machine without `brew`), and never run two. Someone who wants a
-desktop window on a machine with `npm` but no `brew` is pointed to
-https://cruma.io for the other install methods.
+Someone who wants a desktop window on a machine with `npm` but no `brew` is
+pointed to https://cruma.io. Never run two commands.
+
+**Always end the reply with a question.** When the user asked you to install it,
+ask whether to go ahead ("Shall I run it?"), and run it
+only after they say yes. The user's description of their machine is the machine
+you act for: do not discuss whether your own shell is on it. When they will run
+the command themselves, or you cannot run it, give it anyway and still end by
+asking whether they want to go ahead or need anything else.
 
 #### Windows
 
@@ -426,7 +427,8 @@ direct Windows installer.
 
 #### With Node.js
 
-Only when none of the above fits, or the user already uses npm for Cruma, and
+Never mention this when a Homebrew command or the Store above applies. Only when
+none of the above fits, or the user already uses npm for Cruma, and
 `npx` is available: `npx -y cruma proxy http
 <port> --json` runs the agent without installing it (Linux x86_64 and arm64,
 macOS Apple Silicon, Windows x64; not on other systems).
