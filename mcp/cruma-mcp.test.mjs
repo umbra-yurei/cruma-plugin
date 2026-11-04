@@ -2,7 +2,18 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
 import { readFileSync } from "node:fs";
-import { AGENT_CONTEXT_TIMEOUT_MS, ORIGIN_ARGS, launch, sessionNote } from "./launcher.mjs";
+import { AGENT_CONTEXT_TIMEOUT_MS, ORIGIN_ARGS, candidatePaths, launch, sessionNote } from "./launcher.mjs";
+
+test("fallback discovery includes system and per-user Preview and stable apps", () => {
+  const candidates = candidatePaths({ HOME: "/Users/alice" });
+  assert.deepEqual(candidates.slice(0, 4), [
+    "/Applications/Cruma Preview.app/Contents/MacOS/cruma",
+    "/Users/alice/Applications/Cruma Preview.app/Contents/MacOS/cruma",
+    "/Applications/Cruma.app/Contents/MacOS/cruma",
+    "/Users/alice/Applications/Cruma.app/Contents/MacOS/cruma",
+  ]);
+  assert.equal(candidates.at(-1), "cruma");
+});
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
   const environment = buildEnvironment({

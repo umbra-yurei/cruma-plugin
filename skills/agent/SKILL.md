@@ -78,23 +78,27 @@ support what the user asked for, say so; do not invent a setting or a tool.
 
 ### Whose Cruma
 
-The tools start attached to a **temporary session agent**: an anonymous tunnel
-that your windows share and that holds nothing the user saved. It is not the
-user's own Cruma.
+The tools start attached either to the sole running user agent, or to a
+**temporary session agent** when no user agent or several user agents run. The
+temporary agent is an anonymous tunnel that your windows share and that holds
+nothing the user saved. Read `attached` from `list_agents`; do not assume which
+kind is attached.
 
 **Before the first share in a session**, call `list_agents` once (it reads
-nothing from any agent, so it is fine first). Look for a running agent that is
-not the session agent and whose `tunnel_account` is `registered` (the desktop
-app or a headless agent, signed in or with tunnel credentials). A running agent
-with `tunnel_account` `anonymous` is not one.
+nothing from any agent, so it is fine first). Use its typed `kind`, `channel`,
+`version`, `account.state` and `tunnel_plan` fields; never infer identity or
+account state from an install path.
 
-- **One such agent runs: ask once, before sharing anything.** Name the choice
-  with its kind, profile, domain and what the other option means, for example:
-  "Use your running Cruma (desktop, profile `work`, `acme.tun.example.test`) or a
-  temporary anonymous tunnel (random address, browser warning page, time-limited,
-  gone with the session)?" Share nothing, and call no other tool that reads or
-  changes an agent, until they answer. If several run, list them in the same
-  question.
+- **Exactly one user agent runs:** `cruma mcp` already attaches to it. Do not
+  present a false choice and do not call `use_agent`; make the share on the
+  attached agent.
+- **Several user agents run: ask once, before sharing anything.** Name every
+  running user-agent choice with its kind, profile (when present), channel,
+  version, domain, `account.state` (say anonymous or signed in), and plan (or
+  "plan not reported" when `tunnel_plan` is absent). Also name what the
+  temporary option means: a random address, browser warning page, time limit,
+  and removal with the session. Share nothing, and call no other tool that
+  reads or changes an agent until they answer.
   - They pick their own: call `use_agent` on that agent (this is the
     confirmation **Ask before `use_agent`** asks for) and make every share of
     the session there. Mention the known limit when it applies: a share made on
@@ -104,8 +108,8 @@ with `tunnel_account` `anonymous` is not one.
   - Remember the answer for the rest of the session. Do not ask again for later
     shares, and do not call `list_agents` again for them. Ask again only if the
     user raises it.
-- **No such agent runs** (none, or only anonymous ones such as the session
-  agent): no question. Use the session agent as is and report the URLs.
+- **No user agent runs** (only the session agent is listed): no question. Use
+  the session agent as is and report the URLs.
 - **You cannot ask** (a non-interactive run, or no way to get an answer): use
   the session agent, and say in the hand-off that you did, and that a running
   signed-in Cruma was available when `list_agents` showed one.
