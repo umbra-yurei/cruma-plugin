@@ -1,1 +1,7 @@
-{"schema_version":"2026-04-22","kind":"cruma.firewall.rules","rules":[],"auto_blocked_ips":[]}
+{
+  "kind": "cruma.firewall.rules",
+  "schema_version": "2026-04-22",
+  "count": 0,
+  "rules": [],
+  "runtime_auto_bans": []
+}
