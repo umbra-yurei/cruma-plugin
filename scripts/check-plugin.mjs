@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +9,13 @@ const failures = [];
 
 function json(directory, file) { return JSON.parse(readFileSync(join(directory, file), "utf8")); }
 function count(directory) { return readdirSync(directory, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).length; }
+function validIcon(file) {
+  const contents = readFileSync(file);
+  if (contents.length < 24 || contents.subarray(1, 4).toString() !== "PNG") return false;
+  const width = contents.readUInt32BE(16);
+  const height = contents.readUInt32BE(20);
+  return width === height && width >= 512 && width <= 2048 && statSync(file).size < 2_000_000;
+}
 
 const localClaude = json(local, ".mcp.json");
 const localCodex = json(local, "mcp.json").mcpServers;
@@ -37,14 +44,28 @@ if (existsSync(join(local, "skills/agent/scripts"))) failures.push("cruma agent 
 
 const hooks = json(cloud, "hooks/hooks.json").hooks;
 if (Object.keys(hooks).join() !== "SessionStart") failures.push("cruma-cloud hooks must declare only SessionStart");
-const commands = (hooks.SessionStart ?? []).flatMap((entry) => entry.hooks.map((hook) => hook.command));
-const hookFile = /^node "\$\{CLAUDE_PLUGIN_ROOT\}\/([^"]+)"$/.exec(commands.length === 1 ? commands[0] : "")?.[1];
+const hookCommands = (hooks.SessionStart ?? []).flatMap((entry) => entry.hooks);
+const hook = hookCommands.length === 1 ? hookCommands[0] : undefined;
+const hookFile = /^\$\{CLAUDE_PLUGIN_ROOT\}\/([^"']+)$/.exec(hook?.args?.length === 1 ? hook.args[0] : "")?.[1];
+if (hook?.command !== "node") failures.push("cruma-cloud hook command must be the Node interpreter");
 if (!hookFile || !existsSync(join(cloud, hookFile))) failures.push("cruma-cloud must run one in-plugin SessionStart hook");
 else if (!readFileSync(join(cloud, hookFile), "utf8").includes('from "../mcp/launcher.mjs"')) failures.push("cruma-cloud hook must use its own launcher");
 
 for (const [directory, name] of [[local, "cruma"], [cloud, "cruma-cloud"]]) {
+  for (const entry of readdirSync(directory, { recursive: true })) {
+    if (!entry.endsWith(".mjs")) continue;
+    const file = join(directory, entry);
+    const source = readFileSync(file, "utf8");
+    if (/process\.env\b(?!\[name\])/g.test(source)) failures.push(`${name} ${file.slice(directory.length + 1)} reads the whole process environment`);
+  }
+}
+
+for (const [directory, name] of [[local, "cruma"], [cloud, "cruma-cloud"]]) {
   const versions = [".claude-plugin/plugin.json", "plugin.json"].map((file) => json(directory, file).version);
   if (new Set(versions).size !== 1 || !versions[0]) failures.push(`${name} manifest versions differ or are missing`);
+  if (json(directory, ".claude-plugin/plugin.json").privacyPolicyUrl !== "https://cruma.io/privacy") failures.push(`${name} Claude manifest must declare the privacy policy`);
+  const icon = join(directory, ".claude-plugin/icon.png");
+  if (!existsSync(icon) || !validIcon(icon)) failures.push(`${name} Claude plugin icon must be a square 512–2048 px PNG under 2 MB`);
   if (!existsSync(join(directory, "LICENSE"))) failures.push(`${name} must include LICENSE`);
   if (count(directory) >= 512) failures.push(`${name} has ${count(directory)} files; must stay below 512`);
 }
