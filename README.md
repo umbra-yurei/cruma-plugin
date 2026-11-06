@@ -334,7 +334,9 @@ hand-written mock added beside them, or a result type changed in cruma-sdk
 without regenerating, fails the queue. The generator writes the directory `plugin_cruma_cruma`; staging renames it to
 `plugin_cruma-local_cruma`, the name the eval CLI expects for `cruma-local`'s server.
 `directory-mcp-present`'s `mocks/cruma/` (the `cruma mcp` server added by the user under the
-name `cruma`) is generated too. Only the `cruma-cloud` mocks are hand-written.
+name `cruma`) is generated too, and so is everything the `directory-*` stand-in `cruma` prints
+(`evals/fake-cruma/cli/`: the `--json` ready line, `--version` in both forms, and the `--help` texts, written
+from the real startup-line type and the CLI's clap definition). Only the `cruma-cloud` mocks are hand-written.
 
 The suite does not run an installer: the MCP server only connects once `cruma`
 is available. The `windows-store-alias-missing` case runs with no shell and no

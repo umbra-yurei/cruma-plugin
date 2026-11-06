@@ -4,7 +4,7 @@
 # an install, `claude mcp add` or a share the skill runs touches nothing real. Each stand-in
 # appends the command line it was given to ~/.local/share/directory-shims/calls.log.
 #   $1 = missing    `cruma` says "command not found" until `npm install -g cruma` runs
-#   $1 = installed  `cruma` answers as agent 1.0.17
+#   $1 = installed  `cruma` answers as the agent version in cli/version.txt
 set -euo pipefail
 mode="${1:?usage: directory-shims.sh missing|installed}"
 bin="$HOME/.local/bin"
@@ -12,17 +12,33 @@ log="$HOME/.local/share/directory-shims/calls.log"
 mkdir -p "$bin" "$(dirname "$log")"
 : >"$log"
 
+# Everything the stand-in `cruma` prints is a file the cruma-sdk plugin-mocks generator wrote
+# from the real types and clap definitions (cli/); nothing is typed out here.
+data="$(dirname "$log")/cli"
+mkdir -p "$data"
+cp "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cli/"* "$data/"
+
 cat >"$bin/cruma-installed" <<STUB
 #!/bin/sh
 echo "cruma \$*" >>"$log"
-case "\$1" in
-  --version) echo "cruma 1.0.17" ;;
-  --help) echo "Usage: cruma [OPTIONS] <COMMAND>"; echo "Commands: proxy, serve, mcp, auth, open" ;;
-  proxy|serve)
-    echo '{"event":"ready","public_urls":["https://demo1234.tun.example.test"],"assigned_domain":"demo1234.tun.example.test"}'
-    exec sleep 120 ;;
-  *) echo "cruma (eval stand-in): unsupported: \$*" >&2; exit 2 ;;
-esac
+args=" \$* "
+has() { case "\$args" in *" \$1 "*) return 0 ;; *) return 1 ;; esac; }
+if has --version; then
+  if has --json; then cat "$data/version.json"; else cat "$data/version.txt"; fi
+elif has --help || [ \$# -eq 0 ]; then
+  case "\$1 \$2" in
+    "proxy http") cat "$data/help-proxy-http.txt" ;;
+    proxy*) cat "$data/help-proxy.txt" ;;
+    serve*) cat "$data/help-serve.txt" ;;
+    *) cat "$data/help.txt" ;;
+  esac
+elif [ "\$1" = proxy ] || [ "\$1" = serve ]; then
+  cat "$data/ready.json"
+  exec sleep 120
+else
+  echo "cruma (eval stand-in): unsupported: \$*" >&2
+  exit 2
+fi
 STUB
 
 cat >"$bin/npm" <<STUB

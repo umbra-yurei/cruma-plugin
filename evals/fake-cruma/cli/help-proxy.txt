@@ -1,0 +1,18 @@
+Proxy traffic to a backend (http, https, tcp, or raw)
+
+Usage: cruma proxy [OPTIONS] <COMMAND>
+
+Commands:
+  http   Proxy traffic to a single HTTP endpoint
+  https  Proxy traffic to a single HTTPS endpoint
+  tcp    Proxy traffic to a single TCP endpoint (after terminating TLS)
+  raw    Proxy traffic to a single TCP endpoint (without terminating TLS)
+  help   Print this message or the help of the given subcommand(s)
+
+Options:
+      --protocol <PROTOCOL>  Transport protocol to use for tunnel channels: auto, quic, h2 [default: auto] [possible values: auto, quic, h2]
+      --json                 Run headless and print one JSON line on stdout once the tunnel is up (logs go to stderr)
+      --profile <NAME>       Start with a named profile from the desktop app's Profiles page (see `cruma profiles list`)
+      --require-registered   Refuse to start unless the tunnel has registered credentials (never fall back to an anonymous tunnel)
+  -h, --help                 Print help
+

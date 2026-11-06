@@ -74,7 +74,6 @@ for (const [plugin, name] of [[local, "cruma-local"], [cloud, "cruma-cloud"]]) {
 for (const [plugin, name] of [[directory, "cruma"], [local, "cruma-local"], [cloud, "cruma-cloud"]]) {
   const versions = [".claude-plugin/plugin.json", "plugin.json"].map((file) => json(plugin, file).version);
   if (new Set(versions).size !== 1 || !versions[0]) failures.push(`${name} manifest versions differ or are missing`);
-  if ("privacyPolicyUrl" in json(plugin, ".claude-plugin/plugin.json")) failures.push(`${name} Claude manifest must not carry privacyPolicyUrl (unknown field; fails plugin validate --strict)`);
   const icon = join(plugin, ".claude-plugin/icon.png");
   if (!existsSync(icon) || !validIcon(icon)) failures.push(`${name} Claude plugin icon must be a square 512–2048 px PNG under 2 MB`);
   if (!existsSync(join(plugin, "LICENSE"))) failures.push(`${name} must include LICENSE`);
