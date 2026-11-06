@@ -27,25 +27,40 @@ your tool list. Install or connect nothing without a clear yes from the user.
 
 ## 2. The agent is missing: ask, then install
 
-Do not run an install command before the user says yes. First say, in one
-message:
+Do not run an install command before the user says yes. Pick exactly one
+method from the table, then say, in one message:
 
-- that the `cruma` agent is not installed, and what installing it means: it
-  puts the `cruma` program on this machine and downloads it from the package
-  source named below;
-- the one command you would run and where it comes from, from this table;
+- that the `cruma` agent is not installed, and what installing means: it
+  puts the `cruma` program on this machine and downloads it from the source
+  named below;
+- the one method you would use (the command, or on a Mac with neither
+  Homebrew nor npm the signed DMG steps below) and where it comes from;
 - a question: "Shall I run it?"
 
-| This machine | Command | Source |
+On a Mac, first look for an existing `Cruma.app` (`ls -d /Applications/Cruma.app
+~/Applications/Cruma.app`). If there is one, Cruma is installed and `cruma` is
+just not on `PATH`: install nothing, use its `Contents/MacOS/cruma` by full path
+(step 7 below) and, if the user wants the window, open it (step 8).
+
+Find out what the machine has with `command -v brew` and `command -v npm`
+(`Get-Command winget, npm` on Windows). When you cannot run commands, go by what
+the user says; if they say nothing about Homebrew on a Mac, offer the
+Homebrew row.
+
+| This machine | Method | Source |
 | --- | --- | --- |
-| macOS | `brew install --cask umbra-yurei/brew/cruma` (the signed desktop app and its `cruma` command; use `--cask`, the formula with the same name is Linux-only) | Homebrew, tap `umbra-yurei/brew` |
+| macOS (Apple Silicon) with `brew` | `brew install --cask umbra-yurei/brew/cruma` (the signed desktop app and its `cruma` command; use `--cask`, the formula with the same name is Linux-only) | Homebrew, tap `umbra-yurei/brew` |
+| macOS (Apple Silicon) with `npm`, no `brew` | `npm install -g cruma` (the terminal agent; no `sudo` with a user-level npm prefix) | the `cruma` package on npm |
+| macOS (Apple Silicon) with neither | the signed, notarized DMG installed as `Cruma.app` (**Signed DMG on a Mac**) | `files.cruma.io` (cruma.io) |
 | Linux with `brew` | `brew install umbra-yurei/brew/cruma` | Homebrew, tap `umbra-yurei/brew` |
 | Linux with `npm`, no `brew` | `npm install -g cruma` (the terminal agent; no `sudo` with a user-level npm prefix) | the `cruma` package on npm |
 | Windows | find the Cruma product with `winget search Cruma --source msstore`, then `winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements` | Microsoft Store |
+| Windows without `winget` or its `msstore` source, with `npm` | `npm install -g cruma` (the terminal agent, x64; the desktop app comes from the Microsoft Store listing, https://apps.microsoft.com/detail/9NXKT3W34HVL) | the `cruma` package on npm |
 | Anything else | no command: point the user to https://cruma.io for the install options | cruma.io |
 
-Offer exactly one command and mention no other install method. There is no
-Intel Mac build yet: say so instead of suggesting another way. On Windows,
+Offer exactly one method and mention no other. There is no Intel Mac build yet
+(`uname -m` prints `x86_64` on one): say so and install nothing. Never download
+a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`; if it is, do not install again: the `cruma` command then needs a newly opened
 terminal (or a new Claude session), and may need Cruma switched on under
@@ -53,12 +68,53 @@ Settings, Apps, Advanced app settings, App execution aliases. Tell the user
 that and stop until `cruma --version` works. Never start a Python or other
 file server meanwhile, and never invent a URL.
 
-- **They say yes:** run exactly that command, then run `cruma --version`. If it
-  still is not found, say so (a new terminal or `PATH` change is usually
+- **They say yes:** run exactly that method, then run `cruma --version --json`.
+  If it still is not found, say so (a new terminal or `PATH` change is usually
   needed) and stop; do not try a second install method.
 - **They decline, or do not answer:** run nothing. Give them the command to
   run themselves, point to https://cruma.io for other methods, and stop. Do not
   install by another route, and do not fall back to a file server.
+
+**After an npm install,** read `build_flavor` from `cruma --version --json`;
+do not assume it. If it is `server-agent`, say in one line that this build has
+no desktop window. If the user then wants the desktop app, offer the signed
+DMG (Mac) or the Store listing (Windows) as their own choice, ask first, and
+tell them to run `npm uninstall -g cruma` before it: never install over an
+existing install with a different method, because two `cruma` commands on
+`PATH` let the older one win.
+
+### Signed DMG on a Mac
+
+Only on Apple Silicon with neither `brew` nor `npm`, and only after a yes.
+
+1. Read the release manifest with `curl -fsSL https://files.cruma.io/files/tunnel-agent/stable.json`
+   and take `macos_aarch64_url`. Never hard-code a version. Stop unless the URL
+   starts with `https://files.cruma.io/`.
+2. In a temporary directory (`dir="$(mktemp -d)"`), download it:
+   `curl -fL -o "$dir/cruma.dmg" "<macos_aarch64_url>"`.
+3. Mount it: `hdiutil attach -nobrowse -readonly -mountpoint "$dir/mnt" "$dir/cruma.dmg"`.
+4. Verify `"$dir/mnt/Cruma.app"` before copying anything. All three must pass:
+   - `codesign --verify --deep --strict "$dir/mnt/Cruma.app"` exits 0;
+   - `spctl --assess --type execute -vv "$dir/mnt/Cruma.app"` says `accepted`
+     with `source=Notarized Developer ID`;
+   - `codesign -dv --verbose=2 "$dir/mnt/Cruma.app" 2>&1` prints
+     `TeamIdentifier=YRK5M8FHAV`, the team that signs the Homebrew cask's app.
+
+   If any check fails: `hdiutil detach "$dir/mnt"`, `rm -rf "$dir"`, install
+   nothing, tell the user which check failed, and stop. Do not retry and do not
+   offer another install method.
+5. Copy with `ditto "$dir/mnt/Cruma.app" /Applications/Cruma.app`. If
+   `/Applications` is not writable, create `~/Applications` and copy to
+   `~/Applications/Cruma.app` instead. Never use `sudo`.
+6. `hdiutil detach "$dir/mnt"`, then `rm -rf "$dir"`.
+7. The app does not put `cruma` on `PATH`. Use the full path
+   `/Applications/Cruma.app/Contents/MacOS/cruma` (or the `~/Applications` one)
+   for the rest of the session, including in `cruma --version --json`. Tell the
+   user the line that puts it on `PATH` (`export PATH="/Applications/Cruma.app/Contents/MacOS:$PATH"`
+   in their shell profile). Do not edit a shell profile unless they ask.
+8. Ask whether to open the desktop window; open it (`open -a Cruma`) only after a
+   yes. Then run `cruma --version --json` (the full path) and report the version
+   it prints.
 
 ## 3. Connect Claude Code to the agent (optional, ask first)
 
@@ -80,6 +136,9 @@ session**; adding a server does not make its tools appear in the session that
 is already running. Do not promise otherwise. Anything the user asked for in
 this session is done through the command line (section 4). In a later session,
 use the tools (section 5).
+
+If `cruma` is only reachable by the full path of an app installed from the DMG,
+the command is `claude mcp add --scope user cruma -- <full path> mcp`.
 
 Other coding agents add the same server with their own command (for example
 `codex mcp add cruma -- cruma mcp`). Give it to the user instead of running
@@ -168,6 +227,7 @@ known, ask.
 | Homebrew cask (macOS) | `brew upgrade --cask umbra-yurei/brew/cruma` |
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
 | npm | `npm update -g cruma` |
+| Signed DMG (macOS) | quit Cruma, then repeat the signed DMG steps of section 2 (same checks) and replace `Cruma.app` |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
 
 Give the row for the user's install, exactly as written, and name no other
