@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: directory-mcp-add-yes
+context:
+  scaffold_script: scaffold.sh

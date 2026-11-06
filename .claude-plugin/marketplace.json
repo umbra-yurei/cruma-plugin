@@ -8,7 +8,7 @@
     {
       "name": "cruma",
       "source": "./plugins/cruma",
-      "description": "Install the Cruma tunnel agent, publish a dev server or a folder (several sites at once) and drive it over MCP.",
+      "description": "Install the Cruma tunnel agent and publish a dev server or a folder. A skill only: it asks before installing Cruma or connecting it to Claude Code.",
       "homepage": "https://cruma.io",
       "repository": "https://github.com/umbra-yurei/cruma-plugin",
       "relevance": {
@@ -29,6 +29,13 @@
           ]
         }
       }
+    },
+    {
+      "name": "cruma-local",
+      "source": "./plugins/cruma-local",
+      "description": "Cruma with its local MCP server bundled: the plugin connects `cruma mcp` itself, with no extra setup. For this marketplace only; the plain `cruma` plugin is the skill-only one.",
+      "homepage": "https://cruma.io",
+      "repository": "https://github.com/umbra-yurei/cruma-plugin"
     },
     {
       "name": "cruma-cloud",
