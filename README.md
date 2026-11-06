@@ -229,8 +229,14 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 
 The `directory-*` cases that run commands (all except `directory-mcp-present`) need
 `--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh`, which puts
-stand-in `npm`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
-added or shared for real, and the `tool_used` graders read the command lines the agent runs.
+stand-in `npm`, `node`, `uname`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
+added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
+runs Bash as you with no OS sandbox, so the scaffold also writes the eval workspace's `.claude/settings.json`
+with `env.PATH` set to that directory plus `/usr/bin:/bin`; the host's Homebrew, `/usr/local` and real
+`cruma` are then not on the agent's `PATH`, and the stand-in `uname` answers Linux x86_64 like the prompts say.
+A scored run is only meaningful with that isolation in place: check with `--keep-temp` that the workspace
+has the `.claude/settings.json` and that no trace shows `/opt/homebrew`, a real `cruma` version or `Darwin`.
+Every "never runs X" grader sets `min: 0` as well as `max: 0`, because a `tool_used` grader's `min` defaults to 1.
 
 The cases below run against `cruma-local`:
 
