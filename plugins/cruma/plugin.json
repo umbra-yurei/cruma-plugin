@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cruma",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Install the Cruma tunnel agent and publish a dev server or a folder, with explicit approval. A skill only; it connects the MCP tools only after you say yes.",
   "author": {
     "name": "Cruma"
