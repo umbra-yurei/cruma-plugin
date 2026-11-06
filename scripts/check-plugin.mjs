@@ -44,6 +44,7 @@ if (!directoryDescription.includes("Claude Code on the user's own computer") || 
 for (const file of [".claude-plugin/plugin.json", "plugin.json"]) {
   const manifest = json(directory, file);
   if (!/Claude Code|coding agent/.test(manifest.description ?? "") || !/claude\.ai chat/.test(manifest.description ?? "")) failures.push(`cruma ${file} description must say it needs a coding agent on your own computer and not claude.ai chat`);
+  if (file === "plugin.json" && (/Codex or|or Codex/.test(manifest.description) || !manifest.description.includes("cruma-local"))) failures.push("cruma plugin.json (Codex) description must say Claude Code only and name cruma-local for Codex");
   for (const key of ["hooks", "mcpServers", "modules", "bin"]) if (key in manifest) failures.push(`cruma ${file} must not declare ${key}`);
 }
 
