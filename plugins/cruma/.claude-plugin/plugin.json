@@ -1,7 +1,7 @@
 {
   "name": "cruma",
-  "version": "0.14.1",
-  "description": "Install the Cruma tunnel agent, publish a dev server or a folder (several sites at once) and drive it over MCP.",
+  "version": "0.15.0",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. A skill only: it asks before installing Cruma or connecting it to Claude Code.",
   "author": {
     "name": "Cruma"
   },

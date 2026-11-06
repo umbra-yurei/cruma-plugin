@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cruma",
-  "version": "0.14.1",
-  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, several sites at once, with explicit approval.",
+  "version": "0.15.0",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, with explicit approval. A skill only; it connects the MCP tools only after you say yes.",
   "author": {
     "name": "Cruma"
   },
@@ -18,7 +18,7 @@
       "interface": {
         "displayName": "Cruma",
         "shortDescription": "Share local dev servers",
-        "longDescription": "Install the Cruma agent and share a dev server or a folder, several sites at once, after you approve making it public.",
+        "longDescription": "Install the Cruma agent after you agree, and share a dev server or a folder after you approve making it public.",
         "developerName": "Cruma",
         "category": "Developer Tools",
         "capabilities": [

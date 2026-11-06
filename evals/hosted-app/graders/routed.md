@@ -1,5 +1,5 @@
 ---
 type: tool_used
-tool: mcp__plugin_cruma_cruma__upsert_frontend
+tool: mcp__plugin_cruma-local_cruma__upsert_frontend
 min: 1
 ---

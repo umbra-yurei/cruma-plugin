@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma/mcp/environment.mjs";
-import { ORIGIN_ARGS, launch } from "../plugins/cruma/mcp/launcher.mjs";
+import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma-local/mcp/environment.mjs";
+import { ORIGIN_ARGS, launch } from "../plugins/cruma-local/mcp/launcher.mjs";
 import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
 import { buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
 
@@ -25,7 +25,7 @@ test("buildEnvironment lists exact names, never prefixes", () => {
 
 test("plugin entries read only named environment values", () => {
   for (const file of [
-    "../plugins/cruma/mcp/cruma-mcp.mjs",
+    "../plugins/cruma-local/mcp/cruma-mcp.mjs",
     "../plugins/cruma-cloud/hooks/session-context.mjs",
   ]) {
     const source = readFileSync(new URL(file, import.meta.url), "utf8");
@@ -114,7 +114,7 @@ function startedArgs(version) {
 
 test("the launcher hands `cruma mcp` the fixed origin flag, and the configs pass the launcher no arguments", () => {
   for (const [file, key] of [[".mcp.json", "cruma"], ["mcp.json", "cruma"]]) {
-    const parsed = JSON.parse(readFileSync(new URL(`../plugins/cruma/${file}`, import.meta.url), "utf8"));
+    const parsed = JSON.parse(readFileSync(new URL(`../plugins/cruma-local/${file}`, import.meta.url), "utf8"));
     const args = (parsed.mcpServers ?? parsed)[key].args;
     assert.equal(args.length, 1, `${file} passes only the launcher file`);
     assert.match(args[0], /\/mcp\/cruma-mcp\.mjs$/);

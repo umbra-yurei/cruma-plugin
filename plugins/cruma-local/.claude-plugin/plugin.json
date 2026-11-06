@@ -1,0 +1,11 @@
+{
+  "name": "cruma-local",
+  "version": "0.15.0",
+  "description": "Cruma tunnel agent with a bundled local MCP server: the plugin connects `cruma mcp` itself, so a coding session can publish a dev server or a folder (several sites at once) with no extra setup.",
+  "author": {
+    "name": "Cruma"
+  },
+  "homepage": "https://cruma.io",
+  "privacyPolicyUrl": "https://cruma.io/privacy",
+  "repository": "https://github.com/umbra-yurei/cruma-plugin"
+}
