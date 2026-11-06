@@ -3,7 +3,8 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const local = join(root, "plugins/cruma");
+const directory = join(root, "plugins/cruma");
+const local = join(root, "plugins/cruma-local");
 const cloud = join(root, "plugins/cruma-cloud");
 const failures = [];
 
@@ -19,15 +20,25 @@ function validIcon(file) {
 
 const localClaude = json(local, ".mcp.json");
 const localCodex = json(local, "mcp.json").mcpServers;
-if (Object.keys(localClaude).join() !== "cruma" || Object.keys(localCodex).join() !== "cruma") failures.push("cruma manifests must declare only `cruma`");
-if (localClaude.cruma?.args?.length !== 1 || localCodex.cruma?.args?.length !== 1) failures.push("cruma manifests must pass only the launcher file; the launcher owns origin arguments");
+if (Object.keys(localClaude).join() !== "cruma" || Object.keys(localCodex).join() !== "cruma") failures.push("cruma-local manifests must declare only `cruma`");
+if (localClaude.cruma?.args?.length !== 1 || localCodex.cruma?.args?.length !== 1) failures.push("cruma-local manifests must pass only the launcher file; the launcher owns origin arguments");
 const claudeLauncher = localClaude.cruma?.args?.[0]?.replace("${CLAUDE_PLUGIN_ROOT}/", "");
 const codexLauncher = localCodex.cruma?.args?.[0]?.replace("${PLUGIN_ROOT}/", "");
-if (localClaude.cruma?.command !== "node" || claudeLauncher !== codexLauncher || !existsSync(join(local, claudeLauncher ?? ""))) failures.push("cruma manifests must run the same in-plugin Node launcher");
+if (localClaude.cruma?.command !== "node" || claudeLauncher !== codexLauncher || !existsSync(join(local, claudeLauncher ?? ""))) failures.push("cruma-local manifests must run the same in-plugin Node launcher");
 
 const agent = readFileSync(join(local, "skills/agent/SKILL.md"), "utf8");
-if (!/^name: agent$/m.test(agent) || /^disable-model-invocation:/m.test(agent)) failures.push("cruma agent skill must be model-invocable and named agent");
-if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(agent)) failures.push("cruma agent skill must not contain cloud session, board, or memory instructions");
+if (!/^name: agent$/m.test(agent) || /^disable-model-invocation:/m.test(agent)) failures.push("cruma-local agent skill must be model-invocable and named agent");
+if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(agent)) failures.push("cruma-local agent skill must not contain cloud session, board, or memory instructions");
+
+// The directory-bound plugin is a skill and nothing else: no MCP server, hook, launcher or script.
+for (const entry of readdirSync(directory, { recursive: true })) {
+  if (/(^|[/\\])(\.?mcp\.json|mcp|hooks|scripts|bin)([/\\]|$)/.test(entry) || entry.endsWith(".mjs") || entry.endsWith(".sh")) failures.push(`cruma ships only a skill; remove ${entry}`);
+}
+const directorySkill = readFileSync(join(directory, "skills/agent/SKILL.md"), "utf8");
+if (!/^name: agent$/m.test(directorySkill) || /^disable-model-invocation:/m.test(directorySkill)) failures.push("cruma agent skill must be model-invocable and named agent");
+if (readdirSync(join(directory, "skills")).join() !== "agent") failures.push("cruma must ship only the agent skill");
+if (!directorySkill.includes("claude mcp add --scope user cruma -- cruma mcp")) failures.push("cruma agent skill must give the consent-gated `claude mcp add --scope user cruma -- cruma mcp` step");
+if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(directorySkill)) failures.push("cruma agent skill must not contain cloud session, board, or memory instructions");
 
 for (const name of ["board", "memory"]) {
   const file = join(cloud, `skills/${name}/SKILL.md`);
@@ -37,10 +48,10 @@ for (const name of ["board", "memory"]) {
 }
 const cloudSkill = readFileSync(join(cloud, "skills/cloud/SKILL.md"), "utf8");
 if (!/^name: cloud$/m.test(cloudSkill) || /^disable-model-invocation:/m.test(cloudSkill)) failures.push("cruma-cloud cloud skill must be model-invocable");
-for (const [directory, name] of [[local, "agent"], [cloud, "cloud"], [cloud, "board"], [cloud, "memory"]]) {
-  if (/\|\s*(ba)?sh\b/.test(readFileSync(join(directory, `skills/${name}/SKILL.md`), "utf8"))) failures.push(`${name} skill pipes into a shell`);
+for (const [plugin, name] of [[directory, "agent"], [local, "agent"], [cloud, "cloud"], [cloud, "board"], [cloud, "memory"]]) {
+  if (/\|\s*(ba)?sh\b/.test(readFileSync(join(plugin, `skills/${name}/SKILL.md`), "utf8"))) failures.push(`${plugin.slice(root.length + 1)} ${name} skill pipes into a shell`);
 }
-if (existsSync(join(local, "skills/agent/scripts"))) failures.push("cruma agent skill must not ship installer scripts");
+if (existsSync(join(local, "skills/agent/scripts"))) failures.push("cruma-local agent skill must not ship installer scripts");
 
 const hooks = json(cloud, "hooks/hooks.json").hooks;
 if (Object.keys(hooks).join() !== "SessionStart") failures.push("cruma-cloud hooks must declare only SessionStart");
@@ -51,31 +62,34 @@ if (hook?.command !== "node") failures.push("cruma-cloud hook command must be th
 if (!hookFile || !existsSync(join(cloud, hookFile))) failures.push("cruma-cloud must run one in-plugin SessionStart hook");
 else if (!readFileSync(join(cloud, hookFile), "utf8").includes('from "../mcp/launcher.mjs"')) failures.push("cruma-cloud hook must use its own launcher");
 
-for (const [directory, name] of [[local, "cruma"], [cloud, "cruma-cloud"]]) {
-  for (const entry of readdirSync(directory, { recursive: true })) {
+for (const [plugin, name] of [[local, "cruma-local"], [cloud, "cruma-cloud"]]) {
+  for (const entry of readdirSync(plugin, { recursive: true })) {
     if (!entry.endsWith(".mjs")) continue;
-    const file = join(directory, entry);
+    const file = join(plugin, entry);
     const source = readFileSync(file, "utf8");
-    if (/process\.env\b(?!\[name\])/g.test(source)) failures.push(`${name} ${file.slice(directory.length + 1)} reads the whole process environment`);
+    if (/process\.env\b(?!\[name\])/g.test(source)) failures.push(`${name} ${file.slice(plugin.length + 1)} reads the whole process environment`);
   }
 }
 
-for (const [directory, name] of [[local, "cruma"], [cloud, "cruma-cloud"]]) {
-  const versions = [".claude-plugin/plugin.json", "plugin.json"].map((file) => json(directory, file).version);
+for (const [plugin, name] of [[directory, "cruma"], [local, "cruma-local"], [cloud, "cruma-cloud"]]) {
+  const versions = [".claude-plugin/plugin.json", "plugin.json"].map((file) => json(plugin, file).version);
   if (new Set(versions).size !== 1 || !versions[0]) failures.push(`${name} manifest versions differ or are missing`);
-  if (json(directory, ".claude-plugin/plugin.json").privacyPolicyUrl !== "https://cruma.io/privacy") failures.push(`${name} Claude manifest must declare the privacy policy`);
-  const icon = join(directory, ".claude-plugin/icon.png");
+  const icon = join(plugin, ".claude-plugin/icon.png");
   if (!existsSync(icon) || !validIcon(icon)) failures.push(`${name} Claude plugin icon must be a square 512–2048 px PNG under 2 MB`);
-  if (!existsSync(join(directory, "LICENSE"))) failures.push(`${name} must include LICENSE`);
-  if (count(directory) >= 512) failures.push(`${name} has ${count(directory)} files; must stay below 512`);
+  if (!existsSync(join(plugin, "LICENSE"))) failures.push(`${name} must include LICENSE`);
+  if (count(plugin) >= 512) failures.push(`${name} has ${count(plugin)} files; must stay below 512`);
 }
 
 const cloudClaude = Object.keys(json(cloud, ".mcp.json"));
 const cloudCodex = Object.keys(json(cloud, "mcp.json").mcpServers);
 if (cloudClaude.join() !== "cruma-cloud" || cloudCodex.join() !== "cruma-cloud") failures.push("cruma-cloud manifests must declare only `cruma-cloud`");
 const marketplace = json(root, ".claude-plugin/marketplace.json");
-if (marketplace.plugins.find((plugin) => plugin.name === "cruma")?.source !== "./plugins/cruma") failures.push("marketplace cruma source must be ./plugins/cruma");
+for (const name of ["cruma", "cruma-local", "cruma-cloud"]) {
+  if (marketplace.plugins.find((plugin) => plugin.name === name)?.source !== `./plugins/${name}`) failures.push(`marketplace ${name} source must be ./plugins/${name}`);
+}
+if (!marketplace.plugins.find((plugin) => plugin.name === "cruma")?.relevance) failures.push("marketplace cruma entry must keep its relevance block");
+if (marketplace.plugins.find((plugin) => plugin.name === "cruma-local")?.relevance) failures.push("marketplace cruma-local entry must not carry relevance; only cruma is suggested");
 for (const plugin of marketplace.plugins) if ("version" in plugin) failures.push(`marketplace entry ${plugin.name} must not set version`);
 
 if (failures.length) { console.error(failures.map((failure) => `check-plugin: ${failure}`).join("\n")); process.exit(1); }
-console.log(`check-plugin: ok (cruma ${count(local)} files; cruma-cloud ${count(cloud)} files)`);
+console.log(`check-plugin: ok (cruma ${count(directory)} files; cruma-local ${count(local)} files; cruma-cloud ${count(cloud)} files)`);

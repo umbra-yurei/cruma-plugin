@@ -1,48 +1,87 @@
-# Cruma coding-agent plugin
+# Cruma coding-agent plugins
 
-This plugin gives coding agents a skill named `agent` (`cruma:agent` in Claude Code) for installing the Cruma tunnel
-agent and publishing local things: a dev server port, a folder of files served
-by the agent itself (no separate file server), an app the agent hosts for you,
-or several named sites at once. The plugin ships no installer: on Linux the skill
-offers `npm install -g cruma` or Homebrew after you confirm. A tunnel makes the selected local
-service reachable at a public URL, so only expose a service after the user has
-confirmed that it is safe to share. Tunnels can be anonymous: no account or
-signup is required to start one.
+This marketplace has three plugins. All of them let a coding agent put a dev
+server port or a folder on a public Cruma URL. A tunnel makes the selected
+local service reachable by anyone, so the skills share something only after the
+user has confirmed it. Tunnels can be anonymous: no account is needed.
 
-## Codex
+| Plugin | What it is | Who it is for |
+| --- | --- | --- |
+| `cruma` | Skill only: no MCP server, no hooks, no scripts. Submitted to Anthropic's plugin directory. | Everyone; install this one from the directory |
+| `cruma-local` | The same skill plus a bundled local MCP server (`mcp/launcher.mjs` starts `cruma mcp`), for Claude Code (`.mcp.json`) and Codex (`mcp.json`). Never submitted to the directory. | People who want the tools from the first session, with no `claude mcp add` step |
+| `cruma-cloud` | Optional hosted MCP server for your Cruma account. | People who ask about their plan, tunnels and sites |
+
+## The `cruma` plugin (skill only)
 
 ```sh
+claude plugin marketplace add umbra-yurei/cruma-plugin
+claude plugin install cruma@cruma-plugin
+```
+
+The skill (`cruma:agent`) works in three steps and asks before each of the
+first two:
+
+1. **Install.** It runs `cruma --version`. When the agent is missing it says
+   what installing means and where the program comes from (Homebrew, the `cruma`
+   package on npm, or cruma.io), names the one command, and runs it only after a
+   yes. A no ends the install: it prints the command for you and stops. It never
+   pipes a downloaded script into a shell.
+2. **Connect.** It offers `claude mcp add --scope user cruma -- cruma mcp` and
+   runs it only after a yes. **The Cruma tools load in a new Claude Code
+   session**, not the running one; the skill says so.
+3. **Share.** In the same session it uses the command line, with only the flags
+   `cruma --help` documents (`cruma proxy http <port> --json`,
+   `cruma serve <folder> --json`). In later sessions it uses the MCP tools
+   and does not run `cruma proxy` or `cruma serve`.
+
+The skill needs agent 1.0.12 or newer. Codex and other skills-compatible
+agents can use the same skill: `npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma`
+(the repository holds two skills named `agent`, one in `plugins/cruma` and one in
+`plugins/cruma-local`, so the command names the `cruma` plugin's directory), and
+`codex mcp add cruma -- cruma mcp` to connect the tools.
+
+## The `cruma-local` plugin (bundled MCP server)
+
+```sh
+claude plugin install cruma-local@cruma-plugin
 codex plugin marketplace add umbra-yurei/cruma-plugin
-codex plugin add cruma@cruma-plugin
+codex plugin add cruma-local@cruma-plugin
 ```
 
-The plugin connects the same local `cruma` MCP server as Claude Code, through its `mcp.json`
-(Agent Plugins form: `node ${PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, from the `plugins/cruma` tree).
-It asks for no sign-in.
+Its skill is `cruma-local:agent`. Codex reads `plugins/cruma-local/mcp.json`
+(Agent Plugins form: `node ${PLUGIN_ROOT}/mcp/cruma-mcp.mjs`); Claude Code reads
+`plugins/cruma-local/.mcp.json`. It asks for no sign-in.
 
-## Other skills-compatible agents
+### Moving from the old `cruma` plugin
 
-Install the included `plugins/cruma/skills/agent/SKILL.md` skill with:
+Before this split, `cruma` was the bundled-server plugin. That plugin is now
+`cruma-local`, with the same files and version line. If you installed the old
+one and want to keep the bundled server:
 
 ```sh
-npx skills add umbra-yurei/cruma-plugin
+claude plugin uninstall cruma@cruma-plugin
+claude plugin marketplace update cruma-plugin
+claude plugin install cruma-local@cruma-plugin
 ```
 
-Then ask your agent to expose a local service, for example: “Expose my dev
-server on port 3000.” The skill checks for the agent, installs it without
-`sudo` when needed, asks for confirmation before making anything public, and
-reports the public URL.
+Codex: `codex plugin remove cruma@cruma-plugin`, then
+`codex plugin add cruma-local@cruma-plugin`. The MCP tool names change from
+`mcp__plugin_cruma_cruma__*` to `mcp__plugin_cruma-local_cruma__*`. If you would
+rather use the skill-only plugin, leave `cruma` installed (it is now the
+skill-only one after the update), accept its offer to run
+`claude mcp add --scope user cruma -- cruma mcp`, and do not install both at
+once: two `cruma` MCP servers answer the same tools.
 
-## Claude Code
+### What the bundled server does
 
-The plugin also connects a local MCP server named `cruma` (`plugins/cruma/.mcp.json` runs
+The plugin connects a local MCP server named `cruma` (`plugins/cruma-local/.mcp.json` runs
 `node ${CLAUDE_PLUGIN_ROOT}/mcp/cruma-mcp.mjs`, a short launcher in this
 repository that needs Node.js). The launcher starts `cruma mcp` from the `cruma`
 installed on your machine (the macOS app, Homebrew, `/usr/local/bin`,
 `~/.local/bin`, the Windows Store alias, then `PATH`; the newest wins) with its
 own anonymous agent, and exposes nothing until Claude calls a tool that does.
 It passes `cruma mcp` only the environment variables named in
-`plugins/cruma/mcp/environment.mjs`, so a process the agent hosts for you (started with
+`plugins/cruma-local/mcp/environment.mjs`, so a process the agent hosts for you (started with
 `upsert_process`) does not inherit the rest of your shell's environment, such as
 `NODE_ENV` or `GOPATH`: put what it needs in the process's own settings. It downloads nothing. When `cruma` is not installed, it prints how to install
 it and the MCP server fails to start and the skill falls
@@ -74,14 +113,7 @@ sites, routes, processes and logs) instead of the temporary session tunnel,
 ask for it; the skill lists your running agents and asks before switching to
 one.
 
-Add the marketplace, then install the plugin:
-
-```sh
-claude plugin marketplace add umbra-yurei/cruma-plugin
-claude plugin install cruma@cruma-plugin
-```
-
-In Claude Code, ask to expose a local service, for example: “Expose my dev
+Ask to expose a local service, for example: “Expose my dev
 server on port 3000.” The skill checks for the agent, installs it without
 `sudo` when needed, asks for confirmation before making anything public, and
 reports the public URL.
@@ -110,8 +142,8 @@ session-start notice.
 `cruma-cloud` is a second plugin in this marketplace. It holds one MCP server,
 Cruma's hosted `https://mcp.cruma.io/mcp`, for questions about your Cruma
 account: your plan, the tunnels and sites on the account, and the other
-services it lists. Its first use opens your browser to sign in. The `cruma`
-plugin does not include it, so local tunnels never ask you to sign in.
+services it lists. Its first use opens your browser to sign in. Neither `cruma` nor `cruma-local`
+includes it, so local tunnels never ask you to sign in.
 
 ```sh
 claude plugin install cruma-cloud@cruma-plugin   # Claude Code
@@ -155,7 +187,7 @@ The plugin and the `cruma` agent update separately; updating one does not
 change the other.
 
 - **The plugin** (this skill): `claude plugin marketplace update cruma-plugin`,
-  then `claude plugin update cruma@cruma-plugin`, and restart Claude Code.
+  then `claude plugin update cruma@cruma-plugin` (or `cruma-local@cruma-plugin`), and restart Claude Code.
   Installed copies only update when `version` in `.claude-plugin/plugin.json` changes
   (the Codex manifest `plugin.json` must match; the marketplace entry carries none),
   so every change to the plugin bumps it. `node scripts/check-plugin.mjs` enforces this.
@@ -180,8 +212,27 @@ change the other.
 
 ## Evals
 
-`evals/` holds `claude plugin eval` cases that run against a mocked `cruma` MCP
-server:
+`evals/` holds `claude plugin eval` cases. `directory-*` cases belong to the
+skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases to
+`cruma-cloud`; all others to `cruma-local`, against its mocked `cruma` MCP server
+(`scripts/stage-evals.mjs` copies each plugin's cases beside it):
+
+| Case | Checks |
+| --- | --- |
+| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew`/`curl` command runs, no script, no file server |
+| `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
+| `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
+| `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
+| `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |
+| `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |
+| `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`curl`/`cruma proxy` command), the manual command or cruma.io is given, and no other way of publishing is used |
+
+The `directory-*` cases that run commands (all except `directory-mcp-present`) need
+`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh`, which puts
+stand-in `npm`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
+added or shared for real, and the `tool_used` graders read the command lines the agent runs.
+
+The cases below run against `cruma-local`:
 
 | Case | Checks |
 | --- | --- |
@@ -218,16 +269,17 @@ server:
 | `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma-cloud:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma-cloud:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma-cloud:board off` changes only `board_enabled`; each says it applies from the next session |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
-Stage the local cases with `node scripts/stage-evals.mjs cruma`, then run
-`claude plugin eval .eval-work/cruma --trust-plugin --scaffold`. For cloud cases,
-stage `cruma-cloud` and run the same command against `.eval-work/cruma-cloud`. The `settings-*`
+Stage a plugin's cases with `node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>`, then run
+`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (add `--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). The `settings-*`
 cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `evals/fake-cruma/install.sh`) in the run's own home directory, whose
 `agent-context` prints the case's note, so the hook runs exactly as with a real
 install and never reads the account of whoever runs the suite.
 
-`node scripts/check-plugin.mjs` checks that `.mcp.json` declares only the local
-`cruma` server and runs a file inside the plugin, that `mcp.json` (read by Codex) declares only
+`node scripts/check-plugin.mjs` checks that `plugins/cruma` (the directory plugin) has no
+`.mcp.json`, `mcp.json`, `mcp/`, hooks, scripts or binaries and only the `agent` skill,
+that its skill carries the consent-gated `claude mcp add` command; that `plugins/cruma-local`'s `.mcp.json` declares only the local
+`cruma` server and runs a file inside the plugin, that its `mcp.json` (read by Codex) declares only
 `cruma` and runs the same file, that only `plugins/cruma-cloud`
 declares the cloud server, the skills are named after their directories, `board` and
 `memory` set `disable-model-invocation: true`, no skill pipes into a shell, the
@@ -279,8 +331,12 @@ output, is missing, or is a `.md` in a `plugin_cruma_cruma/` or `cruma-app/`
 mock directory that the generator does not produce. The merge queue runs it on
 changes to `evals/` and to cruma-sdk, so a hand edit to a generated mock, a
 hand-written mock added beside them, or a result type changed in cruma-sdk
-without regenerating, fails the queue. Only the `cruma-cloud` mocks are
-hand-written.
+without regenerating, fails the queue. The generator writes the directory `plugin_cruma_cruma`; staging renames it to
+`plugin_cruma-local_cruma`, the name the eval CLI expects for `cruma-local`'s server.
+`directory-mcp-present`'s `mocks/cruma/` (the `cruma mcp` server added by the user under the
+name `cruma`) is generated too, and so is everything the `directory-*` stand-in `cruma` prints
+(`evals/fake-cruma/cli/`: the `--json` ready line, `--version` in both forms, and the `--help` texts, written
+from the real startup-line type and the CLI's clap definition). Only the `cruma-cloud` mocks are hand-written.
 
 The suite does not run an installer: the MCP server only connects once `cruma`
 is available. The `windows-store-alias-missing` case runs with no shell and no
@@ -296,13 +352,15 @@ returns the installed package.
 A change to the skill, a case, a grader or a mock is accepted when its eval
 cases pass. The evals need model credentials, so the proof comes in two steps.
 
-**Before review (any machine, no credentials).** Run both and post the output
+**Before review (any machine, no credentials).** Run these and post the output
 with the change:
 
 ```sh
+claude plugin validate --strict .
 claude plugin validate --strict plugins/cruma
+claude plugin validate --strict plugins/cruma-local
 claude plugin validate --strict plugins/cruma-cloud
-for p in cruma cruma-cloud; do
+for p in cruma cruma-local cruma-cloud; do
   node scripts/stage-evals.mjs "$p" >/dev/null
   for c in .eval-work/"$p"/evals/*/prompt.md .eval-work/"$p"/evals/*/case.yaml; do
     [ -e "$c" ] || continue
@@ -327,14 +385,14 @@ the suite loads; it does not prove a case passes.
 
 ```sh
 cruma --version
-node scripts/stage-evals.mjs cruma
-claude plugin eval .eval-work/cruma --trust-plugin --scaffold
-node scripts/stage-evals.mjs cruma-cloud
-claude plugin eval .eval-work/cruma-cloud --trust-plugin --scaffold
+for p in cruma cruma-local cruma-cloud; do
+  node scripts/stage-evals.mjs "$p"
+  claude plugin eval .eval-work/"$p" --trust-plugin --scaffold
+done
 ```
 
 Add `--case <glob>` to run only the cases the change touched, and
-`--allow-tools` where a case needs it (see above). Post on the task's thread:
+`--allow-tools` where a case needs it (`--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). Post on the task's thread:
 the agent version, the exit code, the cost line, and the per-case table
 (`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
 no-plugin baseline arm).
