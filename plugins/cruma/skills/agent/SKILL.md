@@ -173,14 +173,21 @@ expose first. If the user already asked for protection, do not ask again.
   password is returned once. Without an `access` argument in the schema (an
   older agent), build the site with `upsert_backend` and `upsert_frontend` and
   a `basic_auth` middleware; read `middleware_model` for its shape.
-- Sign-in with an account or a provider (Google, GitHub): `access` `sign_in` is
-  not available for shares yet. Do not try it or work around it. Sign-in goes
-  through `upsert_frontend` with an `oauth2` middleware that references a
-  provider the user's own agent already has. Find the provider ids in the
+- Sign-in with a Cruma account: `access` `sign_in` on `expose_local_port` or
+  `expose_local_directory`. Visitors sign in with their Cruma account, with no
+  provider to set up. Narrow it with `emails`, `email_domains` and one
+  `organization`; none of them means any verified Cruma account. `organization`
+  needs the agent itself signed in to Cruma: on an anonymous agent the call
+  fails with a typed error, so say so and offer `email_domains` or a password.
+  The policy ends with the share.
+- Sign-in with Google, GitHub or another provider: `sign_in` does not cover it.
+  It goes through `upsert_frontend` with an `oauth2` middleware that references
+  a provider the user's own agent already has. Find the provider ids in the
   `oauth2` middlewares of existing frontends (`get_runtime_inventory` with
   `full: true` and `sections: ["frontends"]`), or ask the user which provider
   to use. Read `middleware_model` for the middleware's shape. If there is no
-  provider, say sign-in needs one configured first and offer a password.
+  provider, say that provider needs configuring first and offer sign-in with a
+  Cruma account or a password.
 
 ### What to use for what
 
