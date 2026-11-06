@@ -1,6 +1,6 @@
 // Stages the repository-level eval corpus beside one plugin for Claude's eval CLI.
 // Evals stay outside the shipped plugin trees; this script only copies files.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,12 +19,30 @@ const owner = (name) => (name === "mocks" ? "cruma-local" : cloudPrefixes.some((
 // `plugin_<plugin>_<server>`, and the bundled server's plugin is `cruma-local`.
 const generatedMockDir = "plugin_cruma_cruma";
 const stagedMockDir = "plugin_cruma-local_cruma";
+const generatedToolPrefix = "mcp__plugin_cruma_cruma__";
+const stagedToolPrefix = "mcp__plugin_cruma-local_cruma__";
 function renameMockDirs(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const path = join(directory, entry.name);
     if (entry.name === generatedMockDir && !existsSync(join(directory, stagedMockDir))) renameSync(path, join(directory, stagedMockDir));
     else renameMockDirs(path);
+  }
+}
+
+function prepareLocalEvalMocks(directory, toolsList) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === stagedMockDir && !existsSync(join(path, "_tools.json"))) {
+        copyFileSync(toolsList, join(path, "_tools.json"));
+      }
+      prepareLocalEvalMocks(path, toolsList);
+    } else if (entry.name.endsWith(".md") || entry.name.endsWith(".yaml")) {
+      const contents = readFileSync(path, "utf8");
+      const staged = contents.replaceAll(generatedToolPrefix, stagedToolPrefix);
+      if (staged !== contents) writeFileSync(path, staged);
+    }
   }
 }
 
@@ -48,4 +66,10 @@ for (const entry of readdirSync(join(root, "evals"), { withFileTypes: true })) {
   }
 }
 renameMockDirs(stagedEvals);
+if (plugin === "cruma-local") {
+  prepareLocalEvalMocks(
+    stagedEvals,
+    join(stagedEvals, "mocks", stagedMockDir, "_tools.json"),
+  );
+}
 console.log(stagedPlugin);

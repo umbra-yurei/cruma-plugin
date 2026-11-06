@@ -293,6 +293,13 @@ cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `agent-context` prints the case's note, so the hook runs exactly as with a real
 install and never reads the account of whoever runs the suite.
 
+The built-in Cruma sign-in case uses the renamed `cruma-local` server tools:
+
+```sh
+node scripts/stage-evals.mjs cruma-local
+claude plugin eval .eval-work/cruma-local --trust-plugin --scaffold --case sign-in-cruma-account --allow-tools 'mcp__plugin_cruma-local_cruma__*'
+```
+
 `node scripts/check-plugin.mjs` checks that `plugins/cruma` (the directory plugin) has no
 `.mcp.json`, `mcp.json`, `mcp/`, hooks, scripts or binaries and only the `agent` skill,
 that its skill carries the consent-gated `claude mcp add` command; that `plugins/cruma-local`'s `.mcp.json` declares only the local
