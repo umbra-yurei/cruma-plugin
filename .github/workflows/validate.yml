@@ -17,10 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 --version
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 plugin validate --strict plugins/cruma
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 plugin validate --strict plugins/cruma-local
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 plugin validate --strict plugins/cruma-cloud
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 plugin validate --strict .
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 --version
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-local
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-cloud
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict .
       - run: node scripts/check-plugin.mjs
       - run: node --test mcp/cruma-mcp.test.mjs

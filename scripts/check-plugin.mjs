@@ -39,6 +39,13 @@ if (!/^name: agent$/m.test(directorySkill) || /^disable-model-invocation:/m.test
 if (readdirSync(join(directory, "skills")).join() !== "agent") failures.push("cruma must ship only the agent skill");
 if (!directorySkill.includes("claude mcp add --scope user cruma -- cruma mcp")) failures.push("cruma agent skill must give the consent-gated `claude mcp add --scope user cruma -- cruma mcp` step");
 if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(directorySkill)) failures.push("cruma agent skill must not contain cloud session, board, or memory instructions");
+const directoryDescription = /^description: (.*)$/m.exec(directorySkill)?.[1] ?? "";
+if (!directoryDescription.includes("Claude Code on the user's own computer") || !/^## 0\. Where this works/m.test(directorySkill) || !directorySkill.includes("CLAUDECODE")) failures.push("cruma agent skill must say in its description that sharing needs Claude Code on the user's own computer and must check CLAUDECODE in a `## 0. Where this works` section");
+for (const file of [".claude-plugin/plugin.json", "plugin.json"]) {
+  const manifest = json(directory, file);
+  if (!/Claude Code|coding agent/.test(manifest.description ?? "") || !/claude\.ai chat/.test(manifest.description ?? "")) failures.push(`cruma ${file} description must say it needs a coding agent on your own computer and not claude.ai chat`);
+  for (const key of ["hooks", "mcpServers", "modules", "bin"]) if (key in manifest) failures.push(`cruma ${file} must not declare ${key}`);
+}
 
 for (const name of ["board", "memory"]) {
   const file = join(cloud, `skills/${name}/SKILL.md`);
@@ -74,6 +81,7 @@ for (const [plugin, name] of [[local, "cruma-local"], [cloud, "cruma-cloud"]]) {
 for (const [plugin, name] of [[directory, "cruma"], [local, "cruma-local"], [cloud, "cruma-cloud"]]) {
   const versions = [".claude-plugin/plugin.json", "plugin.json"].map((file) => json(plugin, file).version);
   if (new Set(versions).size !== 1 || !versions[0]) failures.push(`${name} manifest versions differ or are missing`);
+  if (json(plugin, ".claude-plugin/plugin.json").privacyPolicyUrl !== "https://cruma.io/privacy") failures.push(`${name} Claude manifest must declare privacyPolicyUrl https://cruma.io/privacy`);
   const icon = join(plugin, ".claude-plugin/icon.png");
   if (!existsSync(icon) || !validIcon(icon)) failures.push(`${name} Claude plugin icon must be a square 512–2048 px PNG under 2 MB`);
   if (!existsSync(join(plugin, "LICENSE"))) failures.push(`${name} must include LICENSE`);
@@ -87,6 +95,7 @@ const marketplace = json(root, ".claude-plugin/marketplace.json");
 for (const name of ["cruma", "cruma-local", "cruma-cloud"]) {
   if (marketplace.plugins.find((plugin) => plugin.name === name)?.source !== `./plugins/${name}`) failures.push(`marketplace ${name} source must be ./plugins/${name}`);
 }
+if (!/Claude Code/.test(marketplace.plugins.find((plugin) => plugin.name === "cruma")?.description ?? "")) failures.push("marketplace cruma entry description must say it needs Claude Code on your own computer");
 if (!marketplace.plugins.find((plugin) => plugin.name === "cruma")?.relevance) failures.push("marketplace cruma entry must keep its relevance block");
 if (marketplace.plugins.find((plugin) => plugin.name === "cruma-local")?.relevance) failures.push("marketplace cruma-local entry must not carry relevance; only cruma is suggested");
 for (const plugin of marketplace.plugins) if ("version" in plugin) failures.push(`marketplace entry ${plugin.name} must not set version`);

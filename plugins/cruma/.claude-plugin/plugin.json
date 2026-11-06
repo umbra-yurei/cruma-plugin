@@ -1,10 +1,11 @@
 {
   "name": "cruma",
-  "version": "0.15.2",
-  "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. A skill only: it asks before installing Cruma or connecting it to Claude Code.",
+  "version": "0.16.0",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. Needs Claude Code on your own computer; in claude.ai chat it only explains that. A skill only: it asks before installing Cruma or connecting it to Claude Code.",
   "author": {
     "name": "Cruma"
   },
   "homepage": "https://cruma.io",
+  "privacyPolicyUrl": "https://cruma.io/privacy",
   "repository": "https://github.com/umbra-yurei/cruma-plugin"
 }

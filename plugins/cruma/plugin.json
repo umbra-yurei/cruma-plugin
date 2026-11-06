@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cruma",
-  "version": "0.15.2",
-  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, with explicit approval. A skill only; it connects the MCP tools only after you say yes.",
+  "version": "0.16.0",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, with explicit approval. Needs a coding agent on your own computer (Claude Code or Codex), not claude.ai chat. A skill only; it connects the MCP tools only after you say yes.",
   "author": {
     "name": "Cruma"
   },
@@ -17,7 +17,7 @@
     "com.openai": {
       "interface": {
         "displayName": "Cruma",
-        "shortDescription": "Share local dev servers",
+        "shortDescription": "Share local dev servers from your own computer",
         "longDescription": "Install the Cruma agent after you agree, and share a dev server or a folder after you approve making it public.",
         "developerName": "Cruma",
         "category": "Developer Tools",
