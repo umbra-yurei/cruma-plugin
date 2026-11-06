@@ -1,6 +1,6 @@
 ---
-type: regex
-flags: i
-pattern: 'http\.server|npx serve'
-match: not_contains
+type: tool_used
+tool: Bash
+input_match: 'http\.server|npx serve|ngrok|cloudflared'
+max: 0
 ---

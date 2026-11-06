@@ -35,7 +35,9 @@ first two:
    and does not run `cruma proxy` or `cruma serve`.
 
 The skill needs agent 1.0.12 or newer. Codex and other skills-compatible
-agents can use the same skill: `npx skills add umbra-yurei/cruma-plugin`, and
+agents can use the same skill: `npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma`
+(the repository holds two skills named `agent`, one in `plugins/cruma` and one in
+`plugins/cruma-local`, so the command names the `cruma` plugin's directory), and
 `codex mcp add cruma -- cruma mcp` to connect the tools.
 
 ## The `cruma-local` plugin (bundled MCP server)
@@ -217,11 +219,18 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 
 | Case | Checks |
 | --- | --- |
-| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no script, no file server |
-| `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes, and says the tools load in a new session |
-| `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, says the tools load in a new session, and starts no file server |
-| `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (hand-written mocks in `mocks/cruma/`: this directory is not covered by the generator) |
-| `directory-install-declined` | the user declines: nothing is installed, the manual command or cruma.io is given, and no other way of publishing is used |
+| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew`/`curl` command runs, no script, no file server |
+| `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
+| `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
+| `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
+| `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |
+| `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |
+| `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`curl`/`cruma proxy` command), the manual command or cruma.io is given, and no other way of publishing is used |
+
+The `directory-*` cases that run commands (all except `directory-mcp-present`) need
+`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh`, which puts
+stand-in `npm`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
+added or shared for real, and the `tool_used` graders read the command lines the agent runs.
 
 The cases below run against `cruma-local`:
 
@@ -261,7 +270,7 @@ The cases below run against `cruma-local`:
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Stage a plugin's cases with `node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>`, then run
-`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold`. The `settings-*`
+`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (add `--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). The `settings-*`
 cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `evals/fake-cruma/install.sh`) in the run's own home directory, whose
 `agent-context` prints the case's note, so the hook runs exactly as with a real
@@ -324,8 +333,8 @@ changes to `evals/` and to cruma-sdk, so a hand edit to a generated mock, a
 hand-written mock added beside them, or a result type changed in cruma-sdk
 without regenerating, fails the queue. The generator writes the directory `plugin_cruma_cruma`; staging renames it to
 `plugin_cruma-local_cruma`, the name the eval CLI expects for `cruma-local`'s server.
-Only the `cruma-cloud` mocks and `directory-mcp-present`'s `mocks/cruma/` are
-hand-written.
+`directory-mcp-present`'s `mocks/cruma/` (the `cruma mcp` server added by the user under the
+name `cruma`) is generated too. Only the `cruma-cloud` mocks are hand-written.
 
 The suite does not run an installer: the MCP server only connects once `cruma`
 is available. The `windows-store-alias-missing` case runs with no shell and no
@@ -345,10 +354,10 @@ cases pass. The evals need model credentials, so the proof comes in two steps.
 with the change:
 
 ```sh
-claude plugin validate .
-claude plugin validate plugins/cruma
-claude plugin validate plugins/cruma-local
-claude plugin validate plugins/cruma-cloud
+claude plugin validate --strict .
+claude plugin validate --strict plugins/cruma
+claude plugin validate --strict plugins/cruma-local
+claude plugin validate --strict plugins/cruma-cloud
 for p in cruma cruma-local cruma-cloud; do
   node scripts/stage-evals.mjs "$p" >/dev/null
   for c in .eval-work/"$p"/evals/*/prompt.md .eval-work/"$p"/evals/*/case.yaml; do
@@ -381,7 +390,7 @@ done
 ```
 
 Add `--case <glob>` to run only the cases the change touched, and
-`--allow-tools` where a case needs it (see above). Post on the task's thread:
+`--allow-tools` where a case needs it (`--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). Post on the task's thread:
 the agent version, the exit code, the cost line, and the per-case table
 (`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
 no-plugin baseline arm).
