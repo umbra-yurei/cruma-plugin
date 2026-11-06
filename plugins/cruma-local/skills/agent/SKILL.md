@@ -368,26 +368,66 @@ On a desktop use the GUI-capable package for the OS:
 
 | OS | Package |
 | --- | --- |
-| macOS | the Homebrew cask (the signed application) |
+| macOS | the Homebrew cask (the signed application); without `brew`, `npm install -g cruma` or the signed DMG (**macOS**) |
 | Linux | the Homebrew formula (the glibc build, GUI-capable) when `brew` is installed |
 | Windows | Microsoft Store |
 
 Never recommend a musl or server-agent artifact, or a direct download of a
-binary, for a desktop. Without a desktop (a server, container or SSH session)
+binary, for a desktop. (The signed, notarized macOS DMG below is an application
+that is verified before it is copied, not a bare binary.) Without a desktop (a server, container or SSH session)
 the Linux section below applies as well.
 
 #### macOS
 
-Apple Silicon Macs can install the signed and notarized application (the
-GUI-capable package) with:
+Apple Silicon only. There is no Intel Mac build yet (`uname -m` prints
+`x86_64` on one): say so and install nothing. First look for an existing app
+(`ls -d /Applications/Cruma.app ~/Applications/Cruma.app`): if there is one,
+Cruma is installed and `cruma` is just not on `PATH`; install nothing and use
+its `Contents/MacOS/cruma` by full path (step 7 below).
 
-```sh
-brew install --cask umbra-yurei/brew/cruma
-```
+Offer exactly one method, chosen by what the Mac has (`command -v brew`,
+`command -v npm`), and mention no other. When you cannot run commands and the
+user says nothing about Homebrew, offer the first row.
 
-Use `--cask`: the formula with the same name is Linux-only. There is no Intel
-Mac build yet; explain that limitation rather than suggesting an unsupported
-installation.
+| The Mac has | Your reply |
+| --- | --- |
+| `brew` | `brew install --cask umbra-yurei/brew/cruma`, the signed and notarized application. Use `--cask`: the formula with the same name is Linux-only. |
+| `npm`, no `brew` | `npm install -g cruma`, the terminal agent (no `sudo` with a user-level npm prefix). Read `build_flavor` from `cruma --version --json` afterwards; if it is `server-agent`, say in one line that this build has no desktop window. If they want the desktop app, offer the signed DMG as their own choice, ask first, and tell them to run `npm uninstall -g cruma` before it. |
+| neither | the signed, notarized DMG, installed as `Cruma.app` (below). |
+
+**Signed DMG** (after a yes, never over an existing install):
+
+1. Read the release manifest with `curl -fsSL https://files.cruma.io/files/tunnel-agent/stable.json`
+   and take `macos_aarch64_url`. Never hard-code a version. Stop unless the URL
+   starts with `https://files.cruma.io/`.
+2. In a temporary directory (`dir="$(mktemp -d)"`), download it:
+   `curl -fL -o "$dir/cruma.dmg" "<macos_aarch64_url>"`.
+3. Mount it: `hdiutil attach -nobrowse -readonly -mountpoint "$dir/mnt" "$dir/cruma.dmg"`.
+4. Verify `"$dir/mnt/Cruma.app"` before copying anything. All three must pass:
+   - `codesign --verify --deep --strict "$dir/mnt/Cruma.app"` exits 0;
+   - `spctl --assess --type execute -vv "$dir/mnt/Cruma.app"` says `accepted`
+     with `source=Notarized Developer ID`;
+   - `codesign -dv --verbose=2 "$dir/mnt/Cruma.app" 2>&1` prints
+     `TeamIdentifier=YRK5M8FHAV`, the team that signs the Homebrew cask's app.
+
+   If any check fails: `hdiutil detach "$dir/mnt"`, `rm -rf "$dir"`, install
+   nothing, tell the user which check failed, and stop. Do not retry and do not
+   offer another install method.
+5. Copy with `ditto "$dir/mnt/Cruma.app" /Applications/Cruma.app`. If
+   `/Applications` is not writable, create `~/Applications` and copy to
+   `~/Applications/Cruma.app` instead. Never use `sudo`.
+6. `hdiutil detach "$dir/mnt"`, then `rm -rf "$dir"`.
+7. The app does not put `cruma` on `PATH`. Use the full path
+   `/Applications/Cruma.app/Contents/MacOS/cruma` (or the `~/Applications` one)
+   for the rest of the session, including in `cruma --version --json`. Tell the
+   user the line that puts it on `PATH` (`export PATH="/Applications/Cruma.app/Contents/MacOS:$PATH"`
+   in their shell profile). Do not edit a shell profile unless they ask.
+8. Ask whether to open the desktop window; open it (`open_desktop_app`, or
+   `open -a Cruma`) only after a yes. Then run `cruma --version --json` (the
+   full path) and report the version it prints.
+
+**Always end the reply with a question** ("Shall I run it?"), as for Linux
+below.
 
 #### Linux
 
@@ -424,10 +464,12 @@ Then install the matching product ID with:
 winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements
 ```
 
-If Winget or its Microsoft Store source is unavailable, use the Microsoft
-Store application or the [Cruma Microsoft Store
-listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Do not suggest a
-direct Windows installer.
+If Winget or its Microsoft Store source is unavailable and `npm` is installed,
+offer exactly `npm install -g cruma` instead, and say it is the terminal agent
+(x64) and that the desktop app comes from the [Cruma Microsoft Store
+listing](https://apps.microsoft.com/detail/9NXKT3W34HVL). Without `npm`, use the
+Store application or that listing. Do not suggest a direct Windows installer or
+`.exe` download.
 
 #### With Node.js
 
@@ -484,6 +526,7 @@ it as given. Otherwise pick by how Cruma was installed:
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
 | A Linux installer script (`~/.local/bin/cruma`) | run the installer you used again (see https://cruma.io); the plugin ships none |
 | npm install | `npm update -g cruma` |
+| Signed DMG (macOS) | quit Cruma, then repeat the signed DMG steps of **macOS** (same checks) and replace `Cruma.app` |
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
 | Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
 

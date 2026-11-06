@@ -22,10 +22,14 @@ The skill (`cruma:agent`) works in three steps and asks before each of the
 first two:
 
 1. **Install.** It runs `cruma --version`. When the agent is missing it says
-   what installing means and where the program comes from (Homebrew, the `cruma`
-   package on npm, or cruma.io), names the one command, and runs it only after a
-   yes. A no ends the install: it prints the command for you and stops. It never
-   pipes a downloaded script into a shell.
+   what installing means and where the program comes from, names the one method,
+   and runs it only after a yes. On a Mac it is the Homebrew cask, else
+   `npm install -g cruma`, else the signed, notarized DMG (the skill reads the release
+   manifest, checks the code signature, notarization and signing team, and only then
+   copies `Cruma.app`; nothing is installed when a check fails). Linux uses Homebrew,
+   else npm. Windows uses the Microsoft Store, else `npm install -g cruma` (the
+   terminal agent). A no ends the install: it prints the command for you and stops.
+   It never pipes a downloaded script into a shell.
 2. **Connect.** It offers `claude mcp add --scope user cruma -- cruma mcp` and
    runs it only after a yes. **The Cruma tools load in a new Claude Code
    session**, not the running one; the skill says so.
@@ -200,11 +204,12 @@ change the other.
   | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
   | Linux installer script | run the installer you used again; see [cruma.io](https://cruma.io) |
   | npm | `npm update -g cruma` |
+  | Signed DMG (macOS) | repeat the signed DMG steps (same checks) and replace `Cruma.app` |
   | Microsoft Store (Windows) | update Cruma in Microsoft Store |
 
   The skill upgrades an installed agent only with the command for its own
   install method, and installs the GUI-capable package on a desktop (the macOS
-  cask, the Linux Homebrew formula, Microsoft Store; `npm install -g cruma` on Linux without Homebrew); it reads the build
+  cask, the Linux Homebrew formula, Microsoft Store; `npm install -g cruma` on Linux, or a Mac or Windows PC, without the first choice; the signed DMG on a Mac with neither Homebrew nor npm); it reads the build
   flavour from `cruma --version --json`.
   The skill needs agent 1.0.12 or newer. It checks `cruma --version`, and with
   the MCP tools connected it mentions a newer stable release once, from the
@@ -222,16 +227,26 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 | --- | --- |
 | `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew`/`curl` command runs, no script, no file server |
 | `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
+| `directory-install-macos-npm`, `directory-install-macos-dmg`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is offered the signed DMG, with the signature and notarization checks named; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |
+| `directory-install-macos-dmg-bad-signature` | after a yes to the DMG install, `codesign --verify` fails (stand-ins from `evals/fake-cruma/mac-dmg-shims.sh`): the image is detached and the download deleted, `ditto` never runs, no other method is tried, and the reply says nothing was installed |
 | `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
 | `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
 | `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |
 | `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |
 | `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`curl`/`cruma proxy` command), the manual command or cruma.io is given, and no other way of publishing is used |
 
-The `directory-*` cases that run commands (all except `directory-mcp-present`) need
-`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh`, which puts
-stand-in `npm`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
-added or shared for real, and the `tool_used` graders read the command lines the agent runs.
+The `directory-*` cases that run commands (all except `directory-mcp-present` and the three
+`directory-install-*` cases that only ask) need
+`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (the Mac DMG case calls
+`mac-dmg-shims.sh`, with stand-in `curl`, `hdiutil`, `codesign`, `spctl`, `ditto` and a Darwin `uname`), which puts
+stand-in `npm`, `node`, `uname`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
+added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
+runs Bash as you with no OS sandbox, so the scaffold also writes the eval workspace's `.claude/settings.json`
+with `env.PATH` set to that directory plus `/usr/bin:/bin`; the host's Homebrew, `/usr/local` and real
+`cruma` are then not on the agent's `PATH`, and the stand-in `uname` answers Linux x86_64 like the prompts say.
+A scored run is only meaningful with that isolation in place: check with `--keep-temp` that the workspace
+has the `.claude/settings.json` and that no trace shows `/opt/homebrew`, a real `cruma` version or `Darwin`.
+Every "never runs X" grader sets `min: 0` as well as `max: 0`, because a `tool_used` grader's `min` defaults to 1.
 
 The cases below run against `cruma-local`:
 
@@ -254,7 +269,7 @@ The cases below run against `cruma-local`:
 | `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
 | `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
 | `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |
-| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on macOS, musl or a server artifact |
+| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on a Mac that has Homebrew, musl or a server artifact |
 | `linux-install-npm` | a fresh install on a Linux machine without Homebrew asks first, then ends at `npm install -g cruma`, with no script and no curl-to-shell |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |
 | `sign-in-cruma-account` | "only people at example.com" is one `expose_local_port` call with `access` `sign_in` and `email_domains`, with no provider set up and no password |
