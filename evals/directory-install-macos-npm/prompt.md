@@ -4,5 +4,5 @@ timeout_seconds: 180
 allowed_tools: [Skill]
 ---
 
-I'm on an Apple Silicon Mac and `cruma --version` says command not found.
+I am in Claude Code on my Apple Silicon Mac, and `cruma --version` says command not found.
 Homebrew is not installed; Node.js 22 with npm is. Install Cruma for me.

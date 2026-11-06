@@ -7,7 +7,7 @@ user has confirmed it. Tunnels can be anonymous: no account is needed.
 
 | Plugin | What it is | Who it is for |
 | --- | --- | --- |
-| `cruma` | Skill only: no MCP server, no hooks, no scripts. Submitted to Anthropic's plugin directory. | Everyone; install this one from the directory |
+| `cruma` | Skill only: no MCP server, no hooks, no scripts. Submitted to Anthropic's plugin directory. Sharing needs Claude Code on your own computer. | Everyone; install this one from the directory |
 | `cruma-local` | The same skill plus a bundled local MCP server (`mcp/launcher.mjs` starts `cruma mcp`), for Claude Code (`.mcp.json`) and Codex (`mcp.json`). Never submitted to the directory. | People who want the tools from the first session, with no `claude mcp add` step |
 | `cruma-cloud` | Optional hosted MCP server for your Cruma account. | People who ask about their plan, tunnels and sites |
 
@@ -18,7 +18,36 @@ claude plugin marketplace add umbra-yurei/cruma-plugin
 claude plugin install cruma@cruma-plugin
 ```
 
-The skill (`cruma:agent`) works in three steps and asks before each of the
+### Where it works
+
+The directory lists a skill-only plugin on every surface: claude.ai chat (web,
+the desktop app's chat, mobile), Cowork and Claude Code. Sharing a port, installing
+`cruma` and `claude mcp add` need a shell on your own computer, so they work in
+**Claude Code** (terminal, IDE extension, the desktop app's Code tab). A plugin
+installed on claude.ai is synced into Claude Code at its next session start.
+
+In chat a shell is Claude's code-execution container, where a tunnel would
+publish a port in that container instead of your dev server. The skill therefore
+starts with section 0, "Where this works", and goes on only when it can confirm
+your machine:
+
+- Cruma's MCP tools are in its tool list (a local `cruma mcp` provides them; chat
+  does not load local servers), or
+- it has a shell and `printenv CLAUDECODE` prints `1` (Claude Code sets it in
+  every shell it starts), or
+- it has no shell, so it can only describe steps, and you said you are in Claude
+  Code on your own computer.
+
+Otherwise it says "Sharing your dev server needs Claude Code on your own
+computer", gives the Claude Code install command and the two plugin commands
+(or says the plugin is already synced), answers questions about Cruma from the
+docs, points account questions to `cruma-cloud`, and installs, runs and offers
+nothing. Cowork is treated as unconfirmed: its shell is a virtual machine on
+your computer (per Anthropic's Cowork documentation), nothing documented tells
+it apart from your own shell, and `CLAUDECODE` may be set in it. If Cowork gains
+a documented local-session signal, add it to section 0.
+
+The skill (`cruma:agent`) then works in three steps and asks before each of the
 first two:
 
 1. **Install.** It runs `cruma --version`. When the agent is missing it says
@@ -38,11 +67,50 @@ first two:
    `cruma serve <folder> --json`). In later sessions it uses the MCP tools
    and does not run `cruma proxy` or `cruma serve`.
 
-The skill needs agent 1.0.12 or newer. Codex and other skills-compatible
-agents can use the same skill: `npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma`
-(the repository holds two skills named `agent`, one in `plugins/cruma` and one in
-`plugins/cruma-local`, so the command names the `cruma` plugin's directory), and
-`codex mcp add cruma -- cruma mcp` to connect the tools.
+The skill needs agent 1.0.12 or newer. It proceeds only where it can confirm
+Claude Code (`CLAUDECODE`, above), so Codex and other skills-compatible agents
+use the `cruma-local` skill instead, which has no such gate:
+`npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma-local`
+(the repository holds two skills named `agent`, so the command names the plugin's
+directory), and `codex mcp add cruma -- cruma mcp` to connect the tools.
+
+### What this plugin runs, sends and fetches
+
+This is the answer to the directory form's "Does any skill send data to a
+service other than the declared connectors?": yes, as described here. The plugin
+declares no connectors.
+
+- **Runs, on your computer, each after a yes where it changes something:**
+  `printenv CLAUDECODE` and `cruma --version`; the one install command for your
+  system (`npm install -g cruma`, `brew install --cask umbra-yurei/brew/cruma` or
+  `brew install umbra-yurei/brew/cruma`, or on Windows `winget install` from the
+  Microsoft Store; on a Mac with neither, the signed DMG steps with `curl`,
+  `hdiutil`, `codesign`, `spctl` and `ditto`); `claude mcp add --scope user cruma -- cruma mcp`;
+  and `cruma proxy http <port> --json` or `cruma serve <folder> --json`.
+- **Fetches:** the `cruma` package from npm, Homebrew or the Microsoft Store (on
+  a Mac with neither, the signed DMG and its release manifest from
+  `files.cruma.io`), and nothing else. The plugin ships no scripts and pipes
+  nothing into a shell.
+- **Sends:** `cruma` connects to Cruma's tunnel service and relays the traffic of
+  the port or folder you named to its public URL; that is the point of the
+  plugin. The tunnel registration carries how the agent was launched, the build
+  flavour (desktop or server), the version, the operating system and the CPU
+  architecture, plus a random install ID unless telemetry is off
+  (`CRUMA_NO_TELEMETRY=1`); no user content and no machine hostname. Request logs
+  stay on your computer.
+- **Stores:** nothing. The plugin keeps no files or state. Optional basic-auth
+  credentials go to the local agent only. (`cruma` keeps its own identity and
+  certificates in its cache directory; see the [security chapter](https://cruma.io/book/cruma-tunnels/security).)
+- **Privacy policy:** https://cruma.io/privacy (declared as `privacyPolicyUrl` in
+  `.claude-plugin/plugin.json`).
+
+### Submitting the `cruma` plugin to the directory
+
+The privacy policy is in the Claude manifests of all three plugins. The terms of
+service field (`termsOfServiceUrl`) is not set: cruma.io has no terms page yet,
+and the field is added once one is published. The plugin carries no hooks and no
+local MCP server; `node scripts/check-plugin.mjs` enforces both. The Codex
+`plugin.json` follows the Agent Plugins schema, which has no privacy field.
 
 ## The `cruma-local` plugin (bundled MCP server)
 
@@ -228,15 +296,16 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 | `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
 | `directory-install-macos-npm`, `directory-install-macos-dmg`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is offered the signed DMG, with the signature and notarization checks named; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |
 | `directory-install-macos-dmg-bad-signature` | after a yes to the DMG install, `codesign --verify` fails (stand-ins from `evals/fake-cruma/mac-dmg-shims.sh`): the image is detached and the download deleted, `ditto` never runs, no other method is tried, and the reply says nothing was installed |
+| `directory-chat-sandbox`, `directory-chat-no-shell` | the user is in claude.ai chat (Bash is a stand-in whose `printenv CLAUDECODE` prints nothing, or there is no shell): the skill says sharing needs Claude Code on the user's own computer, gives its install command and the plugin commands, and installs, runs and offers nothing (no `npm`/`brew`/`curl`/`cruma`/`claude mcp add` command, no file server, no URL) |
 | `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
 | `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
 | `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |
 | `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |
 | `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`curl`/`cruma proxy` command), the manual command or cruma.io is given, and no other way of publishing is used |
 
-The `directory-*` cases that run commands (all except `directory-mcp-present` and the three
+The `directory-*` cases that run commands (all except `directory-mcp-present`, `directory-chat-no-shell` and the three
 `directory-install-*` cases that only ask) need
-`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (the Mac DMG case calls
+`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, which also hides `CLAUDECODE` from `printenv` and `env`; the Mac DMG case calls
 `mac-dmg-shims.sh`, with stand-in `curl`, `hdiutil`, `codesign`, `spctl`, `ditto` and a Darwin `uname`), which puts
 stand-in `npm`, `node`, `uname`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
 added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
@@ -293,7 +362,7 @@ install and never reads the account of whoever runs the suite.
 
 `node scripts/check-plugin.mjs` checks that `plugins/cruma` (the directory plugin) has no
 `.mcp.json`, `mcp.json`, `mcp/`, hooks, scripts or binaries and only the `agent` skill,
-that its skill carries the consent-gated `claude mcp add` command; that `plugins/cruma-local`'s `.mcp.json` declares only the local
+that its skill carries the consent-gated `claude mcp add` command and the `CLAUDECODE` check, that its description says it needs Claude Code on your own computer, that the Claude manifests carry `privacyPolicyUrl`; that `plugins/cruma-local`'s `.mcp.json` declares only the local
 `cruma` server and runs a file inside the plugin, that its `mcp.json` (read by Codex) declares only
 `cruma` and runs the same file, that only `plugins/cruma-cloud`
 declares the cloud server, the skills are named after their directories, `board` and
