@@ -9,8 +9,11 @@
 # user, so without this it sees the host (a real `cruma`, real Homebrew, Darwin) instead.
 #   $1 = missing    `cruma` says "command not found" until `npm install -g cruma` runs
 #   $1 = installed  `cruma` answers as the agent version in cli/version.txt
+#   $1 = sandbox    like `missing`, and `printenv`/`env` report no CLAUDECODE, like a shell in
+#                   claude.ai chat's code-execution container (Claude Code sets CLAUDECODE=1
+#                   in every shell it starts; a real run here has it, so it is hidden)
 set -euo pipefail
-mode="${1:?usage: directory-shims.sh missing|installed}"
+mode="${1:?usage: directory-shims.sh missing|installed|sandbox}"
 bin="$HOME/.local/bin"
 log="$HOME/.local/share/directory-shims/calls.log"
 mkdir -p "$bin" "$(dirname "$log")"
@@ -84,6 +87,16 @@ case "$1" in
   *) echo Linux ;;
 esac
 STUB
+
+if [ "$mode" = sandbox ]; then
+  for tool in printenv env; do
+    cat >"$bin/$tool" <<STUB
+#!/bin/sh
+exec /usr/bin/env -u CLAUDECODE -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT /usr/bin/$tool "\$@"
+STUB
+    chmod +x "$bin/$tool"
+  done
+fi
 
 if [ "$mode" = installed ]; then
   cp "$bin/cruma-installed" "$bin/cruma"
