@@ -34,10 +34,16 @@ if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(agent))
 for (const entry of readdirSync(directory, { recursive: true })) {
   if (/(^|[/\\])(\.?mcp\.json|mcp|hooks|scripts|bin)([/\\]|$)/.test(entry) || entry.endsWith(".mjs") || entry.endsWith(".sh")) failures.push(`cruma ships only a skill; remove ${entry}`);
 }
+// Anthropic's directory refuses any other file type from an organization that is not verified.
+const directoryFileTypes = /\.(md|txt|json|ya?ml|png|jpe?g|gif|webp|ico)$/i;
+for (const entry of readdirSync(directory, { recursive: true, withFileTypes: true })) {
+  if (entry.isFile() && !directoryFileTypes.test(entry.name) && !["LICENSE", "README", ".gitignore"].includes(entry.name)) failures.push(`cruma ships a file type the directory refuses: ${join(entry.parentPath, entry.name).slice(directory.length + 1)}`);
+}
 const directorySkill = readFileSync(join(directory, "skills/agent/SKILL.md"), "utf8");
 if (!/^name: agent$/m.test(directorySkill) || /^disable-model-invocation:/m.test(directorySkill)) failures.push("cruma agent skill must be model-invocable and named agent");
 if (readdirSync(join(directory, "skills")).join() !== "agent") failures.push("cruma must ship only the agent skill");
 if (!directorySkill.includes("claude mcp add --scope user cruma -- cruma mcp")) failures.push("cruma agent skill must give the consent-gated `claude mcp add --scope user cruma -- cruma mcp` step");
+if (/hdiutil|ditto |codesign|spctl|curl -f|\.dmg/.test(directorySkill)) failures.push("cruma agent skill must not carry a download-and-install procedure");
 if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(directorySkill)) failures.push("cruma agent skill must not contain cloud session, board, or memory instructions");
 const directoryDescription = /^description: (.*)$/m.exec(directorySkill)?.[1] ?? "";
 if (!directoryDescription.includes("Claude Code on the user's own computer") || !/^## 0\. Where this works/m.test(directorySkill) || !directorySkill.includes("CLAUDECODE")) failures.push("cruma agent skill must say in its description that sharing needs Claude Code on the user's own computer and must check CLAUDECODE in a `## 0. Where this works` section");
