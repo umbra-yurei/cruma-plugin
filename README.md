@@ -18,6 +18,11 @@ claude plugin marketplace add umbra-yurei/cruma-plugin
 claude plugin install cruma@cruma-plugin
 ```
 
+The plugin directory holds only file types Anthropic's directory accepts from an
+unverified organization (Markdown, text, JSON, YAML, PNG/JPEG/GIF/WebP/ICO images,
+plus the license); `scripts/check-plugin.mjs` fails when another type appears, and
+its icon is `.claude-plugin/icon.png`.
+
 ### Where it works
 
 The directory lists a skill-only plugin on every surface: claude.ai chat (web,
@@ -53,9 +58,8 @@ first two:
 1. **Install.** It runs `cruma --version`. When the agent is missing it says
    what installing means and where the program comes from, names the one method,
    and runs it only after a yes. On a Mac it is the Homebrew cask, else
-   `npm install -g cruma`, else the signed, notarized DMG (the skill reads the release
-   manifest, checks the code signature, notarization and signing team, and only then
-   copies `Cruma.app`; nothing is installed when a check fails). Linux uses Homebrew,
+   `npm install -g cruma`, else nothing: it sends you to https://cruma.io to
+   download the signed, notarized app yourself and carries on once `cruma` works. Linux uses Homebrew,
    else npm. Windows uses the Microsoft Store, else `npm install -g cruma` (the
    terminal agent). A no ends the install: it prints the command for you and stops.
    It never pipes a downloaded script into a shell.
@@ -84,12 +88,10 @@ declares no connectors.
   `printenv CLAUDECODE` and `cruma --version`; the one install command for your
   system (`npm install -g cruma`, `brew install --cask umbra-yurei/brew/cruma` or
   `brew install umbra-yurei/brew/cruma`, or on Windows `winget install` from the
-  Microsoft Store; on a Mac with neither, the signed DMG steps with `curl`,
-  `hdiutil`, `codesign`, `spctl` and `ditto`); `claude mcp add --scope user cruma -- cruma mcp`;
+  Microsoft Store); `claude mcp add --scope user cruma -- cruma mcp`;
   and `cruma proxy http <port> --json` or `cruma serve <folder> --json`.
-- **Fetches:** the `cruma` package from npm, Homebrew or the Microsoft Store (on
-  a Mac with neither, the signed DMG and its release manifest from
-  `files.cruma.io`), and nothing else. The plugin ships no scripts and pipes
+- **Fetches:** the `cruma` package from npm, Homebrew or the Microsoft Store and
+  nothing else. The plugin ships no scripts and pipes
   nothing into a shell.
 - **Sends:** `cruma` connects to Cruma's tunnel service and relays the traffic of
   the port or folder you named to its public URL; that is the point of the
@@ -272,12 +274,12 @@ change the other.
   | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
   | Linux installer script | run the installer you used again; see [cruma.io](https://cruma.io) |
   | npm | `npm update -g cruma` |
-  | Signed DMG (macOS) | repeat the signed DMG steps (same checks) and replace `Cruma.app` |
+  | Desktop app from cruma.io (macOS) | download the current app from https://cruma.io yourself and replace `Cruma.app` |
   | Microsoft Store (Windows) | update Cruma in Microsoft Store |
 
   The skill upgrades an installed agent only with the command for its own
   install method, and installs the GUI-capable package on a desktop (the macOS
-  cask, the Linux Homebrew formula, Microsoft Store; `npm install -g cruma` on Linux, or a Mac or Windows PC, without the first choice; the signed DMG on a Mac with neither Homebrew nor npm); it reads the build
+  cask, the Linux Homebrew formula, Microsoft Store; `npm install -g cruma` on Linux, or a Mac or Windows PC, without the first choice; a Mac with neither Homebrew nor npm is sent to cruma.io); it reads the build
   flavour from `cruma --version --json`.
   The skill needs agent 1.0.12 or newer. It checks `cruma --version`, and with
   the MCP tools connected it mentions a newer stable release once, from the
@@ -295,8 +297,7 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 | --- | --- |
 | `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew`/`curl` command runs, no script, no file server |
 | `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
-| `directory-install-macos-npm`, `directory-install-macos-dmg`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is offered the signed DMG, with the signature and notarization checks named; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |
-| `directory-install-macos-dmg-bad-signature` | after a yes to the DMG install, `codesign --verify` fails (stand-ins from `evals/fake-cruma/mac-dmg-shims.sh`): the image is detached and the download deleted, `ditto` never runs, no other method is tried, and the reply says nothing was installed |
+| `directory-install-macos-npm`, `directory-install-macos-download-page`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is sent to https://cruma.io to install the app itself, and the skill downloads and runs nothing; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |
 | `directory-chat-sandbox`, `directory-chat-no-shell` | the user is in claude.ai chat (Bash is a stand-in whose `printenv CLAUDECODE` prints nothing, or there is no shell): the skill says sharing needs Claude Code on the user's own computer, gives its install command and the plugin commands, and installs, runs and offers nothing (no `npm`/`brew`/`curl`/`cruma`/`claude mcp add` command, no file server, no URL) |
 | `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
 | `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
@@ -306,8 +307,7 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 
 The `directory-*` cases that run commands (all except `directory-mcp-present`, `directory-chat-no-shell` and the three
 `directory-install-*` cases that only ask) need
-`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, which also hides `CLAUDECODE` from `printenv` and `env`; the Mac DMG case calls
-`mac-dmg-shims.sh`, with stand-in `curl`, `hdiutil`, `codesign`, `spctl`, `ditto` and a Darwin `uname`), which puts
+`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, which also hides `CLAUDECODE` from `printenv` and `env`), which puts
 stand-in `npm`, `node`, `uname`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
 added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
 runs Bash as you with no OS sandbox, so the scaffold also writes the eval workspace's `.claude/settings.json`
