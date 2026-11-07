@@ -1,0 +1,27 @@
+#!/bin/sh
+# Stand-in `cruma`. Prints the generated files in $HOME/.local/share/directory-shims/cli; never touches the network.
+state="$HOME/.local/share/directory-shims"
+if [ ! -e "$state/cruma-installed" ]; then
+  echo "cruma: command not found" >&2
+  exit 127
+fi
+echo "cruma $*" >>"$state/calls.log"
+data="$state/cli"
+args=" $* "
+has() { case "$args" in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
+if has --version; then
+  if has --json; then cat "$data/version.json"; else cat "$data/version.txt"; fi
+elif has --help || [ $# -eq 0 ]; then
+  case "$1 $2" in
+    "proxy http") cat "$data/help-proxy-http.txt" ;;
+    proxy*) cat "$data/help-proxy.txt" ;;
+    serve*) cat "$data/help-serve.txt" ;;
+    *) cat "$data/help.txt" ;;
+  esac
+elif [ "$1" = proxy ] || [ "$1" = serve ]; then
+  cat "$data/ready.json"
+  exec sleep 120
+else
+  echo "cruma (eval stand-in): unsupported: $*" >&2
+  exit 2
+fi

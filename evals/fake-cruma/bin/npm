@@ -1,0 +1,10 @@
+#!/bin/sh
+state="$HOME/.local/share/directory-shims"
+echo "npm $*" >>"$state/calls.log"
+if [ "$1 $2 $3" = "install -g cruma" ]; then
+  : >"$state/cruma-installed"
+  echo "added 1 package in 2s"
+else
+  echo "npm (eval stand-in): unsupported: $*" >&2
+  exit 2
+fi

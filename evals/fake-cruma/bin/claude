@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "claude $*" >>"$HOME/.local/share/directory-shims/calls.log"
+case "$1 $2" in
+  "mcp list") echo "No MCP servers configured." ;;
+  "mcp add") echo "Added stdio MCP server cruma to user config" ;;
+  *) echo "claude (eval stand-in): unsupported: $*" >&2; exit 2 ;;
+esac

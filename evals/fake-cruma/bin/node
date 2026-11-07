@@ -1,0 +1,6 @@
+#!/bin/sh
+echo "node $*" >>"$HOME/.local/share/directory-shims/calls.log"
+case "$1" in
+  --version|-v) echo v22.12.0 ;;
+  *) echo "node (eval stand-in): unsupported: $*" >&2; exit 2 ;;
+esac

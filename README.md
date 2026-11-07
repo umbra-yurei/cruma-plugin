@@ -306,15 +306,34 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 | `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`curl`/`cruma proxy` command), the manual command or cruma.io is given, and no other way of publishing is used |
 
 The `directory-*` cases that run commands (all except `directory-mcp-present`, `directory-chat-no-shell` and the three
-`directory-install-*` cases that only ask) need
-`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, which also hides `CLAUDECODE` from `printenv` and `env`), which puts
-stand-in `npm`, `node`, `uname`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
-added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
-runs Bash as you with no OS sandbox, so the scaffold also writes the eval workspace's `.claude/settings.json`
-with `env.PATH` set to that directory plus `/usr/bin:/bin`; the host's Homebrew, `/usr/local` and real
-`cruma` are then not on the agent's `PATH`, and the stand-in `uname` answers Linux x86_64 like the prompts say.
-A scored run is only meaningful with that isolation in place: check with `--keep-temp` that the workspace
-has the `.claude/settings.json` and that no trace shows `/opt/homebrew`, a real `cruma` version or `Darwin`.
+`directory-install-macos-*`/`-windows-*` cases that only ask) run `npm`, `node`, `uname`, `claude`, `cruma`, `printenv` and `env` in
+the agent's Bash. Those must be stand-ins (`evals/fake-cruma/bin/`): nothing is installed, added or shared for
+real, `cruma proxy` prints the generated ready line without a network (the eval sandbox has none), and the
+`tool_used` graders read the command lines the agent runs. **Start them with `scripts/eval-directory.sh`**, not
+with a bare `claude plugin eval`:
+
+```sh
+scripts/eval-directory.sh --check-only      # no model call: checks the stand-ins and the PATH
+scripts/eval-directory.sh                   # stages the plugin, checks, then scores every directory-* case
+scripts/eval-directory.sh --case directory-cli-same-session --runs 1 --keep-temp
+```
+
+Why a script: `claude plugin eval` gives the agent the `PATH` of the shell that started it. A case can set
+only `EVAL_*` variables (`execution.env`), and a `PATH` in the workspace's `.claude/settings.json` is not
+applied, so on a Mac with Homebrew the agent would see `/opt/homebrew/bin` first, the host's real `cruma` and
+`Darwin`, and the real `cruma proxy` would fail to resolve the tower in the sandbox. The script copies the
+stand-ins to `.eval-work/shims/bin`, runs them in a throwaway home with `PATH=<that>:/usr/bin:/bin` (stand-in
+`uname` answers Linux x86_64, `cruma --version` equals `evals/fake-cruma/cli/version.txt`, `npm install -g cruma`
+installs, `printenv`/`env` hide `CLAUDECODE` only in the `sandbox` mode, `cruma proxy http 3000 --json` prints
+`cli/ready.json` byte for byte), and starts `claude plugin eval` with that `PATH`. Each case's `scaffold.sh`
+(`evals/fake-cruma/directory-shims.sh`, which `directory-chat-sandbox` calls with `sandbox`) writes the run's
+state under its home and **fails the run** (exit 3 with a message naming the tool) when `cruma`, `npm`, `node`, `uname`,
+`claude`, `printenv` or `env` does not resolve into the stand-in directory, so an unisolated run is an error and
+never a score. A Mac and a clean Linux host therefore score the same: the agent sees the same stand-ins, the
+same `PATH` and no network on both. The only requirement of the host is `/usr/bin/env` and `/usr/bin/printenv`.
+
+To see what a run did, add `--keep-temp` and open the kept directory (the run prints its path): `sealed/home/.local/share/directory-shims/calls.log` lists every stand-in call, and `out/trace.jsonl`
+must show no `/opt/homebrew`, no real `cruma` version and no `Darwin`.
 Every "never runs X" grader sets `min: 0` as well as `max: 0`, because a `tool_used` grader's `min` defaults to 1.
 
 The cases below run against `cruma-local`:
@@ -356,7 +375,7 @@ The cases below run against `cruma-local`:
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
 Stage a plugin's cases with `node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>`, then run
-`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (add `--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). The `settings-*`
+`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (for the `cruma` plugin's `directory-*` cases use `scripts/eval-directory.sh` instead, as above). The `settings-*`
 cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `evals/fake-cruma/install.sh`) in the run's own home directory, whose
 `agent-context` prints the case's note, so the hook runs exactly as with a real
@@ -485,7 +504,7 @@ done
 ```
 
 Add `--case <glob>` to run only the cases the change touched, and
-`--allow-tools` where a case needs it (`--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). Post on the task's thread:
+`--allow-tools` where a case needs it (the `cruma` plugin's `directory-*` cases run through `scripts/eval-directory.sh`, which grants Bash). Post on the task's thread:
 the agent version, the exit code, the cost line, and the per-case table
 (`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
 no-plugin baseline arm).
