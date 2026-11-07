@@ -15,7 +15,53 @@
       "kind": "tls",
       "port": 1,
       "advertise_h3": true,
-      "routes": []
+      "routes": [
+        {
+          "index": 0,
+          "name": "http:mcp-expose-app-mcp-expose-app-1",
+          "sni": "app.demo1234.tun.example.test",
+          "alpn": null,
+          "action": "terminate_for_http",
+          "http_routes": [
+            {
+              "index": 0,
+              "name": "http-route-mcp-expose-app-1",
+              "priority": 2,
+              "filter": {
+                "type": "host",
+                "hosts": [
+                  "app.demo1234.tun.example.test"
+                ]
+              },
+              "middleware_count": 1,
+              "middlewares": [
+                {
+                  "index": 0,
+                  "type": "oauth2",
+                  "implemented": true,
+                  "logout_path": "/_cruma_auth/logout",
+                  "cookie_name": "cruma_share_session",
+                  "cookie_secure": true,
+                  "cookie_same_site": "Lax",
+                  "session_ttl_secs": 3600,
+                  "provider_ids": [
+                    "cruma"
+                  ],
+                  "has_builtin_auth": false,
+                  "callback_path": "/_cruma_share_auth/callback",
+                  "has_bearer_validator": false,
+                  "session_secret": "<redacted>"
+                }
+              ],
+              "forwarded_headers_mode": "Preserve",
+              "target": {
+                "type": "backend",
+                "backend": "http:mcp-expose-app"
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

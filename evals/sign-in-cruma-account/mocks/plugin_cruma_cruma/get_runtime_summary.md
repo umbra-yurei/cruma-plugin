@@ -4,16 +4,18 @@
   "assigned_domain": "demo1234.tun.example.test",
   "tunnel_plan": "free",
   "transport_count": 2,
-  "listener_status_count": 0,
-  "active_listener_count": 0,
+  "listener_status_count": 1,
+  "active_listener_count": 1,
   "process_count": 0,
   "ipv6_assigned_addresses": [],
   "ipv6_tunnel_dns_name": null,
   "ipv6_tcp_port_dns_name": null,
   "overview": {
     "tunnel_account": "registered",
-    "frontend_count": 0,
-    "frontend_hostnames": [],
+    "frontend_count": 1,
+    "frontend_hostnames": [
+      "app.demo1234.tun.example.test"
+    ],
     "processes": [],
     "allow_persistent_changes": false,
     "http_mcp": {
