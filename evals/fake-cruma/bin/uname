@@ -1,0 +1,28 @@
+#!/bin/sh
+# Answers Linux x86_64 for any combination of -s -n -r -v -m -p -o -a, in uname's output order.
+s=0 n=0 r=0 v=0 m=0 p=0 o=0
+[ $# -gt 0 ] || s=1
+for arg in "$@"; do
+  case "$arg" in
+    -*) flags="${arg#-}" ;;
+    *) echo "uname: extra operand '$arg'" >&2; exit 1 ;;
+  esac
+  while [ -n "$flags" ]; do
+    case "${flags%"${flags#?}"}" in
+      a) s=1 n=1 r=1 v=1 m=1 o=1 ;;
+      s) s=1 ;; n) n=1 ;; r) r=1 ;; v) v=1 ;; m) m=1 ;; p) p=1 ;; o) o=1 ;;
+      *) echo "uname: invalid option -- '${flags%"${flags#?}"}'" >&2; exit 1 ;;
+    esac
+    flags="${flags#?}"
+  done
+done
+out=""
+add() { out="${out:+$out }$1"; }
+[ $s = 1 ] && add Linux
+[ $n = 1 ] && add eval-host
+[ $r = 1 ] && add 6.8.0-eval
+[ $v = 1 ] && add "#1 SMP"
+[ $m = 1 ] && add x86_64
+[ $p = 1 ] && add x86_64
+[ $o = 1 ] && add GNU/Linux
+echo "$out"
