@@ -1,4 +1,0 @@
-schema_version: "1.0"
-name: directory-install-macos-dmg-bad-signature
-context:
-  scaffold_script: scaffold.sh
