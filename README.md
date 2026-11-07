@@ -172,9 +172,10 @@ about itself first (the agent's `cruma://about` and config model reference,
 then the docs at [cruma.io](https://cruma.io/llms.txt) as Markdown, then
 `cruma <command> --help`) and uses the tool they point to. Before it exposes
 something that looks private (an admin UI, a database tool, internal docs,
-credentials) it asks whether to protect it and suggests a password; sign-in
-needs a sign-in provider configured on your own Cruma, otherwise it offers a
-password.
+credentials) it asks whether to protect it and suggests a password. Sign-in
+with a Cruma account needs no setup (optionally limited to emails, email
+domains or one organization); Google or another provider needs one configured
+on your own Cruma, otherwise the skill offers a password or a Cruma sign-in.
 
 When a signed-in Cruma of yours is running (the desktop app or a headless agent
 with tunnel credentials), the skill asks once, before the first share, whether
@@ -340,7 +341,8 @@ The cases below run against `cruma-local`:
 | `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on a Mac that has Homebrew, musl or a server artifact |
 | `linux-install-npm` | a fresh install on a Linux machine without Homebrew asks first, then ends at `npm install -g cruma`, with no script and no curl-to-shell |
 | `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |
-| `discover-google-sign-in`, `sign-in-configured-provider` | sign-in is looked up before acting: with no provider configured the skill says so and offers a password; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` retry |
+| `sign-in-cruma-account` | "only people at example.com" is one `expose_local_port` call with `access` `sign_in` and `email_domains`, with no provider set up and no password |
+| `discover-google-sign-in`, `sign-in-configured-provider` | a Google sign-in ask is looked up before acting: with no provider configured the skill says so and offers a password or a Cruma sign-in; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` share |
 | `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
 | `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
 | `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
@@ -359,6 +361,13 @@ cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `evals/fake-cruma/install.sh`) in the run's own home directory, whose
 `agent-context` prints the case's note, so the hook runs exactly as with a real
 install and never reads the account of whoever runs the suite.
+
+The built-in Cruma sign-in case uses the renamed `cruma-local` server tools:
+
+```sh
+node scripts/stage-evals.mjs cruma-local
+claude plugin eval .eval-work/cruma-local --trust-plugin --scaffold --case sign-in-cruma-account --allow-tools 'mcp__plugin_cruma-local_cruma__*'
+```
 
 `node scripts/check-plugin.mjs` checks that `plugins/cruma` (the directory plugin) has no
 `.mcp.json`, `mcp.json`, `mcp/`, hooks, scripts or binaries and only the `agent` skill,

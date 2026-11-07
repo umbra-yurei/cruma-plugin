@@ -1,6 +1,6 @@
 ---
 name: agent
-description: Use Cruma to put a local dev server port or a folder of files on a public HTTPS URL, and to install the Cruma agent when it is missing. Sharing and installing need Claude Code on the user's own computer (terminal, IDE, or the desktop app's Code tab); in claude.ai chat, on the web or mobile, it only explains that. Works through the cruma command line, and through Cruma's MCP tools once the user has connected them. Asks before installing anything, before connecting Cruma to Claude Code, and before making anything public.
+description: Use Cruma to put a local dev server port or a folder of files on a public HTTPS URL, optionally protected by a password, IP allowlist or Cruma sign-in, and to install the Cruma agent when it is missing. Sharing and installing need Claude Code on the user's own computer (terminal, IDE, or the desktop app's Code tab); in claude.ai chat, on the web or mobile, it only explains that. Works through the cruma command line, and through Cruma's MCP tools once the user has connected them. Asks before installing anything, before connecting Cruma to Claude Code, and before making anything public.
 ---
 
 # Cruma tunnels
@@ -221,16 +221,21 @@ tunnel.
 
 Name each share by what it is (`docs`, `api`); one agent serves many shares at
 once, each at its own address. Ask before the first share, naming the port or
-folder. Pass `access` (a password or an IP allowlist; the tool schema lists the
-types) for something that looks private, after asking; a generated password is
-returned once. Before the first share of a session, call `list_agents` once. If
+folder. Pass `access` (a password, an IP allowlist or `sign_in`; the tool schema
+lists the types) for something that looks private, after asking; a generated
+password is returned once. `sign_in` lets any verified Cruma account in without
+provider setup. Narrow it with exact `emails`, `email_domains` or one
+`organization`; an organization restriction needs the agent itself signed in,
+and an anonymous agent returns a typed error. The policy ends with the share.
+Before the first share of a session, call `list_agents` once. If
 a running agent other than the temporary session agent has `tunnel_account`
 `registered` (the user's desktop app or a headless agent with tunnel
 credentials), ask once whether to use it (`use_agent`) or a temporary
 anonymous tunnel, and share nothing until they answer. Shares on the temporary
 agent end with the session; never set `persist` for them.
 
-For anything else (sign-in, filters, domains, routing, processes, rules), do
+For anything else (another sign-in provider, filters, domains, routing,
+processes, rules), do
 not guess: read `describe_cruma` (or the resource `cruma://about`), then
 `get_config_model_reference` for the section you need, then the docs as
 Markdown (`https://cruma.io/llms.txt`, and any chapter at
@@ -262,7 +267,7 @@ the new agent.
 ## 7. Hand-off
 
 After sharing, tell the user: each public URL and what it serves (the local
-port or folder); that it is public; how you will take it down (`unexpose` with
+port or folder); whether it is public or protected (and how); how you will take it down (`unexpose` with
 the name, or ending the background process); that URLs end with the session
 (the tunnel is also time-limited while anonymous). Say once per session, when
 a tool result's `account.state` is `anonymous` or the tunnel is anonymous, that

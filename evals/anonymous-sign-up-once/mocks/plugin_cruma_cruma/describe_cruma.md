@@ -52,7 +52,7 @@
         "expose_local_port",
         "expose_local_directory"
       ],
-      "note": "Set `access` to one of `password`, `ip_allowlist`, `sign_in` when you expose. `sign_in` needs a sign-in provider and answers with a typed error when none is configured. The policy ends with the share, when the session closes."
+      "note": "Set `access` to one of `password`, `ip_allowlist`, `sign_in` when you expose. `sign_in` makes visitors sign in with their Cruma account, with no provider to set up; narrow it with `emails`, `email_domains` and one `organization` (none means any verified account). `organization` needs a signed-in agent and answers with a typed error on an anonymous one. The policy ends with the share, when the session closes."
     },
     {
       "goal": "put other auth (any middleware) in front of a site",
