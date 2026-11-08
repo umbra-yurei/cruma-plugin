@@ -1,6 +1,6 @@
 // Stages the repository-level eval corpus beside one plugin for Claude's eval CLI.
 // Evals stay outside the shipped plugin trees; this script only copies files.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,20 +15,9 @@ const cloudPrefixes = ["board-", "cloud-", "memory-", "settings-"];
 const directoryPrefix = "directory-";
 const owner = (name) => (name === "mocks" ? "cruma-local" : cloudPrefixes.some((prefix) => name.startsWith(prefix)) ? "cruma-cloud" : name.startsWith(directoryPrefix) ? "cruma" : "cruma-local");
 
-// The generated mocks are written under `plugin_cruma_cruma`; the eval CLI looks for
-// `plugin_<plugin>_<server>`, and the bundled server's plugin is `cruma-local`.
-const generatedMockDir = "plugin_cruma_cruma";
 const stagedMockDir = "plugin_cruma-local_cruma";
 const generatedToolPrefix = "mcp__plugin_cruma_cruma__";
 const stagedToolPrefix = "mcp__plugin_cruma-local_cruma__";
-function renameMockDirs(directory) {
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const path = join(directory, entry.name);
-    if (entry.name === generatedMockDir && !existsSync(join(directory, stagedMockDir))) renameSync(path, join(directory, stagedMockDir));
-    else renameMockDirs(path);
-  }
-}
 
 function prepareLocalEvalMocks(directory, toolsList) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -65,7 +54,6 @@ for (const entry of readdirSync(join(root, "evals"), { withFileTypes: true })) {
     copyTree(join(root, "evals", entry.name), join(stagedEvals, entry.name));
   }
 }
-renameMockDirs(stagedEvals);
 if (plugin === "cruma-local") {
   prepareLocalEvalMocks(
     stagedEvals,
