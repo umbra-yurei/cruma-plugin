@@ -10,6 +10,7 @@ Commands:
   serve              Serve a local directory as a static file server
   config             Manage configuration file
   secret             Manage secrets kept outside the discovered project file
+  project            Work on the discovered project file (`cruma.yaml` / `cruma.toml`) itself
   profiles           List or pick the named profiles shared with the desktop app
   dashboard          Open the agent's local web dashboard in your browser, signed in without a password prompt
   open               Open the Cruma desktop app, or bring it forward when it is already running
