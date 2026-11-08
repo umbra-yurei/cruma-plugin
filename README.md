@@ -405,7 +405,7 @@ both run in CI.
 ### Generated mocks
 
 Mocks of `cruma mcp` results are generated, not written by hand. Every
-`evals/**/mocks/plugin_cruma_cruma/<tool>.md` and `evals/**/mocks/cruma-app/<tool>.md`,
+`evals/**/mocks/plugin_cruma-local_cruma/<tool>.md` and `evals/**/mocks/cruma-app/<tool>.md`,
 and every `_tools.json`, is written by cruma-sdk from typed
 fixtures (`cruma-core/src/mcp/plugin_mocks/`), through the same functions that
 build the real tool results. A field added to or renamed in a result therefore
@@ -420,12 +420,11 @@ cargo run -p cruma-core --features plugin-mocks --example plugin-mocks -- check 
 ```
 
 `check` exits non-zero and names every file that differs from the generator's
-output, is missing, or is a `.md` in a `plugin_cruma_cruma/` or `cruma-app/`
+output, is missing, or is a `.md` in a `plugin_cruma-local_cruma/` or `cruma-app/`
 mock directory that the generator does not produce. The merge queue runs it on
 changes to `evals/` and to cruma-sdk, so a hand edit to a generated mock, a
 hand-written mock added beside them, or a result type changed in cruma-sdk
-without regenerating, fails the queue. The generator writes the directory `plugin_cruma_cruma`; staging renames it to
-`plugin_cruma-local_cruma`, the name the eval CLI expects for `cruma-local`'s server.
+without regenerating, fails the queue.
 `directory-mcp-present`'s `mocks/cruma/` (the `cruma mcp` server added by the user under the
 name `cruma`) is generated too, and so is everything the `directory-*` stand-in `cruma` prints
 (`evals/fake-cruma/cli/`: the `--json` ready line, `--version` in both forms, and the `--help` texts, written
