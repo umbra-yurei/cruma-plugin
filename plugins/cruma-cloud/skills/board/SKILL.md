@@ -18,9 +18,11 @@ on every machine.
 Everything here goes through the `cruma-cloud` tools (`whoami`,
 `list_services`, `get_coding_agent_settings`, `update_coding_agent_settings`).
 When they are not in your tool list, say that `/cruma-cloud:board` needs the optional
-`cruma-cloud` server signed in to their Cruma account, give the command
-(`claude plugin install cruma-cloud@cruma-plugin`, or
-`codex plugin add cruma-cloud@cruma-plugin`), and stop. Never use the local
+`cruma-cloud` server signed in to their Cruma account, give the steps to connect it for where they are (on claude.ai: open
+https://claude.ai/customize/plugins, open `cruma-cloud`, and on its **Connectors**
+tab **Add** the connector if needed, then **Connect** and sign in, then start a new
+chat; in Claude Code: `/mcp`, select `plugin:cruma-cloud:cruma-cloud`,
+**Authenticate**; in Codex: `codex plugin add cruma-cloud@cruma-plugin`), and stop. Never use the local
 `cruma` tools for this.
 
 ## `on`

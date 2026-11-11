@@ -19,9 +19,30 @@ In clients without the SessionStart hook, including Codex, call
 means there is no board or memory context to apply. Claude Code receives the
 same note from this plugin's hook, so do not call `session_context` there.
 
-If the tools are absent, explain that `cruma-cloud` is optional and must be
-installed or connected. If the server asks the user to sign in, let its browser
-sign-in flow complete; do not invent account data while signed out.
+If the server asks the user to sign in, let its browser sign-in flow complete;
+do not invent account data while signed out.
+
+## When the tools are absent
+
+No `whoami` or `list_services` in your tool list means the server is not
+connected or not signed in yet. Installing the plugin does not connect it
+everywhere. Say so, give the steps for where the user is, and stop; never
+invent account data. Without a shell, or when the user is on claude.ai, give
+the chat steps.
+
+- **claude.ai chat, the desktop app's chat, or Cowork:** open
+  https://claude.ai/customize/plugins, open `cruma-cloud`, and on its
+  **Connectors** tab select **Add** if the connector says "Not added", then
+  **Connect** and sign in with the Cruma account. Without the plugin: in
+  **Customize > Connectors** choose **Add custom connector** with the URL
+  `https://mcp.cruma.io/mcp`, then **Connect**. Then start a new chat.
+- **Claude Code:** run `/mcp`, select `plugin:cruma-cloud:cruma-cloud` and
+  choose **Authenticate**. Without the plugin:
+  `claude mcp add --transport http cruma-cloud https://mcp.cruma.io/mcp`, then
+  start a new session.
+- **Codex:** `codex plugin add cruma-cloud@cruma-plugin`, or
+  `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`, then start a new
+  session.
 
 Use the local `cruma` tools instead when publishing a local port or folder or
 driving the user's local desktop or headless agent. The cloud server does not
