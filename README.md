@@ -460,10 +460,10 @@ cases pass. The evals need model credentials, so the proof comes in two steps.
 with the change:
 
 ```sh
-claude plugin validate --strict .
-claude plugin validate --strict plugins/cruma
-claude plugin validate --strict plugins/cruma-local
-claude plugin validate --strict plugins/cruma-cloud
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict .
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-local
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-cloud
 for p in cruma cruma-local cruma-cloud; do
   node scripts/stage-evals.mjs "$p" >/dev/null
   for c in .eval-work/"$p"/evals/*/prompt.md .eval-work/"$p"/evals/*/case.yaml; do
