@@ -231,6 +231,17 @@ https://mcp.cruma.io/mcp`. With it connected, the skill starts account
 questions with `list_services` and `describe_service`; without it, it says the
 server is optional and gives these commands.
 
+**claude.ai chat, the desktop app's chat and Cowork** list the plugin's server on
+the plugin's **Connectors** tab (Customize > Plugins > `cruma-cloud`), but adding
+the plugin neither adds nor connects it: the skill loads with no `mcp.cruma.io`
+tools until the user selects **Add** (when it reads "Not added"; on Team and Enterprise plans an Owner adds it), then
+**Connect**, signs in, and starts a new chat. Adding `https://mcp.cruma.io/mcp`
+under Customize > Connectors > **Add custom connector** works the same way. The
+`cloud`, `board` and `memory` skills give these steps when the tools are absent.
+Claude Code reads `.mcp.json` itself and asks for sign-in through `/mcp`.
+`.mcp.json` uses the `{"mcpServers": {…}}` form that claude.ai documents for a
+plugin's Connectors tab; `scripts/check-plugin.mjs` requires it.
+
 ## Board and memory for your coding agents (optional)
 
 Two skills turn Cruma's board and memory on or off for your coding agents. Only
@@ -348,6 +359,7 @@ The cases below run against `cruma-local`:
 | `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
 | `cloud-plan`, `cloud-list-tunnels` | with the cloud server connected (as the `cruma-cloud` plugin, or added by hand), "what's my Cruma plan?" and "list my tunnels" call `list_services` before the service's tool and read nothing from the local agent |
 | `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the command to add it, with no plan invented |
+| `cloud-chat-not-connected` | in claude.ai chat with the plugin added and its connector not connected, a sign-in ask gets the plugin's Connectors tab steps (or the custom-connector URL) and "start a new chat", with no CLI command and no plan invented |
 | `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |
 | `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
 | `settings-never-on`, `settings-off-no-note` | with the board and memory off, the session starts without a note, and neither "fix this issue" nor a question about the note touches the board or memory services |

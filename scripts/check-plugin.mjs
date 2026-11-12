@@ -95,7 +95,8 @@ for (const [plugin, name] of [[directory, "cruma"], [local, "cruma-local"], [clo
   if (count(plugin) >= 512) failures.push(`${name} has ${count(plugin)} files; must stay below 512`);
 }
 
-const cloudClaude = Object.keys(json(cloud, ".mcp.json"));
+// The `mcpServers` form is the one claude.ai documents for a plugin's Connectors tab; Claude Code reads it too.
+const cloudClaude = Object.keys(json(cloud, ".mcp.json").mcpServers ?? {});
 const cloudCodex = Object.keys(json(cloud, "mcp.json").mcpServers);
 if (cloudClaude.join() !== "cruma-cloud" || cloudCodex.join() !== "cruma-cloud") failures.push("cruma-cloud manifests must declare only `cruma-cloud`");
 const marketplace = json(root, ".claude-plugin/marketplace.json");
