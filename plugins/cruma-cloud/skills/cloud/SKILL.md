@@ -32,8 +32,9 @@ the chat steps.
 
 - **claude.ai chat, the desktop app's chat, or Cowork:** open
   https://claude.ai/customize/plugins, open `cruma-cloud`, and on its
-  **Connectors** tab select **Add** if the connector says "Not added", then
-  **Connect** and sign in with the Cruma account. Without the plugin: in
+  **Connectors** tab select **Add** if the connector says "Not added" (on a
+  Team or Enterprise plan an Owner adds it), then **Connect** and sign in with
+  the Cruma account. Without the plugin: in
   **Customize > Connectors** choose **Add custom connector** with the URL
   `https://mcp.cruma.io/mcp`, then **Connect**. Then start a new chat.
 - **Claude Code:** run `/mcp`, select `plugin:cruma-cloud:cruma-cloud` and

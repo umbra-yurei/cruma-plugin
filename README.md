@@ -234,7 +234,7 @@ server is optional and gives these commands.
 **claude.ai chat, the desktop app's chat and Cowork** list the plugin's server on
 the plugin's **Connectors** tab (Customize > Plugins > `cruma-cloud`), but adding
 the plugin neither adds nor connects it: the skill loads with no `mcp.cruma.io`
-tools until the user selects **Add** (when it reads "Not added"), then
+tools until the user selects **Add** (when it reads "Not added"; on Team and Enterprise plans an Owner adds it), then
 **Connect**, signs in, and starts a new chat. Adding `https://mcp.cruma.io/mcp`
 under Customize > Connectors > **Add custom connector** works the same way. The
 `cloud`, `board` and `memory` skills give these steps when the tools are absent.
