@@ -223,7 +223,11 @@ Name each share by what it is (`docs`, `api`); one agent serves many shares at
 once, each at its own address. Ask before the first share, naming the port or
 folder. Pass `access` (a password, an IP allowlist or `sign_in`; the tool schema
 lists the types) for something that looks private, after asking; a generated
-password is returned once. `sign_in` lets any verified Cruma account in without
+password is returned once. For a password the user chooses, ask them for it in
+chat and pass what they typed; never invent one or write a `${secret:...}`
+reference. When the project is attached to a `cruma.toml`, the result's
+`password_stored` names where the agent kept it on this computer: tell the user
+"stored on this computer as NAME" and do not repeat the password. `sign_in` lets any verified Cruma account in without
 provider setup. Narrow it with exact `emails`, `email_domains` or one
 `organization`; an organization restriction needs the agent itself signed in,
 and an anonymous agent returns a typed error. The policy ends with the share.
