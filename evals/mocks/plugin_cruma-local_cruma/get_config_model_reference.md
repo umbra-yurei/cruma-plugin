@@ -68,6 +68,63 @@
               "meaning": "The same identity as a short-lived token signed by the agent."
             }
           ],
+          "token": {
+            "header": "x-cruma-identity",
+            "algorithm": "EdDSA",
+            "lifetime_secs": 60,
+            "claims": [
+              {
+                "name": "iss",
+                "meaning": "Always `cruma-agent`."
+              },
+              {
+                "name": "aud",
+                "meaning": "The hostname the request was made to, or the frontend's configured audience."
+              },
+              {
+                "name": "sub",
+                "meaning": "The user id; the same value as X-Auth-Subject."
+              },
+              {
+                "name": "provider",
+                "meaning": "Which sign-in they used; omitted when unknown."
+              },
+              {
+                "name": "email",
+                "meaning": "The visitor's email; omitted when the sign-in gives none. Trust it only with email_verified."
+              },
+              {
+                "name": "email_verified",
+                "meaning": "True only when the sign-in provider or Cruma verified the email. The only email claim to trust."
+              },
+              {
+                "name": "name",
+                "meaning": "Display name; omitted when unknown."
+              },
+              {
+                "name": "org",
+                "meaning": "The Cruma organization the visitor signed in as; omitted when there is none."
+              },
+              {
+                "name": "iat",
+                "meaning": "Unix seconds the token was minted."
+              },
+              {
+                "name": "exp",
+                "meaning": "Unix seconds it stops being valid; at most 60 seconds after iat."
+              },
+              {
+                "name": "jti",
+                "meaning": "A unique id for this token."
+              }
+            ],
+            "verify": "Verify the signature with the agent's public key, pin the algorithm to EdDSA, and require iss, exp and aud. A token is valid for at most 60 seconds, so reject it after exp. Trust the email claim only when email_verified is true.",
+            "jwks_path": "/_cruma_auth/jwks.json",
+            "keys": "Fetch the keys from /_cruma_auth/jwks.json on the signed-in hostname (a JWK Set, matched by kid), or pin the public key: call the get_identity_key tool or run `cruma auth identity-key`. After a key rotation the previous key stays published for 600 seconds, so a pinned key can be swapped without dropping a signed-in visitor.",
+            "audience": "aud is the hostname the request was made to (lower case, no port). To use another value, such as a service name, set `identity.audience` on the oauth2 middleware; the backend then requires that value instead.",
+            "plain_headers": "The plain x-auth-subject, x-auth-provider and x-auth-claims headers are sent by default. Set `identity.send_auth_headers` to false on the oauth2 middleware to stop sending them once the app verifies x-cruma-identity; the signed token is always sent.",
+            "no_token": "Only the oauth2 sign-in carries x-cruma-identity. HTTP Basic auth, the form login and a bearer token accepted by the agent's own token validator carry no token."
+          },
           "sign_out_paths": [
             "/_auth/logout"
           ],
