@@ -358,6 +358,7 @@ The cases below run against `cruma-local`:
 | `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
 | `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
 | `cloud-plan`, `cloud-list-tunnels` | with the cloud server connected (as the `cruma-cloud` plugin, or added by hand), "what's my Cruma plan?" and "list my tunnels" call `list_services` before the service's tool and read nothing from the local agent |
+| `cloud-pages-site` | an existing public Git repository is discovered through `list_services` and `describe_service`, connected with Pages using its exact repository URL and no private credential, and its public address is reported |
 | `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the command to add it, with no plan invented |
 | `cloud-chat-not-connected` | in claude.ai chat with the plugin added and its connector not connected, a sign-in ask gets the plugin's Connectors tab steps (or the custom-connector URL) and "start a new chat", with no CLI command and no plan invented |
 | `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |
@@ -460,10 +461,10 @@ cases pass. The evals need model credentials, so the proof comes in two steps.
 with the change:
 
 ```sh
-claude plugin validate --strict .
-claude plugin validate --strict plugins/cruma
-claude plugin validate --strict plugins/cruma-local
-claude plugin validate --strict plugins/cruma-cloud
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict .
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-local
+npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-cloud
 for p in cruma cruma-local cruma-cloud; do
   node scripts/stage-evals.mjs "$p" >/dev/null
   for c in .eval-work/"$p"/evals/*/prompt.md .eval-work/"$p"/evals/*/case.yaml; do
