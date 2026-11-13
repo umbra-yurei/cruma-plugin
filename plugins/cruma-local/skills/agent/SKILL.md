@@ -169,15 +169,16 @@ whether to protect it, and suggest a password. Wait for the answer; do not
 expose first. If the user already asked for protection, do not ask again.
 
 - A password or an IP allowlist: pass `access` to `expose_local_port` or
-  `expose_local_directory` (the tool schema lists the types). A generated
-  password is returned once. When the user wants a password they choose,
-  ask them for it in chat and pass exactly what they typed as `password`;
+  `expose_local_directory` (the tool schema lists the types). When the user
+  asks for password protection without supplying the password, ask them for
+  it before exposing. Pass exactly what they typed as `password`;
   never invent one, never take one from a file, environment variable or
   keychain, and never write a `${secret:...}` reference yourself. In a project
   with a `cruma.toml` the agent stores a typed password on the user's computer
   and the file holds only its name; the result's `password_stored` says so.
   Tell the user "stored on this computer as NAME" and do not repeat the
-  password. A generated password is for this session only and is not saved.
+  password. Passwords generated directly through the tool API are for the
+  session only and are not saved; do not ask the tool to generate one.
   If `project_file` says the share was not saved, relay the reason. Without an
   `access` argument in the schema (an
   older agent), build the site with `upsert_backend` and `upsert_frontend` and
