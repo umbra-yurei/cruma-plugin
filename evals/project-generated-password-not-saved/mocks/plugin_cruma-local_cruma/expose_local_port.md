@@ -21,6 +21,6 @@
     "status": "not_saved",
     "file": "/workspace/cruma.toml",
     "reason": "literal_secret",
-    "message": "kept live and not saved: the generated password would be written as a value; use a ${env:NAME}, ${file:PATH} or ${secret:NAME} password reference to have it saved"
+    "message": "kept live and not saved: frontends[0].middlewares[0].users[0].password would be written as a value; use a ${env:NAME}, ${file:PATH} or ${secret:NAME} password reference to have it saved"
   }
 }
