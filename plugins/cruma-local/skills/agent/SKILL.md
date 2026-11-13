@@ -169,8 +169,18 @@ whether to protect it, and suggest a password. Wait for the answer; do not
 expose first. If the user already asked for protection, do not ask again.
 
 - A password or an IP allowlist: pass `access` to `expose_local_port` or
-  `expose_local_directory` (the tool schema lists the types). A generated
-  password is returned once. Without an `access` argument in the schema (an
+  `expose_local_directory` (the tool schema lists the types). When the user
+  asks for password protection without supplying the password, ask them for
+  it before exposing. Pass exactly what they typed as `password`;
+  never invent one, never take one from a file, environment variable or
+  keychain, and never write a `${secret:...}` reference yourself. In a project
+  with a `cruma.toml` the agent stores a typed password on the user's computer
+  and the file holds only its name; the result's `password_stored` says so.
+  Tell the user "stored on this computer as NAME" and do not repeat the
+  password. Passwords generated directly through the tool API are for the
+  session only and are not saved; do not ask the tool to generate one.
+  If `project_file` says the share was not saved, relay the reason. Without an
+  `access` argument in the schema (an
   older agent), build the site with `upsert_backend` and `upsert_frontend` and
   a `basic_auth` middleware; read `middleware_model` for its shape.
 - Sign-in with a Cruma account: this is `access` `sign_in` on
@@ -238,8 +248,9 @@ Say all of these in the final message:
    `remove_process` for an `upsert_*` one. For a folder share, that editing
    the files updates the site immediately.
 7. For a protected share: what protects it (password, allowed networks or
-   sign-in), the credential once if you generated one (username `cruma`), and
-   that the protection ends with the share. A share with no protection is
+   sign-in), the credential once if you generated one (username `cruma`), where
+   a password the user typed was stored (`password_stored`, never the password
+   itself), and that the protection ends with the share. A share with no protection is
    public: say so.
 8. The account notice, **once per session**, when a tool result's
    `account.state` is `anonymous`: the tunnel is anonymous and time-limited,
