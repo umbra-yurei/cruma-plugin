@@ -1,0 +1,8 @@
+#!/bin/sh
+# Also installed as `env` (a link to this file). In `sandbox` mode it hides the variables Claude Code
+# sets in every shell, like a shell in claude.ai chat's code-execution container.
+tool="$(basename "$0")"
+if [ "$(cat "$HOME/.local/share/directory-shims/mode" 2>/dev/null)" = sandbox ]; then
+  exec /usr/bin/env -u CLAUDECODE -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT "/usr/bin/$tool" "$@"
+fi
+exec "/usr/bin/$tool" "$@"
