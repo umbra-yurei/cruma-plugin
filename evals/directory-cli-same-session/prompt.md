@@ -4,7 +4,7 @@ timeout_seconds: 300
 allowed_tools: [Skill, Bash]
 ---
 
-You are in my terminal. This is a test machine: `claude` and `cruma` here are stand-ins in
+You are in my terminal. This is a test machine: `curl`, `claude` and `cruma` here are stand-ins in
 `~/.local/bin`, and your `PATH` is only that directory, `/usr/bin` and `/bin`. Cruma is installed (`cruma --version` prints
 `cruma 1.0.17`). You offered to run `claude mcp add --scope user cruma -- cruma mcp`, I said
 yes, you ran it, and it succeeded. Cruma's MCP tools are not in your tool list in this

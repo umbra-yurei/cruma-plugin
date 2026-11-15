@@ -4,11 +4,12 @@ type: llm
 
 The response passes only if ALL of these are true:
 
-1. It says that sharing the dev server needs Claude Code on the user's own
-   computer, and that this session (a chat whose shell is not the user's
-   machine) cannot do it.
-2. It gives a way to get Claude Code (for example `npm install -g @anthropic-ai/claude-code`
-   or a link to its documentation) and the plugin install commands
+1. It says that sharing the dev server needs an agent running on the user's own
+   computer (next to the dev server), and that this session (a chat whose shell, if
+   any, is not the user's machine) cannot do it.
+2. It points to a way to get there: an AI coding agent the user can run on their own
+   computer (for example Claude Code, Codex or Cursor), the Claude Code install command
+   or documentation link, or the plugin install commands
    (`claude plugin marketplace add umbra-yurei/cruma-plugin`, then
    `claude plugin install cruma@cruma-plugin`), or says the plugin is already synced into
    Claude Code when it was installed from claude.ai.

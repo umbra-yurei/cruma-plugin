@@ -7,7 +7,7 @@ user has confirmed it. Tunnels can be anonymous: no account is needed.
 
 | Plugin | What it is | Who it is for |
 | --- | --- | --- |
-| `cruma` | Skill only: no MCP server, no hooks, no scripts. Submitted to Anthropic's plugin directory. Sharing needs Claude Code on your own computer. | Everyone; install this one from the directory |
+| `cruma` | Skill only: no MCP server, no hooks, no scripts. Submitted to Anthropic's plugin directory. Sharing needs a coding agent with a shell on your own computer. | Everyone; install this one from the directory |
 | `cruma-local` | The same skill plus a bundled local MCP server (`mcp/launcher.mjs` starts `cruma mcp`), for Claude Code (`.mcp.json`) and Codex (`mcp.json`). Never submitted to the directory. | People who want the tools from the first session, with no `claude mcp add` step |
 | `cruma-cloud` | Optional hosted MCP server for your Cruma account. | People who ask about their plan, tunnels and sites |
 
@@ -26,31 +26,36 @@ its icon is `.claude-plugin/icon.png`.
 ### Where it works
 
 The directory lists a skill-only plugin on every surface: claude.ai chat (web,
-the desktop app's chat, mobile), Cowork and Claude Code. Sharing a port, installing
-`cruma` and `claude mcp add` need a shell on your own computer, so they work in
-**Claude Code** (terminal, IDE extension, the desktop app's Code tab). A plugin
-installed on claude.ai is synced into Claude Code at its next session start.
+the desktop app's chat, mobile), Cowork and Claude Code. Sharing a port or a
+folder and installing `cruma` need a shell on your own computer, the one your
+dev server or folder is on, where installing a program is allowed. Any AI coding
+agent running there (for example Claude Code, Codex or Cursor) can do it; the
+skill does not check for a particular agent and reads no environment variable.
+A plugin installed on claude.ai is synced into Claude Code at its next session start.
 
-In chat a shell is Claude's code-execution container, where a tunnel would
-publish a port in that container instead of your dev server. The skill therefore
-starts with section 0, "Where this works", and goes on only when it can confirm
-your machine:
+A hosted chat's shell (for example claude.ai chat's code-execution container) is
+not your computer: a tunnel there would publish a port in that container instead
+of your dev server. The skill therefore starts with section 0, "Where this works",
+and goes on only when it can confirm your machine:
 
-- Cruma's MCP tools are in its tool list (a local `cruma mcp` provides them; chat
-  does not load local servers), or
-- it has a shell and `printenv CLAUDECODE` prints `1` (Claude Code sets it in
-  every shell it starts), or
-- it has no shell, so it can only describe steps, and you said you are in Claude
-  Code on your own computer.
+- Cruma's MCP tools are in its tool list (a local `cruma mcp` provides them), or
+- it has a shell, `cruma --version --json` runs there or an install is offered,
+  and the thing to share is there: your dev server answers on
+  `localhost:<port>` (`curl -sI`, or `Invoke-WebRequest` in PowerShell), or the
+  folder you named exists, or
+- it has no shell, so it can only describe steps, and you said you are on your
+  own computer.
 
-Otherwise it says "Sharing your dev server needs Claude Code on your own
-computer", gives the Claude Code install command and the two plugin commands
-(or says the plugin is already synced), answers questions about Cruma from the
-docs, points account questions to `cruma-cloud`, and installs, runs and offers
-nothing. Cowork is treated as unconfirmed: its shell is a virtual machine on
-your computer (per Anthropic's Cowork documentation), nothing documented tells
-it apart from your own shell, and `CLAUDECODE` may be set in it. If Cowork gains
-a documented local-session signal, add it to section 0.
+When there is no shell, or the shell is clearly a remote or throwaway sandbox
+(installs fail or are refused, `localhost` is not your dev server, no network),
+it says in a sentence or two that sharing needs an agent running on your own
+computer, next to the server it shares, and stops; when unsure it asks whether
+the shell is on your computer. It may point to a coding agent for your computer
+and the Claude Code plugin commands, answer questions about Cruma from the docs
+and point account questions to `cruma-cloud`, and it installs, runs and offers
+nothing there. A Cowork task's shell is a virtual machine on your computer
+(per Anthropic's Cowork documentation): your dev server does not answer on its
+`localhost`, so the same check stops there.
 
 The skill (`cruma:agent`) then works in three steps and asks before each of the
 first two:
@@ -71,9 +76,9 @@ first two:
    `cruma serve <folder> --json`). In later sessions it uses the MCP tools
    and does not run `cruma proxy` or `cruma serve`.
 
-The skill needs agent 1.0.12 or newer. It proceeds only where it can confirm
-Claude Code (`CLAUDECODE`, above), so Codex and other skills-compatible agents
-use the `cruma-local` skill instead, which has no such gate:
+The skill needs agent 1.0.12 or newer. It works in any agent with a shell on
+your computer; Codex and other skills-compatible agents can also use the
+`cruma-local` skill, whose plugin bundles the MCP server:
 `npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma-local`
 (the repository holds two skills named `agent`, so the command names the plugin's
 directory), and `codex mcp add cruma -- cruma mcp` to connect the tools.
@@ -85,7 +90,8 @@ service other than the declared connectors?": yes, as described here. The plugin
 declares no connectors.
 
 - **Runs, on your computer, each after a yes where it changes something:**
-  `printenv CLAUDECODE` and `cruma --version`; the one install command for your
+  `cruma --version`, and `curl -sI http://localhost:<port>` to see that your
+  dev server is there; the one install command for your
   system (`npm install -g cruma`, `brew install --cask umbra-yurei/brew/cruma` or
   `brew install umbra-yurei/brew/cruma`, or on Windows `winget install` from the
   Microsoft Store); `claude mcp add --scope user cruma -- cruma mcp`;
@@ -306,20 +312,20 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 
 | Case | Checks |
 | --- | --- |
-| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew`/`curl` command runs, no script, no file server |
+| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server |
 | `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
 | `directory-install-macos-npm`, `directory-install-macos-download-page`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is sent to https://cruma.io to install the app itself, and the skill downloads and runs nothing; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |
-| `directory-chat-sandbox`, `directory-chat-no-shell` | the user is in claude.ai chat (Bash is a stand-in whose `printenv CLAUDECODE` prints nothing, or there is no shell): the skill says sharing needs Claude Code on the user's own computer, gives its install command and the plugin commands, and installs, runs and offers nothing (no `npm`/`brew`/`curl`/`cruma`/`claude mcp add` command, no file server, no URL) |
+| `directory-chat-sandbox`, `directory-chat-no-shell` | the user is in claude.ai chat (Bash is a stand-in shell that is not the user's machine: nothing answers on `localhost:3000` and `npm install` fails, or there is no shell): the skill says sharing needs an agent on the user's own computer, points to one (for example Claude Code and the plugin commands), and installs, runs and offers nothing (no `npm`/`brew`/`cruma`/`claude mcp add` command, no `curl` other than a localhost probe, no file server, no URL) |
 | `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
 | `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
 | `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |
 | `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |
-| `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`curl`/`cruma proxy` command), the manual command or cruma.io is given, and no other way of publishing is used |
+| `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`cruma proxy` command, no `curl` other than a localhost probe), the manual command or cruma.io is given, and no other way of publishing is used |
 
 The `directory-*` cases that run commands (all except `directory-mcp-present`, `directory-chat-no-shell` and the three
 `directory-install-*` cases that only ask) need
-`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, which also hides `CLAUDECODE` from `printenv` and `env`), which puts
-stand-in `npm`, `node`, `uname`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
+`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, where the `curl` stand-in cannot connect to `localhost` and `npm install` fails with no network; in the other modes a `curl` to `localhost` answers like the user's dev server), which puts
+stand-in `npm`, `node`, `uname`, `curl`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
 added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
 runs Bash as you with no OS sandbox, so the scaffold also writes the eval workspace's `.claude/settings.json`
 with `env.PATH` set to that directory plus `/usr/bin:/bin`; the host's Homebrew, `/usr/local` and real
@@ -384,7 +390,7 @@ claude plugin eval .eval-work/cruma-local --trust-plugin --scaffold --case sign-
 
 `node scripts/check-plugin.mjs` checks that `plugins/cruma` (the directory plugin) has no
 `.mcp.json`, `mcp.json`, `mcp/`, hooks, scripts or binaries and only the `agent` skill,
-that its skill carries the consent-gated `claude mcp add` command and the `CLAUDECODE` check, that its description says it needs Claude Code on your own computer, that the Claude manifests carry `privacyPolicyUrl`; that `plugins/cruma-local`'s `.mcp.json` declares only the local
+that its skill carries the consent-gated `claude mcp add` command and a `## 0. Where this works` section and reads no environment variable, that its description says it needs an agent with a shell on the user's own computer, that the Claude manifests carry `privacyPolicyUrl`; that `plugins/cruma-local`'s `.mcp.json` declares only the local
 `cruma` server and runs a file inside the plugin, that its `mcp.json` (read by Codex) declares only
 `cruma` and runs the same file, that only `plugins/cruma-cloud`
 declares the cloud server, the skills are named after their directories, `board` and
