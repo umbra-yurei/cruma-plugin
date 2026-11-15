@@ -40,7 +40,8 @@ If Cruma's MCP tools are in your tool list, go on to section 1. Otherwise:
   chat's code-execution sandbox such as claude.ai chat's), say plainly that this
   environment does not allow installing or running Cruma, and that an AI agent
   running on their own computer can do it. Do not work around it with another
-  install method, a downloaded script or `sudo`, and start no file server.
+  install method, a downloaded script, `sudo`, or the same install again with
+  other permissions or outside the sandbox, and start no file server.
 - **A hint, not a gate:** when the user names a port, probe it before you share
   it (`curl -sI http://localhost:<port>`; PowerShell:
   `Invoke-WebRequest -Method Head http://localhost:<port>`). If nothing answers,
