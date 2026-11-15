@@ -9,7 +9,7 @@
 # user, so without this it sees the host (a real `cruma`, real Homebrew, Darwin) instead.
 #   $1 = missing    `cruma` says "command not found" until `npm install -g cruma` runs
 #   $1 = installed  `cruma` answers as the agent version in cli/version.txt
-#   $1 = sandbox    like `missing`, but the shell is not the user's machine, like a hosted chat's
+#   $1 = sandbox    like `missing`, in an environment that does not allow installing, like a hosted chat's
 #                   code-execution container: nothing answers on localhost (the user's dev
 #                   server is elsewhere) and `npm install` fails with no network
 # In `missing` and `installed`, `curl` to localhost/127.0.0.1 answers like the user's dev server.
@@ -128,3 +128,10 @@ if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
 }
 SETTINGS
 fi
+
+# Newer `claude plugin eval` runs take the Bash tool's PATH from a snapshot of the login shell,
+# which the settings file above does not reach. HOME is the run's own home here, so its shell
+# start-up files set the same PATH (never written over an existing file).
+for rc in .zshenv .bashrc .bash_profile .profile; do
+  [ -e "$HOME/$rc" ] || printf 'export PATH="%s:/usr/bin:/bin"\n' "$bin" >"$HOME/$rc"
+done

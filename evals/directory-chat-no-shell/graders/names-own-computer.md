@@ -1,5 +1,5 @@
 ---
 type: regex
 flags: i
-pattern: '(own|your) (computer|machine|laptop)'
+pattern: '\b(own|your|home|that|same|the) (home )?(computer|machine|laptop)\b'
 ---
