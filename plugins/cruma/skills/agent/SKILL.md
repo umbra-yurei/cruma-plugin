@@ -1,6 +1,6 @@
 ---
 name: agent
-description: Use Cruma to put a local dev server port or a folder of files on a public HTTPS URL, optionally protected by a password, IP allowlist or Cruma sign-in, and to install the Cruma agent when it is missing. Sharing and installing need Claude Code on the user's own computer (terminal, IDE, or the desktop app's Code tab); in claude.ai chat, on the web or mobile, it only explains that. Works through the cruma command line, and through Cruma's MCP tools once the user has connected them. Asks before installing anything, before connecting Cruma to Claude Code, and before making anything public.
+description: Use Cruma to put a local dev server port or a folder of files on a public HTTPS URL, optionally protected by a password, IP allowlist or Cruma sign-in, and to install the Cruma agent when it is missing. Sharing needs an agent with a shell on the user's own computer (for example Claude Code, Codex or Cursor); where the environment does not allow installing or running Cruma, such as a hosted chat's sandbox, it says so and points there. Works through the cruma command line, and through Cruma's MCP tools once the user has connected them. Asks before installing anything, before connecting Cruma to your agent, and before making anything public.
 ---
 
 # Cruma tunnels
@@ -14,50 +14,52 @@ This plugin ships no MCP server, no script and no installer. Everything below
 is done with the `cruma` command, or with Cruma's MCP tools when they are
 already in your tool list. Install or connect nothing without a clear yes from
 the user. Never read a secret from the user's machine (a token, key, credential
-file, keychain entry or environment variable other than `CLAUDECODE`); a value
-you need, ask the user for in chat.
+file, keychain entry or environment variable); a value you need, ask the user
+for in chat.
 
 ## 0. Where this works (check first)
 
-Sharing a port, installing `cruma` and `claude mcp add` all need a shell on the
-**user's own computer**, where their dev server runs. That is Claude Code: the
-terminal, an IDE extension or the desktop app's Code tab. In claude.ai chat (web,
-the desktop app's chat, mobile) a shell is Claude's code-execution container, not
-the user's machine: a tunnel started there would put a public URL on a port in
-that container, not on the user's dev server.
+Cruma runs next to what it shares: a local dev server, an existing folder, or a
+site you create for the user are all shared the same way, from the shell you
+run in. Do not try to judge up front whether that shell is the user's own
+computer; let `cruma` and its install tell you.
 
-Go on to section 1 only when one of these is true:
+If Cruma's MCP tools are in your tool list, go on to section 1. Otherwise:
 
-- Cruma's MCP tools are in your tool list. Only a local `cruma mcp` provides
-  them, and chat does not load local servers.
-- You have a shell tool and `printenv CLAUDECODE` prints `1` (PowerShell:
-  `$env:CLAUDECODE`). Claude Code sets it in every shell it starts. Run it in
-  the same call as `cruma --version --json` (section 1).
-- You have no shell tool, so you can run nothing, and the user has said they are
-  in Claude Code on their own computer. Then only describe the steps; start
-  nothing.
+- **No shell tool:** say that you cannot install or run anything from here, and
+  that an AI agent running on their own computer can do it (pointers below).
+  Start nothing.
+- **A shell tool:** run `cruma --version --json` first (section 1), even when
+  the user says it is missing or has already agreed to an install. If it prints
+  a version, go on. If it is not found, offer to install it with exactly one
+  method and wait for the user's yes (section 2). With a yes, run that method.
+- **When installing or running `cruma` fails,** read the error and tell the
+  user why in one or two sentences. When it shows that this environment does
+  not allow it (no network or DNS fails, for example `EAI_AGAIN` or `ENOTFOUND`;
+  the install is refused or not permitted; a read-only file system; a hosted
+  chat's code-execution sandbox such as claude.ai chat's), say plainly that this
+  environment does not allow installing or running Cruma, and that an AI agent
+  running on their own computer can do it. Do not work around it with another
+  install method, a downloaded script, `sudo`, or the same install again with
+  other permissions or outside the sandbox, and start no file server.
+- **A hint, not a gate:** when the user names a port, probe it before you share
+  it (`curl -sI http://localhost:<port>`; PowerShell:
+  `Invoke-WebRequest -Method Head http://localhost:<port>`). If nothing answers,
+  say so ("Nothing answers on port 3000 here. Is your dev server running, and is
+  it on this computer?") and let the user decide.
 
-Otherwise (the variable is empty or unset, there is no shell tool and the user
-did not say they are in Claude Code, or you know this is a Cowork task: its shell
-is a virtual machine, and nothing documented tells it apart from the user's own
-shell) you cannot confirm this is the user's machine. Say so in a few lines
-and stop:
+Pointers to give when this environment cannot do it:
 
-- "Sharing your dev server needs Claude Code on your own computer, because
-  Cruma has to run next to the server it shares."
-- Claude Code is installed with `npm install -g @anthropic-ai/claude-code`
-  (other ways: https://code.claude.com/docs/en/overview); the plugin with
-  `claude plugin marketplace add umbra-yurei/cruma-plugin` then
-  `claude plugin install cruma@cruma-plugin`. If they installed the plugin from
-  claude.ai, it is already synced into Claude Code and appears at the next
-  session start.
+- An AI coding agent running on their own computer (for example Claude Code,
+  Codex or Cursor) can do it with this skill. In Claude Code, for example, the
+  plugin installs with `claude plugin marketplace add umbra-yurei/cruma-plugin`
+  then `claude plugin install cruma@cruma-plugin` (a plugin installed from
+  claude.ai is already synced into Claude Code at its next session start);
+  Claude Code itself installs with `npm install -g @anthropic-ai/claude-code`
+  (other ways: https://code.claude.com/docs/en/overview).
 - You can still answer questions about Cruma from its docs
   (https://cruma.io/llms.txt). Questions about their account (plan, tunnels,
   sites) belong to the optional `cruma-cloud` plugin.
-
-Never install or run `cruma`, run `claude mcp add`, start a file server or offer
-a public URL from a shell you cannot confirm is the user's machine, even when
-the user asks you to.
 
 ## 1. Which path are you on
 
@@ -65,9 +67,7 @@ the user asks you to.
    `expose_local_directory`, `list_shares`, `unexpose`, from a server named
    `cruma`.) If so, use them (section 5) and skip everything about installing
    and connecting.
-2. **Is the agent installed?** Run `printenv CLAUDECODE; cruma --version --json`
-   (in PowerShell `$env:CLAUDECODE; cruma --version --json`). If the first line
-   is not `1`, stop as section 0 says, whatever the second part printed. Older
+2. **Is the agent installed?** Run `cruma --version --json`. Older
    agents print `cruma <version>` for `cruma --version`; use that line then. If
    the version prints, Cruma is installed: check it (section 6), then go to
    section 3. If the command is not found, go to section 2.
