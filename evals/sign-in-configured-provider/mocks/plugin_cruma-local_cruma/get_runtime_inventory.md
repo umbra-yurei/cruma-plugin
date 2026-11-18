@@ -44,6 +44,7 @@
             "has_builtin_auth": false,
             "callback_path": "/oauth2/callback",
             "has_bearer_validator": false,
+            "signed_in_widget": false,
             "session_secret": "<redacted>"
           }
         ],
