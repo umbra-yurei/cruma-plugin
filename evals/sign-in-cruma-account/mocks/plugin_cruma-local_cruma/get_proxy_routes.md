@@ -50,6 +50,7 @@
                   "has_builtin_auth": false,
                   "callback_path": "/_cruma_share_auth/callback",
                   "has_bearer_validator": false,
+                  "signed_in_widget": false,
                   "session_secret": "<redacted>"
                 }
               ],
