@@ -382,7 +382,7 @@ cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `agent-context` prints the case's note, so the hook runs exactly as with a real
 install and never reads the account of whoever runs the suite.
 
-The built-in Cruma sign-in case uses the renamed `cruma-local` server tools:
+The Cruma sign-in case uses the renamed `cruma-local` server tools:
 
 ```sh
 node scripts/stage-evals.mjs cruma-local
