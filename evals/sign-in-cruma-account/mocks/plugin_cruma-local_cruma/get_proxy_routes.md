@@ -45,7 +45,7 @@
                   "cookie_same_site": "Lax",
                   "session_ttl_secs": 3600,
                   "provider_ids": [
-                    "cruma"
+                    "mcp-share-example"
                   ],
                   "has_builtin_auth": false,
                   "callback_path": "/_cruma_share_auth/callback",

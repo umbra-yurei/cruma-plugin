@@ -8,7 +8,7 @@
   "counts": {
     "frontends": 0,
     "backends": 0,
-    "oauth2_providers": 1,
+    "oauth2_providers": 0,
     "processes": 0,
     "listeners": 0,
     "transports": 2,
@@ -18,13 +18,7 @@
   "inventory": {
     "frontends": [],
     "backends": [],
-    "oauth2_providers": [
-      {
-        "id": "cruma",
-        "label": "Sign in with Cruma",
-        "built_in": true
-      }
-    ],
+    "oauth2_providers": [],
     "processes": [],
     "listeners": [],
     "kubernetes_targets": [],
