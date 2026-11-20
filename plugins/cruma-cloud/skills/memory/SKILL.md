@@ -66,7 +66,10 @@ Say the arguments are `on` or `off`.
 
 ## The session note
 
-In Claude Code, this plugin's session-start hook adds the account's note
-through the local `cruma` agent signed in to the same account (`cruma auth
-login`). Clients without that hook (Codex and others) call `session_context`
-once at the start of a session when `cruma-cloud` is connected.
+Any agent connected to `cruma-cloud` calls `session_context` once at the
+start of a session and follows its note: which board and memory space to use,
+and whether agents may write. An empty note means the board and memory are
+both off. Some harnesses add the same note on their own: in Claude Code, this
+plugin's session-start hook adds it through the local `cruma` agent signed in
+to the same account (`cruma auth login`). When that note is already in your
+context, skip the call.

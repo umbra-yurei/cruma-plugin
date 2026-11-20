@@ -267,13 +267,15 @@ turns it off and keeps your choices for the next `on`. The settings live on
 your Cruma account, so they apply to every new session on every machine signed
 in to it, not to one folder or repository.
 
-At session start, the cloud plugin's `SessionStart` hook (`plugins/cruma-cloud/hooks/hooks.json`) runs
-`cruma agent-context` through its bundled launcher (`mcp/launcher.mjs`) and adds what it prints to the
-session. It prints a short note naming the boards and memory to use only when
-one of them is on and the `cruma` on this machine is signed in to the account
-(`cruma auth login`); with both off, no `cruma`, no sign-in or an agent older
-than the command, the session gets nothing. Clients without hooks, such as
-Codex, call `session_context` on `cruma-cloud` once at session start instead.
+At session start, any agent with `cruma-cloud` connected calls its
+`session_context` tool once and follows the note it returns: the boards and
+memory to use, empty when both are off. In Claude Code the cloud plugin's
+`SessionStart` hook (`plugins/cruma-cloud/hooks/hooks.json`) adds the same note
+without the call: it runs `cruma agent-context` through its bundled launcher
+(`mcp/launcher.mjs`) and adds what it prints to the session, which needs the
+`cruma` on this machine signed in to the account (`cruma auth login`); with
+both off, no `cruma`, no sign-in or an agent older than the command, it adds
+nothing and the agent calls `session_context`.
 
 ## Updating
 
@@ -379,6 +381,7 @@ The cases below run against `cruma-local`:
 | `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
 | `settings-never-on`, `settings-off-no-note` | with the board and memory off, the session starts without a note, and neither "fix this issue" nor a question about the note touches the board or memory services |
 | `settings-on-note` | with both on, a session in an empty (non-git) directory starts with the note, recalls from the default memory space before filing, and "file this as a bug" files one bug on the default board and reports its id |
+| `settings-no-hook-calls-context` | with both on but no note from the session-start hook, the agent calls `session_context` once, before recalling or filing, then files one bug on the default board |
 | `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma-cloud:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma-cloud:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma-cloud:board off` changes only `board_enabled`; each says it applies from the next session |
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
 
