@@ -59,37 +59,38 @@ that your windows share and that holds nothing the user saved. It is not the
 user's own Cruma.
 
 **Before the first share in a session**, call `list_agents` once (it reads
-nothing from any agent, so it is fine first). Look for a running agent that is
-not the session agent and whose `tunnel_account` is `registered` (the desktop
-app or a headless agent, signed in or with tunnel credentials). A running agent
-with `tunnel_account` `anonymous` is not one.
+nothing from any agent, so it is fine first). Decide from its typed fields only:
+`running`, `kind`, `attached`, `starter`, `start_hint`, `channel` and
+`tunnel_account`. Never infer whether the desktop app is installed or usable,
+who owns an agent, how it started or which release it runs from prose, process
+names, shell output or a remembered machine setup.
 
-- **One such agent runs: ask once, before sharing anything.** Name the choice
-  with its kind, profile, domain and what the other option means, for example:
-  "Use your running Cruma (desktop, profile `work`, `acme.tun.example.test`) or a
-  temporary anonymous tunnel (random address, browser warning page, time-limited,
-  gone with the session)?" Share nothing, and call no other tool that reads or
-  changes an agent, until they answer. If several run, list them in the same
-  question.
-  - They pick their own: call `use_agent` on that agent (this is the
-    confirmation **Ask before `use_agent`** asks for) and make every share of
-    the session there. Mention the known limit when it applies: a share made on
-    one agent of a tunnel that several agents serve is reachable only through
-    that agent.
-  - They pick the temporary tunnel: stay on the session agent.
-  - Remember the answer for the rest of the session. Do not ask again for later
-    shares, and do not call `list_agents` again for them. Ask again only if the
-    user raises it.
-- **No such agent runs** (none, or only anonymous ones such as the session
-  agent): no question. Use the session agent as is and report the URLs.
-- **You cannot ask** (a non-interactive run, or no way to get an answer): use
-  the session agent, and say in the hand-off that you did, and that a running
-  signed-in Cruma was available when `list_agents` showed one.
-- The question is not needed when the user already named where the share goes
-  ("on my desktop Cruma", "use a temporary tunnel"): follow that.
+- **A desktop agent is running:** ask once whether to use that visible agent or
+  the session agent, even for a quick share. Name its profile and domain from
+  the result. Share nothing until the user answers; after yes, call `use_agent`
+  and start no agent. Remember the choice for later shares in this session.
+- **A lasting share is requested and a stopped desktop profile is listed:**
+  offer to open the desktop app. Wait for yes before `open_desktop_app`; the
+  visible app owns the share's lasting lifecycle. Do not silently start or keep
+  a detached headless agent. If the typed open result says the app is
+  unavailable, report its reason and hint rather than guessing another route.
+- **A quick or throwaway share, or no GUI is available** (SSH, CI, container or
+  server): use the attached session agent. Its connection is the lifecycle
+  hold; another coding session may attach to the same agent and keep it alive.
+  When this session closes its hold is released, and the typed lifecycle result
+  says whether another holder keeps it running or the no-holder grace stop is
+  pending/completed. Report that result exactly.
+- **A lasting detached headless agent:** use `keep_session_agent` only when the
+  user explicitly asks for that outcome. It converts the session agent to user
+  ownership; never use it merely because a share sounds important or lasting.
+- **No other eligible agent runs:** use the session agent without a question
+  for a quick share. For a request about the user's own Cruma, follow the
+  no-running-agent rule below instead.
 
-The shares stay session-owned and are withdrawn when the session ends; never
-set `persist` for them.
+The question is not needed when the user already named the desired ownership.
+Never set `persist` on a session-owned share. Do not scrape processes, run a
+background command or parse CLI output to decide or manage this lifecycle; the
+typed tools and the coding connection own it.
 
 When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
@@ -226,13 +227,18 @@ Say all of these in the final message:
 3. Which path you used: `expose_local_port`, `expose_local_directory`,
    `upsert_process` (the agent hosts and supervises the app, so its logs are
    available through `get_process_logs`), or `upsert_backend`/`upsert_frontend`.
-4. Which agent you acted on: kind (desktop, headless or temporary session),
-   profile and domain, so a temporary share is never taken for a change to
-   the user's app. When you used the session agent because you could not ask,
-   say so.
-5. For the session agent: the URLs end with the session, an anonymous tunnel
-   also ends at its time limit (item 7), and nothing is written to disk. For
-   the user's own agent: whether the change is temporary or saved.
+4. Which agent you acted on: its id, kind (desktop, headless or temporary
+   session), profile and domain, so a temporary share is never mistaken for a
+   change to the user's app. Say who owns its lifecycle: the visible desktop
+   app, the connected coding sessions, or the user after an explicit keep.
+5. How to stop the agent as well as the share. A visible desktop agent stops
+   when the user quits it. A session-owned agent stops after its last holder
+   releases it and the reported grace period ends, and can also be stopped with
+   `stop_agent` while it is session-owned. An explicitly kept headless agent is
+   user-owned and `stop_agent` refuses it; say that explicitly, and still name
+   `unexpose` as the way to stop the share. Report the typed release/no-holder
+   result rather than promising the agent stopped. For the user's own agent,
+   also say whether the change is temporary or saved.
 6. How to take one down: ask you, and you call `unexpose` with its name for
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
