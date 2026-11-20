@@ -75,9 +75,10 @@ first two:
    `cruma serve <folder> --json`). In later sessions it uses the MCP tools
    and does not run `cruma proxy` or `cruma serve`.
 
-The skill needs agent 1.0.12 or newer. It works in any agent with a shell on
-your computer; Codex and other skills-compatible agents can also use the
-`cruma-local` skill, whose plugin bundles the MCP server:
+The skill-only `cruma` plugin needs agent 1.0.12 or newer. It works in any
+agent with a shell on your computer; Codex and other skills-compatible agents
+can also use the `cruma-local` skill, which needs agent 1.0.19 or newer and
+whose plugin bundles the MCP server:
 `npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma-local`
 (the repository holds two skills named `agent`, so the command names the plugin's
 directory), and `codex mcp add cruma -- cruma mcp` to connect the tools.
@@ -297,7 +298,7 @@ change the other.
   install method, and installs the GUI-capable package on a desktop (the macOS
   cask, the Linux Homebrew formula, Microsoft Store; `npm install -g cruma` on Linux, or a Mac or Windows PC, without the first choice; a Mac with neither Homebrew nor npm is sent to cruma.io); it reads the build
   flavour from `cruma --version --json`.
-  The skill needs agent 1.0.12 or newer. It checks `cruma --version`, and with
+  The `cruma-local` skill needs agent 1.0.19 or newer. It checks `cruma --version`, and with
   the MCP tools connected it mentions a newer stable release once, from the
   `version` block of `get_runtime_summary`. Restart Claude Code after
   upgrading so the MCP server starts the new agent.
@@ -350,10 +351,13 @@ The cases below run against `cruma-local`:
 | `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
 | `confirmed-switch-expose`, `diagnose-own-site` | after a confirmed switch the order is `list_agents`, `use_agent`, then the work; diagnosis reads logs and changes nothing |
 | `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |
+| `project-attached-preview`, `project-applied-file` | an attached project stays previewed until the user explicitly confirms its summary; after confirmation it is applied and the named project file is reported |
+| `project-generated-password-not-saved` | a password-protected share is live, but the skill reports that its generated password kept it out of the project file and offers a secret reference instead |
+| `project-literal-secret-refused` | a project file with a literal secret is not applied; the skill names the refused field and asks for an environment or file reference |
 | `open-app-on-request`, `open-app-see-settings`, `open-app-not-installed`, `open-app-not-unprompted`, `open-app-offer-after-share` | "show me my tunnels in the app" and "I want to look at my tunnels and settings" each call `open_desktop_app` once; an `unavailable` answer (app not installed) is relayed with its install hint and not retried; a CI share request never opens the app; after a share on a desktop the app is offered as a question and not opened without a yes |
 | `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
 | `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
-| `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the skill's minimum of 1.0.12) gets the user's upgrade command first, with nothing shared |
+| `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the `cruma-local` skill's minimum of 1.0.19) gets the user's upgrade command first, with nothing shared |
 | `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
 | `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |
 | `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on a Mac that has Homebrew, musl or a server artifact |

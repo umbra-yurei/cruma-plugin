@@ -161,6 +161,31 @@ On the user's own agent, after they agreed to the switch:
   with `persist: true` to make it permanent without the same approval. This is
   the only use of `persist`, and never on the session agent.
 
+### Project files
+
+An attached `cruma.yaml` or `cruma.toml` starts as a preview. Summarize the
+frontends, backends, processes and ignored sections returned by
+`attach_project`, then ask explicitly before calling `apply_project`. A
+request to inspect, attach or use a file is not approval to apply it. If the
+user declines, leave it previewed and call no apply or write tool. Run `cruma
+up` only when the user asks to start the project from the terminal; MCP uses
+`attach_project` and the confirmation-gated `apply_project` instead.
+
+Once applied, shares and processes created through this connection can be
+written back to the project file. Read and report the result's `project_file`
+status: say which file was saved, or say that the change is live but was not
+saved and give its reason. Generated or typed passwords, folders outside the
+project root and literal process environment values stay live but are not
+saved. For a password or secret that should be saved, ask the user to provide
+a reference such as `${env:NAME}` or `${file:PATH}`; never put the secret value
+in the project file. A project file containing a literal secret is refused:
+name the reported field and ask the user to replace it with a reference.
+
+When persistence is wanted and no project file exists, offer to create
+`cruma.yaml` with `attach_project {create: true}`. Create it only after the
+user agrees; never introduce a project file for an ordinary temporary share
+or without being asked to persist the work.
+
 ### Protect what looks private
 
 Before exposing something that looks private (an admin UI, a database tool,
@@ -354,17 +379,17 @@ any kind.
 
 ### Versions
 
-The **minimum version is 1.0.12**: older agents lose sessions (for example the
+The **minimum version is 1.0.19**: older agents lose sessions (for example the
 second Claude window exits) and lack tools this skill uses. Take the version
 from the `version` field of `cruma --version --json`. When no JSON line comes
 back, read the `cruma <version>` line that `cruma --version` prints; that is
 the only human text you read.
 
-- **Older than 1.0.12:** before doing anything else, tell the user their Cruma
+- **Older than 1.0.19:** before doing anything else, tell the user their Cruma
   is too old and give the upgrade command for their install method (see
   **Update**). Do not start a tunnel on it. Continue once they have upgraded
-  and `cruma --version` shows 1.0.12 or newer.
-- **1.0.12 or newer:** use it. With the MCP tools connected, a newer stable
+  and `cruma --version` shows 1.0.19 or newer.
+- **1.0.19 or newer:** use it. With the MCP tools connected, a newer stable
   release shows up in `get_runtime_summary` as `version.update_available`
   (`version.latest_stable_version`, `version.upgrade_hint`); mention it once, as
   in the hand-off, and carry on. Never block a share on an optional update.

@@ -29,6 +29,21 @@ if (localClaude.cruma?.command !== "node" || claudeLauncher !== codexLauncher ||
 const agent = readFileSync(join(local, "skills/agent/SKILL.md"), "utf8");
 if (!/^name: agent$/m.test(agent) || /^disable-model-invocation:/m.test(agent)) failures.push("cruma-local agent skill must be model-invocable and named agent");
 if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(agent)) failures.push("cruma-local agent skill must not contain cloud session, board, or memory instructions");
+const launcher = readFileSync(join(local, "mcp/launcher.mjs"), "utf8");
+const minimumAgentVersion = /^export const MINIMUM_AGENT_VERSION = "(\d+\.\d+\.\d+)";$/m.exec(launcher)?.[1];
+if (!minimumAgentVersion) failures.push("cruma-local launcher must export its typed minimum agent version");
+else {
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  const minimumVersionConsumers = [
+    ["cruma-local skill", agent],
+    ["README", readme],
+    ["outdated-agent grader", readFileSync(join(root, "evals/outdated-agent-upgrade-first/graders/upgrade-first.md"), "utf8")],
+  ];
+  for (const [name, contents] of minimumVersionConsumers) {
+    if (!contents.includes(minimumAgentVersion)) failures.push(`${name} must match the typed minimum agent version ${minimumAgentVersion}`);
+  }
+  if (!readme.includes(`\`cruma-local\` skill, which needs agent ${minimumAgentVersion} or newer`)) failures.push("README must distinguish cruma-local's typed minimum from the skill-only cruma minimum");
+}
 
 // The directory-bound plugin is a skill and nothing else: no MCP server, hook, launcher or script.
 for (const entry of readdirSync(directory, { recursive: true })) {
