@@ -234,9 +234,12 @@ to use it and call `use_agent` only after yes; start nothing. For a lasting
 share with an installed but stopped desktop app, offer to open it and wait for
 yes: the visible app owns that lifecycle. For a quick share, or where no GUI is
 available (SSH, CI, a container or server), use the session-owned headless
-agent; connected sessions hold it, the last release starts its typed grace-stop
-flow, and the lifecycle result is what you report. Only an explicit request for
-a lasting detached headless agent uses `keep_session_agent`. Never silently
+agent; connected sessions hold it and it stops after a grace period once none does;
+closing a session returns no result, so state no holder count or grace state
+and report only what `stop_agent` or `keep_session_agent` returned. Only an
+explicit request for a lasting detached headless agent uses `keep_session_agent`
+(agent 1.0.18 and newer; without the tool, none of this lifecycle policy applies
+and nothing is detached). Never silently
 detach one, set `persist` for a session share, scrape processes, start a
 background lifecycle command or parse CLI output to manage it.
 
@@ -277,11 +280,11 @@ port or folder); whether it is public or protected (and how); which agent id,
 kind, profile and domain was used; whether the visible desktop app, connected
 coding sessions or the user owns its lifecycle; and how to stop both the share
 and agent. Use `unexpose` for the share. A desktop agent stops when the user
-quits it; a session agent stops after its last holder releases it and the typed
-grace result completes (or through `stop_agent` while session-owned); an
+quits it; a session agent stops after a grace period once no session holds it (or through
+`stop_agent` while session-owned); an
 explicitly kept agent is user-owned and `stop_agent` refuses it, so say that
 and name `unexpose` for stopping the share. Do not claim an agent stop beyond
-the typed result. The tunnel is also time-limited while anonymous. Say once per session, when
+what `stop_agent` returned. The tunnel is also time-limited while anonymous. Say once per session, when
 a tool result's `account.state` is `anonymous` or the tunnel is anonymous, that
 signing in to a free Cruma account (`cruma auth login`) keeps the same tunnel
 working past the limit, with `account.sign_up_url` quoted exactly when the

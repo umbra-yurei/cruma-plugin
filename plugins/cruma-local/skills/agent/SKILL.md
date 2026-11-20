@@ -77,11 +77,13 @@ names, shell output or a remembered machine setup.
 - **A quick or throwaway share, or no GUI is available** (SSH, CI, container or
   server): use the attached session agent. Its connection is the lifecycle
   hold; another coding session may attach to the same agent and keep it alive.
-  When this session closes its hold is released, and the typed lifecycle result
-  says whether another holder keeps it running or the no-holder grace stop is
-  pending/completed. Report that result exactly.
-- **A lasting detached headless agent:** use `keep_session_agent` only when the
-  user explicitly asks for that outcome. It converts the session agent to user
+  The agent stays up while any connected session holds it and stops after its
+  grace period once none does. Closing a session returns no result to you, so
+  never state a holder count or a pending grace stop as fact; relay another
+  holder only when the user said so, and otherwise say what the policy is.
+- **A lasting detached headless agent:** use `keep_session_agent` (agent 1.0.18
+  and newer; when the tool is absent none of these lifecycle rules apply and you
+  detach nothing) only when the user explicitly asks for that outcome. It converts the session agent to user
   ownership; never use it merely because a share sounds important or lasting.
 - **No other eligible agent runs:** use the session agent without a question
   for a quick share. For a request about the user's own Cruma, follow the
@@ -261,8 +263,10 @@ Say all of these in the final message:
    releases it and the reported grace period ends, and can also be stopped with
    `stop_agent` while it is session-owned. An explicitly kept headless agent is
    user-owned and `stop_agent` refuses it; say that explicitly, and still name
-   `unexpose` as the way to stop the share. Report the typed release/no-holder
-   result rather than promising the agent stopped. For the user's own agent,
+   `unexpose` as the way to stop the share. Report only what `stop_agent` or
+   `keep_session_agent` returned (`stopped`, `already_gone`, `refused`,
+   `control_failed`, `kept`, `already_kept`) rather than promising the agent
+   stopped or claiming a holder count or grace state no tool reported. For the user's own agent,
    also say whether the change is temporary or saved.
 6. How to take one down: ask you, and you call `unexpose` with its name for
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
