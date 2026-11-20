@@ -75,9 +75,10 @@ first two:
    `cruma serve <folder> --json`). In later sessions it uses the MCP tools
    and does not run `cruma proxy` or `cruma serve`.
 
-The skill needs agent 1.0.12 or newer. It works in any agent with a shell on
-your computer; Codex and other skills-compatible agents can also use the
-`cruma-local` skill, whose plugin bundles the MCP server:
+The skill-only `cruma` plugin needs agent 1.0.12 or newer. It works in any
+agent with a shell on your computer; Codex and other skills-compatible agents
+can also use the `cruma-local` skill, which needs agent 1.0.19 or newer and
+whose plugin bundles the MCP server:
 `npx skills add https://github.com/umbra-yurei/cruma-plugin/tree/main/plugins/cruma-local`
 (the repository holds two skills named `agent`, so the command names the plugin's
 directory), and `codex mcp add cruma -- cruma mcp` to connect the tools.
