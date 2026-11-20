@@ -1,7 +1,8 @@
 // Grading for scripts/codex-eval.mjs: reads the `claude plugin eval` case files (prompt.md and
 // graders/*.md frontmatter) and scores a Codex run with the same graders. `regex`, `tool_used`
 // and `tool_order` are checked here; an `llm` grader returns its rubric for the model judge.
-// Pure functions; scripts/codex-grade.test.mjs covers them.
+// Pure functions; scripts/codex-eval.test.mjs covers them.
+import { BASH_TOOL, LOCAL_SERVER, MCP_TOOL_PREFIX, mcpToolName } from "./eval-cases.mjs";
 
 function scalar(raw) {
   const value = raw.trim();
@@ -71,10 +72,10 @@ export function runRecord({ events, plugin, lastMessage = "", mockLog = "", shim
       trace.push(item.text);
     } else if (item.type === "command_execution") {
       const command = unwrapShell(item.command);
-      calls.push({ tool: "Bash", input: JSON.stringify({ command }) });
+      calls.push({ tool: BASH_TOOL, input: JSON.stringify({ command }) });
       trace.push(`$ ${command}\n${item.aggregated_output ?? ""}`);
     } else if (item.type === "mcp_tool_call") {
-      const tool = `mcp__plugin_${plugin}_${item.server}__${item.tool}`;
+      const tool = mcpToolName(plugin, item.server, item.tool);
       const input = JSON.stringify(item.arguments ?? {});
       calls.push({ tool, input });
       trace.push(`${tool} ${input}\n${resultText(item.result)}${item.error?.message ?? ""}`);
@@ -87,13 +88,13 @@ export function runRecord({ events, plugin, lastMessage = "", mockLog = "", shim
     .filter((request) => request.method === "tools/call");
   // The stand-in's log is the record of what reached the MCP server; it fills in if the event
   // stream carried no MCP calls.
-  if (!calls.some((call) => call.tool.startsWith("mcp__"))) {
-    for (const request of mockCalls) calls.push({ tool: `mcp__plugin_${plugin}_cruma__${request.tool}`, input: JSON.stringify(request.arguments ?? {}) });
+  if (!calls.some((call) => call.tool.startsWith(MCP_TOOL_PREFIX))) {
+    for (const request of mockCalls) calls.push({ tool: mcpToolName(plugin, LOCAL_SERVER, request.tool), input: JSON.stringify(request.arguments ?? {}) });
   }
   // A stand-in command (npm, curl, cruma, claude, node, uname) the event stream did not show.
-  const commands = calls.filter((call) => call.tool === "Bash").map((call) => JSON.parse(call.input).command);
+  const commands = calls.filter((call) => call.tool === BASH_TOOL).map((call) => JSON.parse(call.input).command);
   for (const line of shimLog.split("\n").filter((entry) => entry.trim())) {
-    if (!commands.some((command) => command.includes(line))) calls.push({ tool: "Bash", input: JSON.stringify({ command: line }) });
+    if (!commands.some((command) => command.includes(line))) calls.push({ tool: BASH_TOOL, input: JSON.stringify({ command: line }) });
   }
   return {
     failure: messages.length ? undefined : failure,
@@ -105,7 +106,7 @@ export function runRecord({ events, plugin, lastMessage = "", mockLog = "", shim
   };
 }
 
-const knownTool = (tool) => tool === "Bash" || tool.startsWith("mcp__");
+const knownTool = (tool) => tool === BASH_TOOL || tool.startsWith(MCP_TOOL_PREFIX);
 
 // `{ status: "pass" | "fail" | "unsupported" | "judge", detail }`. A `judge` result carries the
 // rubric and the text the model judge reads (`focus: trace` reads the whole trace).

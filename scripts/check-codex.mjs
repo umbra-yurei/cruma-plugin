@@ -5,7 +5,8 @@
 // agent-plugins.org schema named in its `$schema`. No credentials are used.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { CODEX_VERSION, ensureTools, root, runCodex } from "./codex-tools.mjs";
+import { CODEX_VERSION, ensureTools, runCodex } from "./codex-tools.mjs";
+import { EVAL_WORK, MARKETPLACE_FILE, root } from "./eval-cases.mjs";
 
 const failures = [];
 const { codex, requireTool } = ensureTools();
@@ -15,7 +16,7 @@ const json = (file) => JSON.parse(readFileSync(file, "utf8"));
 const Ajv2020 = requireTool("ajv/dist/2020").default;
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const schemas = new Map();
-const marketplace = json(join(root, ".claude-plugin/marketplace.json"));
+const marketplace = json(MARKETPLACE_FILE);
 for (const { name } of marketplace.plugins) {
   for (const file of ["plugin.json", "mcp.json"]) {
     const path = join(root, "plugins", name, file);
@@ -39,7 +40,7 @@ for (const { name } of marketplace.plugins) {
 }
 
 // 2. What the pinned Codex resolves from a local install of the marketplace.
-const work = join(root, ".eval-work", "codex-check");
+const work = join(EVAL_WORK, "codex-check");
 rmSync(work, { recursive: true, force: true });
 const codexHome = join(work, "codex-home");
 const home = join(work, "home");

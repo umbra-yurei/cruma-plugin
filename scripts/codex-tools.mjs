@@ -4,14 +4,13 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { EVAL_WORK } from "./eval-cases.mjs";
 
-export const root = dirname(dirname(fileURLToPath(import.meta.url)));
 export const CODEX_VERSION = "0.171.0";
 export const AJV_VERSION = "8.17.1";
 
-const tools = join(root, ".eval-work", "tools");
+const tools = join(EVAL_WORK, "tools");
 
 function installedVersion(name) {
   const manifest = join(tools, "node_modules", name, "package.json");

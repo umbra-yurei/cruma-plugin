@@ -7,13 +7,11 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSy
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { JUDGE_SCHEMA, grade, judgePrompt, parseFrontmatter, runRecord } from "./codex-grade.mjs";
-import { owner } from "./eval-cases.mjs";
-import { ensureTools, root, runCodex } from "./codex-tools.mjs";
+import { BASH_TOOL, EVAL_WORK, LOCAL_MOCK_DIR, LOCAL_PLUGIN, LOCAL_SERVER, MARKETPLACE_FILE, MCP_TOOL_PREFIX, SKILL_TOOL, STAND_IN_VERSION, owner, root, stagedPluginDir } from "./eval-cases.mjs";
+import { ensureTools, runCodex } from "./codex-tools.mjs";
 
 // Share a port, agent missing, no shell.
 const CORE_CASES = ["expose-dev-server", "directory-agent-missing", "directory-chat-no-shell"];
-// The one MCP server the runner can stand in for: cruma-local's `cruma` (see codex-mcp-stand-in.mjs).
-const STAND_IN_MOCKS = "plugin_cruma-local_cruma";
 
 const options = { cases: [], dryRun: false, judge: true, model: undefined, sandbox: "workspace-write" };
 const argv = process.argv.slice(2);
@@ -32,7 +30,7 @@ for (let index = 0; index < argv.length; index += 1) {
 if (!options.cases.length) options.cases = CORE_CASES;
 
 const { codex } = ensureTools();
-const marketplace = JSON.parse(readFileSync(join(root, ".claude-plugin/marketplace.json"), "utf8")).name;
+const marketplace = JSON.parse(readFileSync(MARKETPLACE_FILE, "utf8")).name;
 const modelArgs = options.model ? ["--model", options.model] : [];
 const userAuth = join(process.env.CODEX_HOME ?? join(homedir(), ".codex"), "auth.json");
 const shellQuote = (value) => (/^[\w@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
@@ -58,7 +56,7 @@ function stageCase(name) {
     if (stage.status !== 0) throw new Error(`staging ${plugin} failed`);
     staged.add(plugin);
   }
-  const caseDir = join(root, ".eval-work", plugin, "evals", name);
+  const caseDir = join(stagedPluginDir(plugin), "evals", name);
   if (!existsSync(join(caseDir, "prompt.md"))) throw new Error(`${name}: no staged prompt.md for the ${plugin} plugin`);
   return { plugin, caseDir };
 }
@@ -68,21 +66,22 @@ function stageCase(name) {
 // scaffold's stand-ins log); one that allows only Skill gets a read-only shell, which can read the
 // skill but install, write or start nothing; one that allows neither gets no shell.
 function shellArgs(allowed, home) {
-  if (allowed.includes("Bash")) return ["--sandbox", options.sandbox, "--add-dir", home];
-  if (allowed.includes("Skill")) return ["--sandbox", "read-only"];
+  if (allowed.includes(BASH_TOOL)) return ["--sandbox", options.sandbox, "--add-dir", home];
+  if (allowed.includes(SKILL_TOOL)) return ["--sandbox", "read-only"];
   return ["--sandbox", "read-only", "--disable", "shell_tool", "--disable", "unified_exec"];
 }
 
 function prepare(name) {
   const { plugin, caseDir } = stageCase(name);
   const { fields: prompt, body } = parseFrontmatter(readFileSync(join(caseDir, "prompt.md"), "utf8"));
-  const allowed = prompt.allowed_tools ?? ["Skill", "Bash"];
-  const unknown = allowed.filter((tool) => tool !== "Skill" && tool !== "Bash" && !tool.startsWith("mcp__"));
+  const allowed = prompt.allowed_tools ?? [SKILL_TOOL, BASH_TOOL];
+  const unknown = allowed.filter((tool) => tool !== SKILL_TOOL && tool !== BASH_TOOL && !tool.startsWith(MCP_TOOL_PREFIX));
   if (unknown.length) throw new Error(`${name}: allowed tools ${unknown.join(", ")} have no Codex equivalent in this runner`);
+  // The one MCP server the runner stands in for is cruma-local's (see codex-mcp-stand-in.mjs).
   const mockDirs = existsSync(join(caseDir, "mocks")) ? readdirSync(join(caseDir, "mocks")) : [];
-  if (mockDirs.some((directory) => directory !== STAND_IN_MOCKS)) throw new Error(`${name}: mocks for ${mockDirs.join(", ")}; the Codex runner stands in only for ${STAND_IN_MOCKS}`);
+  if (mockDirs.some((directory) => directory !== LOCAL_MOCK_DIR)) throw new Error(`${name}: mocks for ${mockDirs.join(", ")}; the Codex runner stands in only for ${LOCAL_MOCK_DIR}`);
 
-  const run = join(root, ".eval-work", "codex", name);
+  const run = join(EVAL_WORK, "codex", name);
   rmSync(run, { recursive: true, force: true });
   const codexHome = join(run, "codex-home");
   const home = join(run, "home");
@@ -100,13 +99,14 @@ function prepare(name) {
 
   const bin = join(home, ".local", "bin");
   const mockLog = join(run, "mcp-requests.jsonl");
-  if (plugin === "cruma-local") {
+  if (plugin === LOCAL_PLUGIN) {
     // The launcher prefers the newest `cruma` it finds, and 99.0.0 beats any real install.
-    if (existsSync(join(bin, "cruma"))) throw new Error(`${name}: its scaffold writes a cruma of its own; the Codex runner cannot also stand in for \`cruma mcp\``);
+    const standInPath = join(bin, LOCAL_SERVER);
+    if (existsSync(standInPath)) throw new Error(`${name}: its scaffold writes a cruma of its own; the Codex runner cannot also stand in for \`cruma mcp\``);
     mkdirSync(bin, { recursive: true });
-    const standIn = [process.execPath, join(root, "scripts/codex-mcp-stand-in.mjs"), join(caseDir, "mocks", STAND_IN_MOCKS), join(caseDir, "..", "mocks", STAND_IN_MOCKS), mockLog].map(shellQuote).join(" ");
-    writeFileSync(join(bin, "cruma"), `#!/bin/sh\ncase "$1" in\n  --version) echo "cruma 99.0.0" ;;\n  mcp) exec ${standIn} ;;\n  *) echo "cruma (eval stand-in): only --version and mcp" >&2; exit 2 ;;\nesac\n`);
-    chmodSync(join(bin, "cruma"), 0o755);
+    const standIn = [process.execPath, join(root, "scripts/codex-mcp-stand-in.mjs"), join(caseDir, "mocks", LOCAL_MOCK_DIR), join(caseDir, "..", "mocks", LOCAL_MOCK_DIR), mockLog].map(shellQuote).join(" ");
+    writeFileSync(standInPath, `#!/bin/sh\ncase "$1" in\n  --version) echo "cruma ${STAND_IN_VERSION}" ;;\n  mcp) exec ${standIn} ;;\n  *) echo "cruma (eval stand-in): only --version and mcp" >&2; exit 2 ;;\nesac\n`);
+    chmodSync(standInPath, 0o755);
     writeFileSync(mockLog, "");
   }
 

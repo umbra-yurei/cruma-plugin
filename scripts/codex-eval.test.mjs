@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { grade, parseFrontmatter, runRecord, unwrapShell } from "./codex-grade.mjs";
-import { root } from "./codex-tools.mjs";
+import { LOCAL_MOCK_DIR, LOCAL_PLUGIN, LOCAL_SERVER, SKILL_TOOL, STAND_IN_VERSION, mcpToolName, root } from "./eval-cases.mjs";
 
 const grader = (path) => parseFrontmatter(readFileSync(join(root, "evals", path), "utf8"));
 const events = (...items) => items.map((item) => JSON.stringify({ type: "item.completed", item })).join("\n");
@@ -17,12 +17,12 @@ const shell = (script) => ({ type: "command_execution", command: `/bin/bash -lc 
 test("frontmatter: single-quoted patterns, numbers, lists and nested tool_order", () => {
   assert.deepEqual(grader("expose-dev-server/graders/no-persist.md").fields, {
     type: "tool_used",
-    tool: "mcp__plugin_cruma-local_cruma__upsert_backend",
+    tool: mcpToolName(LOCAL_PLUGIN, LOCAL_SERVER, "upsert_backend"),
     input_match: '"persist"\\s*:\\s*true',
     min: 0,
     max: 0,
   });
-  assert.deepEqual(parseFrontmatter(readFileSync(join(root, "evals/directory-chat-no-shell/prompt.md"), "utf8")).fields.allowed_tools, ["Skill"]);
+  assert.deepEqual(parseFrontmatter(readFileSync(join(root, "evals/directory-chat-no-shell/prompt.md"), "utf8")).fields.allowed_tools, [SKILL_TOOL]);
   assert.deepEqual(parseFrontmatter("---\ntype: tool_order\nbefore:\n  tool: a\nafter:\n  tool: b\n---\n").fields, { type: "tool_order", before: { tool: "a" }, after: { tool: "b" } });
 });
 
@@ -78,8 +78,8 @@ test("the `cruma mcp` stand-in lists _tools.json and answers with the case's moc
   const log = join(mkdtempSync(join(tmpdir(), "codex-stand-in-")), "requests.jsonl");
   const server = spawn(process.execPath, [
     join(root, "scripts/codex-mcp-stand-in.mjs"),
-    join(root, "evals/expose-dev-server/mocks/plugin_cruma-local_cruma"),
-    join(root, "evals/mocks/plugin_cruma-local_cruma"),
+    join(root, `evals/expose-dev-server/mocks/${LOCAL_MOCK_DIR}`),
+    join(root, `evals/mocks/${LOCAL_MOCK_DIR}`),
     log,
   ]);
   const replies = [];
@@ -102,9 +102,9 @@ test("the `cruma mcp` stand-in lists _tools.json and answers with the case's moc
   await done;
   server.kill();
   const byId = Object.fromEntries(replies.map((reply) => [reply.id, reply.result]));
-  assert.equal(byId[1].serverInfo.version, "99.0.0");
+  assert.equal(byId[1].serverInfo.version, STAND_IN_VERSION);
   assert.ok(byId[2].tools.some((tool) => tool.name === "expose_local_port"));
-  assert.equal(byId[3].content[0].text, readFileSync(join(root, "evals/expose-dev-server/mocks/plugin_cruma-local_cruma/list_agents.md"), "utf8"));
-  assert.equal(byId[4].content[0].text, readFileSync(join(root, "evals/mocks/plugin_cruma-local_cruma/get_health_summary.md"), "utf8"));
+  assert.equal(byId[3].content[0].text, readFileSync(join(root, `evals/expose-dev-server/mocks/${LOCAL_MOCK_DIR}/list_agents.md`), "utf8"));
+  assert.equal(byId[4].content[0].text, readFileSync(join(root, `evals/mocks/${LOCAL_MOCK_DIR}/get_health_summary.md`), "utf8"));
   assert.deepEqual(readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line).method), requests.map((request) => request.method));
 });
