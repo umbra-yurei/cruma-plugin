@@ -18,12 +18,19 @@ on every machine.
 Everything here goes through the `cruma-cloud` tools (`whoami`,
 `list_services`, `get_coding_agent_settings`, `update_coding_agent_settings`).
 When they are not in your tool list, say that `/cruma-cloud:memory` needs the
-optional `cruma-cloud` server signed in to their Cruma account, give the steps to connect it for where they are (on claude.ai: open
-https://claude.ai/customize/plugins, open `cruma-cloud`, and on its **Connectors**
-tab **Add** the connector if needed, then **Connect** and sign in, then start a new
-chat; in Claude Code: `/mcp`, select `plugin:cruma-cloud:cruma-cloud`,
-**Authenticate**; in Codex: `codex plugin add cruma-cloud@cruma-plugin`), and stop. Never use the local
-`cruma` tools for this.
+optional `cruma-cloud` server signed in to their Cruma account, give the steps
+to connect it for where they are, and stop. In any agent the step is: add an
+HTTP (streamable) MCP server named `cruma-cloud` at exactly
+`https://mcp.cruma.io/mcp` (no trailing slash), sign in when it asks, then start
+a new session. Worked examples (the `cloud` skill has the full steps): on
+claude.ai, open https://claude.ai/customize/plugins, open `cruma-cloud`, and on
+its **Connectors** tab **Add** the connector if needed, then **Connect** and
+sign in, then start a new chat; in Claude Code, `/mcp`, select
+`plugin:cruma-cloud:cruma-cloud`, **Authenticate**; in Codex,
+`codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`, then
+`codex mcp login cruma-cloud`.
+Call no memory tool until it is connected, and never use the local `cruma` tools
+for this.
 
 ## `on`
 
