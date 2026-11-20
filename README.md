@@ -231,9 +231,11 @@ claude plugin install cruma-cloud@cruma-plugin   # Claude Code
 codex plugin add cruma-cloud@cruma-plugin        # Codex, after `codex plugin marketplace add umbra-yurei/cruma-plugin`
 ```
 
-Or add the server by hand: `claude mcp add --transport http cruma-cloud
-https://mcp.cruma.io/mcp`, or `codex mcp add cruma-cloud --url
-https://mcp.cruma.io/mcp`. With it connected, the skill starts account
+Or add the server by hand, in any agent, as an HTTP (streamable) MCP server
+named `cruma-cloud` at exactly `https://mcp.cruma.io/mcp` (no trailing slash):
+`claude mcp add --transport http cruma-cloud https://mcp.cruma.io/mcp`, or
+`codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp` then `codex mcp login
+cruma-cloud`. With it connected, the skill starts account
 questions with `list_services` and `describe_service`; without it, it says the
 server is optional and gives these commands.
 
@@ -370,7 +372,8 @@ The cases below run against `cruma-local`:
 | `protect-admin-panel-password`, `asks-protect-private` | a requested password goes through `access`, with the credential reported once; something that looks private is not exposed before asking about protection |
 | `cloud-plan`, `cloud-list-tunnels` | with the cloud server connected (as the `cruma-cloud` plugin, or added by hand), "what's my Cruma plan?" and "list my tunnels" call `list_services` before the service's tool and read nothing from the local agent |
 | `cloud-pages-site` | an existing public Git repository is discovered through `list_services` and `describe_service`, connected with Pages using its exact repository URL and no private credential, and its public address is reported |
-| `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the command to add it, with no plan invented |
+| `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the step or command to add it, with no plan invented |
+| `cloud-codex-not-connected` | a Codex user without the cloud server gets the `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp` example or the generic HTTP-server step, with no trailing slash, no Claude steps and no plan invented |
 | `cloud-chat-not-connected` | in claude.ai chat with the plugin added and its connector not connected, a sign-in ask gets the plugin's Connectors tab steps (or the custom-connector URL) and "start a new chat", with no CLI command and no plan invented |
 | `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |
 | `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |

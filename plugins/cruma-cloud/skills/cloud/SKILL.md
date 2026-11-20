@@ -27,8 +27,12 @@ do not invent account data while signed out.
 No `whoami` or `list_services` in your tool list means the server is not
 connected or not signed in yet. Installing the plugin does not connect it
 everywhere. Say so, give the steps for where the user is, and stop; never
-invent account data. Without a shell, or when the user is on claude.ai, give
-the chat steps.
+invent account data. Without a shell, give the chat steps.
+
+In any agent: add an HTTP (streamable) MCP server named `cruma-cloud` at
+exactly `https://mcp.cruma.io/mcp` (no trailing slash) in the agent's MCP
+settings, sign in with the Cruma account when it asks, then start a new
+session or chat. Worked examples:
 
 - **claude.ai chat, the desktop app's chat, or Cowork:** open
   https://claude.ai/customize/plugins, open `cruma-cloud`, and on its
@@ -41,9 +45,11 @@ the chat steps.
   choose **Authenticate**. Without the plugin:
   `claude mcp add --transport http cruma-cloud https://mcp.cruma.io/mcp`, then
   start a new session.
-- **Codex:** `codex plugin add cruma-cloud@cruma-plugin`, or
-  `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`, then start a new
-  session.
+- **Codex:** `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp`, then
+  `codex mcp login cruma-cloud` to sign in, then start a new session. Give the
+  URL with no trailing slash: Codex builds its sign-in callback from it. With
+  the marketplace added, `codex plugin add cruma-cloud@cruma-plugin` installs
+  the same server.
 
 Use the local `cruma` tools instead when publishing a local port or folder or
 driving the user's local desktop or headless agent. The cloud server does not
