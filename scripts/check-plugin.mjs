@@ -57,7 +57,7 @@ for (const entry of readdirSync(directory, { recursive: true, withFileTypes: tru
 const directorySkill = readFileSync(join(directory, "skills/agent/SKILL.md"), "utf8");
 if (!/^name: agent$/m.test(directorySkill) || /^disable-model-invocation:/m.test(directorySkill)) failures.push("cruma agent skill must be model-invocable and named agent");
 if (readdirSync(join(directory, "skills")).join() !== "agent") failures.push("cruma must ship only the agent skill");
-if (!directorySkill.includes("claude mcp add --scope user cruma -- cruma mcp")) failures.push("cruma agent skill must give the consent-gated `claude mcp add --scope user cruma -- cruma mcp` step");
+if (!/^## 3\. Connect your agent to Cruma/m.test(directorySkill) || !directorySkill.includes("claude mcp add --scope user cruma -- cruma mcp") || !directorySkill.includes("codex mcp add cruma -- cruma mcp")) failures.push("cruma agent skill must give the consent-gated `## 3. Connect your agent to Cruma` step with the Claude Code (`claude mcp add --scope user cruma -- cruma mcp`) and Codex (`codex mcp add cruma -- cruma mcp`) examples");
 if (/hdiutil|ditto |codesign|spctl|curl -f|\.dmg/.test(directorySkill)) failures.push("cruma agent skill must not carry a download-and-install procedure");
 if (/session_context|\/cruma:(board|memory)|skills\/(board|memory)/.test(directorySkill)) failures.push("cruma agent skill must not contain cloud session, board, or memory instructions");
 const directoryDescription = /^description: (.*)$/m.exec(directorySkill)?.[1] ?? "";
