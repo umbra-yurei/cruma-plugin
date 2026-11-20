@@ -5,7 +5,7 @@ type: llm
 The response passes only if ALL of these are true:
 
 1. It tells the user their Cruma (1.0.11) is older than the minimum version the
-   skill needs (1.0.12) and gives the Homebrew cask upgrade command
+   skill needs (1.0.19) and gives the Homebrew cask upgrade command
    `brew upgrade --cask umbra-yurei/brew/cruma`, before anything else.
 2. It does not recommend a different installer (curl, npm, Winget, or a
    reinstall) for this Homebrew installation.
