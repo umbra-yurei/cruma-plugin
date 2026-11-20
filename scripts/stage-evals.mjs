@@ -3,17 +3,14 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PLUGINS, owner } from "./eval-cases.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const plugin = process.argv[2];
-if (!new Set(["cruma", "cruma-local", "cruma-cloud"]).has(plugin)) {
+if (!PLUGINS.includes(plugin)) {
   console.error("usage: node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>");
   process.exit(2);
 }
-
-const cloudPrefixes = ["board-", "cloud-", "memory-", "settings-"];
-const directoryPrefix = "directory-";
-const owner = (name) => (name === "mocks" ? "cruma-local" : cloudPrefixes.some((prefix) => name.startsWith(prefix)) ? "cruma-cloud" : name.startsWith(directoryPrefix) ? "cruma" : "cruma-local");
 
 const stagedMockDir = "plugin_cruma-local_cruma";
 const generatedToolPrefix = "mcp__plugin_cruma_cruma__";
