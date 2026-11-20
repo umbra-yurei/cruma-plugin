@@ -1,6 +1,7 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "cruma-plugin",
-  "description": "Claude Code plugin marketplace for the Cruma tunnel agent.",
+  "description": "Cruma tunnel agent plugins: publish a dev server or a folder on a public URL from a coding agent with a shell on your own computer. One marketplace for any harness that reads this format, for example Claude Code or Codex.",
   "owner": {
     "name": "Cruma"
   },
@@ -8,7 +9,7 @@
     {
       "name": "cruma",
       "source": "./plugins/cruma",
-      "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. Needs a coding agent with a shell on your own computer (for example Claude Code); where the environment does not allow installing it, such as claude.ai chat's sandbox, it explains that. A skill only: it asks before installing Cruma or connecting it to your agent.",
+      "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. Needs a coding agent with a shell on your own computer (for example Claude Code or Codex); where the environment does not allow installing it, such as claude.ai chat's sandbox, it explains that. A skill only: it asks before installing Cruma or connecting it to your agent.",
       "homepage": "https://cruma.io",
       "repository": "https://github.com/umbra-yurei/cruma-plugin",
       "relevance": {
@@ -33,7 +34,7 @@
     {
       "name": "cruma-local",
       "source": "./plugins/cruma-local",
-      "description": "Cruma with its local MCP server bundled: the plugin connects `cruma mcp` itself, with no extra setup. For this marketplace only; the plain `cruma` plugin is the skill-only one.",
+      "description": "Cruma with its local MCP server bundled: in any harness that loads plugin MCP servers, the plugin connects `cruma mcp` itself, with no extra setup. The plain `cruma` plugin is the skill-only one.",
       "homepage": "https://cruma.io",
       "repository": "https://github.com/umbra-yurei/cruma-plugin"
     },

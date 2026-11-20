@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cruma",
-  "version": "0.17.0",
-  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, with explicit approval. Needs a coding agent with a shell on your own computer; where the environment does not allow installing it, such as claude.ai chat's sandbox, it explains that. A skill only; it connects the MCP tools only after you say yes, and in Codex the cruma-local plugin bundles them.",
+  "version": "0.17.1",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder, with explicit approval. Needs a coding agent with a shell on your own computer; where the environment does not allow installing it, such as claude.ai chat's sandbox, it explains that. A skill only: it connects the MCP tools only after you say yes; the cruma-local plugin bundles them for agents that load plugin MCP servers, such as Codex.",
   "author": {
     "name": "Cruma"
   },

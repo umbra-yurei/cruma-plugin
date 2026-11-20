@@ -8,8 +8,24 @@ user has confirmed it. Tunnels can be anonymous: no account is needed.
 | Plugin | What it is | Who it is for |
 | --- | --- | --- |
 | `cruma` | Skill only: no MCP server, no hooks, no scripts. Submitted to Anthropic's plugin directory. Sharing needs a coding agent with a shell on your own computer. | Everyone; install this one from the directory |
-| `cruma-local` | The same skill plus a bundled local MCP server (`mcp/launcher.mjs` starts `cruma mcp`), for Claude Code (`.mcp.json`) and Codex (`mcp.json`). Never submitted to the directory. | People who want the tools from the first session, with no `claude mcp add` step |
+| `cruma-local` | The same skill plus a bundled local MCP server (`mcp/launcher.mjs` starts `cruma mcp`), for any harness that loads plugin MCP servers (for example Claude Code through `.mcp.json`, Codex through `mcp.json`). Never submitted to the directory. | People who want the tools from the first session, with no separate step to connect `cruma mcp` |
 | `cruma-cloud` | Optional hosted MCP server for your Cruma account. | People who ask about their plan, tunnels and sites |
+
+### Packaging
+
+One repository serves more than one harness. Each manifest names its format in
+`$schema`, the one field both Claude's schema (whose `--strict` validation
+rejects unknown keys) and the Agent Plugins schema accept for it.
+
+| File | Read by (examples) | Schema (`$schema`) |
+| --- | --- | --- |
+| `.claude-plugin/marketplace.json` | Claude Code, Codex (`codex plugin marketplace add`) | `https://anthropic.com/claude-code/marketplace.schema.json` |
+| `plugins/*/.claude-plugin/plugin.json` | Claude Code, claude.ai, Anthropic's plugin directory | `https://anthropic.com/claude-code/plugin.schema.json` |
+| `plugins/*/plugin.json` | Codex and other Agent Plugins harnesses | `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json` |
+| `plugins/*/.mcp.json` | Claude Code, claude.ai | Claude's plugin MCP form (no `$schema`) |
+| `plugins/*/mcp.json` | Codex and other Agent Plugins harnesses | `https://agent-plugins.org/schemas/1.0.0/mcp.schema.json` |
+
+Both `plugin.json` files of a plugin carry the same version.
 
 ## The `cruma` plugin (skill only)
 
