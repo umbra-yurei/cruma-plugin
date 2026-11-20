@@ -119,7 +119,7 @@ Offer exactly one method and mention no other. There is no Intel Mac build yet
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`; if it is, do not install again: the `cruma` command then needs a newly opened
-terminal (or a new Claude session), and may need Cruma switched on under
+terminal (or a new agent session), and may need Cruma switched on under
 Settings, Apps, Advanced app settings, App execution aliases. Tell the user
 that and stop until `cruma --version` works. Never start a Python or other
 file server meanwhile, and never invent a URL.
@@ -139,33 +139,40 @@ own choice, ask first, and tell them to run `npm uninstall -g cruma` before it: 
 existing install with a different method, because two `cruma` commands on
 `PATH` let the older one win.
 
-## 3. Connect Claude Code to the agent (optional, ask first)
+## 3. Connect your agent to Cruma (optional, ask first)
 
 Cruma's MCP tools give the coding agent more than the command line does. They
 come from `cruma mcp`, a local program that starts nothing public by itself.
 Once per session, when `cruma` is installed and its MCP tools are not in your
-tool list, offer to connect it. Run `claude mcp list` first; if it already
-shows a `cruma` server, do not add it again: tell the user the tools load in a
-new Claude Code session (and that `/mcp` shows whether the server connected).
+tool list, offer to connect it: in your agent's MCP settings, add a stdio MCP
+server named `cruma` that runs `cruma mcp`. First check your agent's list of
+MCP servers; if it already shows a `cruma` server, do not add it again: tell
+the user the tools load in a new agent session.
 
-Otherwise ask: "Shall I connect Claude Code to Cruma? It runs
-`claude mcp add --scope user cruma -- cruma mcp`, which adds a user-level MCP
+Otherwise ask, with your agent's command from the table below: "Shall I
+connect this agent to Cruma? It runs `<command>`, which adds a user-level MCP
 server named `cruma` that starts the `cruma` program on this machine." Run the
 command only after a yes. If they decline, do not ask again this session and
 continue with section 4.
 
-After running it, say plainly: **the Cruma tools load in a new Claude Code
+| Agent | List servers | Add the server |
+| --- | --- | --- |
+| Claude Code | `claude mcp list` (`/mcp` shows whether it connected) | `claude mcp add --scope user cruma -- cruma mcp` |
+| Codex | `codex mcp list` | `codex mcp add cruma -- cruma mcp` |
+| Any other agent | its MCP settings | a stdio server named `cruma`, command `cruma mcp` |
+
+Run the command only for the agent you are. For another agent, give the user
+its row instead of running it.
+
+After adding it, say plainly: **the Cruma tools load in a new agent
 session**; adding a server does not make its tools appear in the session that
 is already running. Do not promise otherwise. Anything the user asked for in
 this session is done through the command line (section 4). In a later session,
 use the tools (section 5).
 
-If `cruma` is only reachable by the full path of the desktop app,
-the command is `claude mcp add --scope user cruma -- <full path> mcp`.
-
-Other coding agents add the same server with their own command (for example
-`codex mcp add cruma -- cruma mcp`). Give it to the user instead of running
-it for a client you are not.
+If `cruma` is only reachable by the full path of the desktop app, use that
+full path in place of `cruma`, for example
+`claude mcp add --scope user cruma -- <full path> mcp`.
 
 ## 4. Without the MCP tools: the command line
 
@@ -267,11 +274,11 @@ known, ask.
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
 | npm | `npm update -g cruma` |
 | Desktop app downloaded from cruma.io (macOS) | quit Cruma, then download the current app from https://cruma.io yourself and replace `Cruma.app` (the skill runs nothing for this) |
-| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
+| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart your agent session |
 
 Give the row for the user's install, exactly as written, and name no other
-row. Restart the Claude Code session after an upgrade so the MCP server starts
-the new agent.
+row. Tell the user to restart their agent session after an upgrade so the MCP
+server starts the new agent.
 
 ## 7. Hand-off
 

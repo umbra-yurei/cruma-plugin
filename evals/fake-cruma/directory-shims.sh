@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Eval scaffold helper for the `directory-*` cases (they need `--scaffold` and `--allow-tools Bash`).
 # Puts stand-ins for `npm`, `node`, `uname`, `curl`, `claude` and `cruma` in ~/.local/bin of the run's
-# own HOME, so an install, `claude mcp add` or a share the skill runs touches nothing real. Each
+# own HOME, so an install, an MCP server add (`claude mcp add`) or a share the skill runs touches nothing real. Each
 # stand-in appends the command line it was given to ~/.local/share/directory-shims/calls.log.
 # It then writes the eval workspace's .claude/settings.json so the agent's PATH is only that
 # directory plus /usr/bin:/bin: the host's Homebrew, /usr/local and real `cruma` are not on it,

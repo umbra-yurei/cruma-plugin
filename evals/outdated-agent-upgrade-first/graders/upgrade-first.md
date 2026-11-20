@@ -11,5 +11,5 @@ The response passes only if ALL of these are true:
    reinstall) for this Homebrew installation.
 3. It does not claim to have exposed port 3000 and invents no public URL; it
    waits until the user has upgraded.
-4. It says the Claude session needs a restart (or the MCP tools to reconnect)
+4. It says the agent session (here Claude Code) needs a restart (or the MCP tools to reconnect)
    after the upgrade.

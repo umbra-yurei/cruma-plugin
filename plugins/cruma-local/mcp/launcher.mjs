@@ -71,7 +71,7 @@ export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, e
 
   if (!chosen) {
     error(
-      `cruma: the Cruma agent (${MINIMUM_AGENT_VERSION} or newer) was not found. Ask the cruma-local:agent skill to install it, or see https://cruma.io/book/cruma-tunnels/coding-agents.md, then restart Claude Code.`,
+      `cruma: the Cruma agent (${MINIMUM_AGENT_VERSION} or newer) was not found. Ask the cruma-local:agent skill to install it, or see https://cruma.io/book/cruma-tunnels/coding-agents.md, then restart your agent session.`,
     );
     exit(1);
     return;

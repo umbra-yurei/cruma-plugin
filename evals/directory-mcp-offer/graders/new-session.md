@@ -1,5 +1,5 @@
 ---
 type: regex
 flags: i
-pattern: 'new (Claude Code )?(session|conversation)|next session|restart'
+pattern: 'new (agent |Claude Code )?(session|conversation)|next session|restart'
 ---

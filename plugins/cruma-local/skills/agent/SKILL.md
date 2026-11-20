@@ -328,9 +328,9 @@ Get-AppxPackage -Name 'Umbra-Yurei.Cruma'
 
 If that returns a package, Cruma is already installed. Do not install it again.
 The installed version must contain the `cruma` command alias, and Windows may
-need a newly opened terminal or Claude session before that alias is available.
+need a newly opened terminal or agent session before that alias is available.
 Tell the user to update Cruma in Microsoft Store, then open a new terminal and
-restart Claude. This branch is terminal: stop until `cruma --version` succeeds
+restart your agent session. This branch is terminal: stop until `cruma --version` succeeds
 or the MCP tools connect. Never start Python, Node, or another file server as a
 workaround, and never claim or invent a public URL.
 
@@ -390,7 +390,7 @@ any kind.
 ### Versions
 
 The **minimum version is 1.0.19**: older agents lose sessions (for example the
-second Claude window exits) and lack tools this skill uses. Take the version
+second agent window exits) and lack tools this skill uses. Take the version
 from the `version` field of `cruma --version --json`. When no JSON line comes
 back, read the `cruma <version>` line that `cruma --version` prints; that is
 the only human text you read.
@@ -542,7 +542,7 @@ Read its one JSON line. When `event` is `"ready"`, report the first address in
 When `event` is `"error"`, report the error and inspect the logs on stderr;
 do not invent a URL. Do not require an account: anonymous tunnels are
 supported. If you installed `cruma` during this session, the MCP tools stay
-unavailable until the plugin is reloaded or Claude Code restarts, so keep using
+unavailable until the plugin is reloaded or the agent session restarts, so keep using
 this path and tell the user.
 
 There is no one-line command for a folder. Do not start a Python or other file
@@ -576,15 +576,15 @@ it as given. Otherwise pick by how Cruma was installed:
 | npm install | `npm update -g cruma` |
 | Signed DMG (macOS) | quit Cruma, then repeat the signed DMG steps of **macOS** (same checks) and replace `Cruma.app` |
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
-| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
+| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart your agent session |
 
 Give the command of the row for the install the user has, exactly as the row
 writes it and in a code block, even when you offer to run it. Name no other
 row's command, not even to say it is not used, and not when that package is newer
 or has a desktop window (**An existing install**). If the method is not known,
 ask the user; do not guess one. After upgrading,
-the running MCP server keeps the old agent until the Claude session is
-restarted. Tell the user to restart it.
+the running MCP server keeps the old agent until the agent session is
+restarted. Tell the user to restart their agent session.
 
 ## Environments without a shell
 
