@@ -14,10 +14,10 @@ are available through this server only when the user has enabled them. The
 user-invoked `/cruma-cloud:board on|off` and `/cruma-cloud:memory on|off`
 skills control those account settings.
 
-In clients without the SessionStart hook, including Codex, call
-`session_context` once at session start and follow its note. An empty note
-means there is no board or memory context to apply. Claude Code receives the
-same note from this plugin's hook, so do not call `session_context` there.
+In any agent, call `session_context` once at session start and follow its
+note. An empty note means there is no board or memory context to apply. When
+the harness already put the note in your context (in Claude Code, this
+plugin's session-start hook does), skip the call.
 
 If the server asks the user to sign in, let its browser sign-in flow complete;
 do not invent account data while signed out.
