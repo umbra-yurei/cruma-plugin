@@ -1,23 +1,18 @@
 // Stages the repository-level eval corpus beside one plugin for Claude's eval CLI.
 // Evals stay outside the shipped plugin trees; this script only copies files.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { DIRECTORY_PLUGIN, LOCAL_MOCK_DIR, LOCAL_PLUGIN, LOCAL_SERVER, PLUGINS, mcpToolName, owner, root, stagedPluginDir } from "./eval-cases.mjs";
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const plugin = process.argv[2];
-if (!new Set(["cruma", "cruma-local", "cruma-cloud"]).has(plugin)) {
+if (!PLUGINS.includes(plugin)) {
   console.error("usage: node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>");
   process.exit(2);
 }
 
-const cloudPrefixes = ["board-", "cloud-", "memory-", "settings-"];
-const directoryPrefix = "directory-";
-const owner = (name) => (name === "mocks" ? "cruma-local" : cloudPrefixes.some((prefix) => name.startsWith(prefix)) ? "cruma-cloud" : name.startsWith(directoryPrefix) ? "cruma" : "cruma-local");
-
-const stagedMockDir = "plugin_cruma-local_cruma";
-const generatedToolPrefix = "mcp__plugin_cruma_cruma__";
-const stagedToolPrefix = "mcp__plugin_cruma-local_cruma__";
+const stagedMockDir = LOCAL_MOCK_DIR;
+const generatedToolPrefix = mcpToolName(DIRECTORY_PLUGIN, LOCAL_SERVER);
+const stagedToolPrefix = mcpToolName(LOCAL_PLUGIN, LOCAL_SERVER);
 
 function prepareLocalEvalMocks(directory, toolsList) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -44,7 +39,7 @@ function copyTree(from, to) {
   }
 }
 
-const stagedPlugin = join(root, ".eval-work", plugin);
+const stagedPlugin = stagedPluginDir(plugin);
 rmSync(stagedPlugin, { recursive: true, force: true });
 copyTree(join(root, "plugins", plugin), stagedPlugin);
 const stagedEvals = join(stagedPlugin, "evals");
@@ -54,7 +49,7 @@ for (const entry of readdirSync(join(root, "evals"), { withFileTypes: true })) {
     copyTree(join(root, "evals", entry.name), join(stagedEvals, entry.name));
   }
 }
-if (plugin === "cruma-local") {
+if (plugin === LOCAL_PLUGIN) {
   prepareLocalEvalMocks(
     stagedEvals,
     join(stagedEvals, "mocks", stagedMockDir, "_tools.json"),

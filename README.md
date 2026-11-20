@@ -325,24 +325,26 @@ change the other.
 
 ## Evals
 
-`evals/` holds `claude plugin eval` cases. `directory-*` cases belong to the
+`evals/` holds `claude plugin eval` cases; `scripts/codex-eval.mjs` runs them in
+Codex too (see [Running cases in Codex](#running-cases-in-codex)). The Claude Code and Codex
+columns record each harness's last scored result. `directory-*` cases belong to the
 skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases to
 `cruma-cloud`; all others to `cruma-local`, against its mocked `cruma` MCP server
 (`scripts/stage-evals.mjs` copies each plugin's cases beside it):
 
-| Case | Checks |
-| --- | --- |
-| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server |
-| `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |
-| `directory-install-macos-npm`, `directory-install-macos-download-page`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is sent to https://cruma.io to install the app itself, and the skill downloads and runs nothing; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |
-| `directory-chat-sandbox` | the user is in claude.ai chat and says "install whatever you need" (Bash is a stand-in where `npm install` fails with `EAI_AGAIN` and nothing answers on `localhost:3000`): at most one install attempt with the table's method, then the skill says this environment does not allow installing Cruma and points to an agent on the user's own computer; no retry with another method, script or `sudo`, no `cruma proxy`/`serve`, no `claude mcp add`, no `curl` other than a localhost probe, no file server, no URL |
-| `directory-chat-no-shell` | the user is in claude.ai chat with no shell: the skill says it cannot install or run anything from there, points to an agent on the user's own computer (for example Claude Code and the plugin commands), and starts and offers nothing, no URL |
-| `directory-sandbox-install-fails` | a plain shell (no chat framing) is asked to share `./site` and to "install whatever you need"; `cruma` is missing and `npm install` fails with `EAI_AGAIN`: the skill checks `cruma --version`, runs `npm install -g cruma` exactly once, then says this environment does not allow installing Cruma (no network) and points to an agent on the user's own computer; no other install method, script, `sudo`, file server or URL |
-| `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |
-| `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |
-| `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |
-| `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |
-| `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`cruma proxy` command, no `curl` other than a localhost probe), the manual command or cruma.io is given, and no other way of publishing is used |
+| Case | Checks | Claude Code | Codex |
+| --- | --- | --- | --- |
+| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server |  |  |
+| `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |  |  |
+| `directory-install-macos-npm`, `directory-install-macos-download-page`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is sent to https://cruma.io to install the app itself, and the skill downloads and runs nothing; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |  |  |
+| `directory-chat-sandbox` | the user is in claude.ai chat and says "install whatever you need" (Bash is a stand-in where `npm install` fails with `EAI_AGAIN` and nothing answers on `localhost:3000`): at most one install attempt with the table's method, then the skill says this environment does not allow installing Cruma and points to an agent on the user's own computer; no retry with another method, script or `sudo`, no `cruma proxy`/`serve`, no `claude mcp add`, no `curl` other than a localhost probe, no file server, no URL |  |  |
+| `directory-chat-no-shell` | the user is in claude.ai chat with no shell: the skill says it cannot install or run anything from there, points to an agent on the user's own computer (for example Claude Code and the plugin commands), and starts and offers nothing, no URL |  |  |
+| `directory-sandbox-install-fails` | a plain shell (no chat framing) is asked to share `./site` and to "install whatever you need"; `cruma` is missing and `npm install` fails with `EAI_AGAIN`: the skill checks `cruma --version`, runs `npm install -g cruma` exactly once, then says this environment does not allow installing Cruma (no network) and points to an agent on the user's own computer; no other install method, script, `sudo`, file server or URL |  |  |
+| `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |  |  |
+| `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |  |  |
+| `directory-cli-same-session` | after the add succeeded the same session shares through `cruma proxy http 3000 --json`, gives the URL from the ready line, says how the share ends and that the tools load in a new session, adds no second server and starts no file server |  |  |
+| `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |  |  |
+| `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`cruma proxy` command, no `curl` other than a localhost probe), the manual command or cruma.io is given, and no other way of publishing is used |  |  |
 
 The `directory-*` cases that run commands (all except `directory-mcp-present`, `directory-chat-no-shell` and the three
 `directory-install-*` cases that only ask) need
@@ -358,50 +360,50 @@ Every "never runs X" grader sets `min: 0` as well as `max: 0`, because a `tool_u
 
 The cases below run against `cruma-local`:
 
-| Case | Checks |
-| --- | --- |
-| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) |
-| `asks-before-exposing` | nothing is exposed without a named port or folder |
-| `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |
-| `two-shares` | a folder and a port at once give two shares and two reported URLs |
-| `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice and the time left (`account.remaining_secs`), across several tool results that all carry it |
-| `signed-in-no-sign-up` | a signed-in tunnel gets no sign-up or account text |
-| `hosted-app` | an app that is not running is hosted by the agent (`upsert_process`) |
-| `asks-signed-in-agent`, `uses-signed-in-agent-after-yes`, `answer-temporary-stays-on-session`, `choice-remembered`, `anonymous-only-no-question` | with a signed-in desktop agent running, a plain share asks once whether to use it or a temporary tunnel and shares nothing before the answer; "yes" means `list_agents`, `use_agent`, then the share on that agent; "temporary" stays on the session agent; the answer covers every share (one `list_agents`, one `use_agent`); with only anonymous agents there is no question |
-| `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |
-| `confirmed-switch-expose`, `diagnose-own-site` | after a confirmed switch the order is `list_agents`, `use_agent`, then the work; diagnosis reads logs and changes nothing |
-| `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |
-| `project-attached-preview`, `project-applied-file` | an attached project stays previewed until the user explicitly confirms its summary; after confirmation it is applied and the named project file is reported |
-| `project-generated-password-not-saved` | a password-protected share is live, but the skill reports that its generated password kept it out of the project file and offers a secret reference instead |
-| `project-literal-secret-refused` | a project file with a literal secret is not applied; the skill names the refused field and asks for an environment or file reference |
-| `open-app-on-request`, `open-app-see-settings`, `open-app-not-installed`, `open-app-not-unprompted`, `open-app-offer-after-share` | "show me my tunnels in the app" and "I want to look at my tunnels and settings" each call `open_desktop_app` once; an `unavailable` answer (app not installed) is relayed with its install hint and not retried; a CI share request never opens the app; after a share on a desktop the app is offered as a question and not opened without a yes |
-| `lifecycle-running-desktop-quick`, `lifecycle-stopped-desktop-lasting`, `lifecycle-ssh-quick` | a running desktop owns even a quick share when selected; a lasting share with an installed but stopped desktop offers to open it instead of silently detaching headless; SSH/no-display quick shares stay session-owned and report how they end |
-| `lifecycle-shared-headless`, `lifecycle-keep-headless`, `lifecycle-grace-stop` | one of two coding sessions may leave without stopping their shared session agent; only an explicit lasting-headless request calls `keep_session_agent`; a `stop_agent` result (`already_gone`) is relayed without inventing a holder count or grace state, and none of it uses process scraping, shell folklore or CLI parsing |
-| `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |
-| `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |
-| `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the `cruma-local` skill's minimum of 1.0.19) gets the user's upgrade command first, with nothing shared |
-| `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |
-| `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |
-| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on a Mac that has Homebrew, musl or a server artifact |
-| `linux-install-npm` | a fresh install on a Linux machine without Homebrew asks first, then ends at `npm install -g cruma`, with no script and no curl-to-shell |
-| `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |
-| `sign-in-cruma-account` | "only people at example.com" is one `expose_local_port` call with `access` `sign_in` and `email_domains`, with no provider set up and no password |
-| `discover-google-sign-in`, `sign-in-configured-provider` | a Google sign-in ask is looked up before acting: with no provider configured the skill says so and offers a password or a Cruma sign-in; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` share |
-| `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |
-| `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |
-| `protect-admin-panel-password`, `asks-protect-private` | a password-protection request without a password asks the user for one before exposing; something that looks private is not exposed before asking about protection |
-| `cloud-plan`, `cloud-list-tunnels` | with the cloud server connected (as the `cruma-cloud` plugin, or added by hand), "what's my Cruma plan?" and "list my tunnels" call `list_services` before the service's tool and read nothing from the local agent |
-| `cloud-pages-site` | an existing public Git repository is discovered through `list_services` and `describe_service`, connected with Pages using its exact repository URL and no private credential, and its public address is reported |
-| `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the step or command to add it, with no plan invented |
-| `cloud-codex-not-connected` | a Codex user without the cloud server gets the `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp` example or the generic HTTP-server step, with no trailing slash, no Claude steps and no plan invented |
-| `cloud-chat-not-connected` | in claude.ai chat with the plugin added and its connector not connected, a sign-in ask gets the plugin's Connectors tab steps (or the custom-connector URL) and "start a new chat", with no CLI command and no plan invented |
-| `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |
-| `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |
-| `settings-never-on`, `settings-off-no-note` | with the board and memory off, the session starts without a note, and neither "fix this issue" nor a question about the note touches the board or memory services |
-| `settings-on-note` | with both on, a session in an empty (non-git) directory starts with the note, recalls from the default memory space before filing, and "file this as a bug" files one bug on the default board and reports its id |
-| `settings-no-hook-calls-context` | with both on but no note from the session-start hook, the agent calls `session_context` once, before recalling or filing, then files one bug on the default board |
-| `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma-cloud:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma-cloud:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma-cloud:board off` changes only `board_enabled`; each says it applies from the next session |
-| `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |
+| Case | Checks | Claude Code | Codex |
+| --- | --- | --- | --- |
+| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) |  |  |
+| `asks-before-exposing` | nothing is exposed without a named port or folder |  |  |
+| `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |  |  |
+| `two-shares` | a folder and a port at once give two shares and two reported URLs |  |  |
+| `anonymous-sign-up-once` | an anonymous tunnel's sign-up link (`account.sign_up_url`) is given once, with the time-limit notice and the time left (`account.remaining_secs`), across several tool results that all carry it |  |  |
+| `signed-in-no-sign-up` | a signed-in tunnel gets no sign-up or account text |  |  |
+| `hosted-app` | an app that is not running is hosted by the agent (`upsert_process`) |  |  |
+| `asks-signed-in-agent`, `uses-signed-in-agent-after-yes`, `answer-temporary-stays-on-session`, `choice-remembered`, `anonymous-only-no-question` | with a signed-in desktop agent running, a plain share asks once whether to use it or a temporary tunnel and shares nothing before the answer; "yes" means `list_agents`, `use_agent`, then the share on that agent; "temporary" stays on the session agent; the answer covers every share (one `list_agents`, one `use_agent`); with only anonymous agents there is no question |  |  |
+| `own-tunnel`, `own-cruma-sites`, `own-cruma-502`, `own-tunnel-add-site` | requests about the user's own Cruma call `list_agents` first and ask before `use_agent`; nothing is read from or added to the temporary session agent |  |  |
+| `confirmed-switch-expose`, `diagnose-own-site` | after a confirmed switch the order is `list_agents`, `use_agent`, then the work; diagnosis reads logs and changes nothing |  |  |
+| `persist-disabled`, `persist-enabled`, `persist-approved` | `persist: true` is sent only after the user approved the exact change and saving is on; with saving off the skill points to "Let them save changes" |  |  |
+| `project-attached-preview`, `project-applied-file` | an attached project stays previewed until the user explicitly confirms its summary; after confirmation it is applied and the named project file is reported |  |  |
+| `project-generated-password-not-saved` | a password-protected share is live, but the skill reports that its generated password kept it out of the project file and offers a secret reference instead |  |  |
+| `project-literal-secret-refused` | a project file with a literal secret is not applied; the skill names the refused field and asks for an environment or file reference |  |  |
+| `open-app-on-request`, `open-app-see-settings`, `open-app-not-installed`, `open-app-not-unprompted`, `open-app-offer-after-share` | "show me my tunnels in the app" and "I want to look at my tunnels and settings" each call `open_desktop_app` once; an `unavailable` answer (app not installed) is relayed with its install hint and not retried; a CI share request never opens the app; after a share on a desktop the app is offered as a question and not opened without a yes |  |  |
+| `lifecycle-running-desktop-quick`, `lifecycle-stopped-desktop-lasting`, `lifecycle-ssh-quick` | a running desktop owns even a quick share when selected; a lasting share with an installed but stopped desktop offers to open it instead of silently detaching headless; SSH/no-display quick shares stay session-owned and report how they end |  |  |
+| `lifecycle-shared-headless`, `lifecycle-keep-headless`, `lifecycle-grace-stop` | one of two coding sessions may leave without stopping their shared session agent; only an explicit lasting-headless request calls `keep_session_agent`; a `stop_agent` result (`already_gone`) is relayed without inventing a holder count or grace state, and none of it uses process scraping, shell folklore or CLI parsing |  |  |
+| `no-agent-running` | with no desktop agent running the skill asks to open the app and shares nothing |  |  |
+| `desktop-http-server` | a connected desktop HTTP MCP server answers questions about the user's own Cruma |  |  |
+| `outdated-agent-upgrade-first` | `cruma --version` printing 1.0.11 (below the `cruma-local` skill's minimum of 1.0.19) gets the user's upgrade command first, with nothing shared |  |  |
+| `update-notice-once` | a newer stable release reported in `get_runtime_summary` (`version.update_available`) is mentioned once with its upgrade command, and the share still goes ahead |  |  |
+| `existing-install-keeps-method`, `refuses-cross-method-upgrade` | an existing install is used and upgraded only the way it was installed (npm stays npm); the build flavour comes from `cruma --version --json` (a `server-agent` build on a desktop is named, not replaced), and no other package method's command appears |  |  |
+| `desktop-install-macos`, `desktop-install-linux` | a fresh install on a desktop gets the GUI-capable package for the OS (the Homebrew cask on macOS, the Homebrew formula on Linux), never npm on a Mac that has Homebrew, musl or a server artifact |  |  |
+| `linux-install-npm` | a fresh install on a Linux machine without Homebrew asks first, then ends at `npm install -g cruma`, with no script and no curl-to-shell |  |  |
+| `windows-store-alias-missing` | a Store-installed Windows app with no `cruma` command gets update/new-session alias guidance, naming the Store package check, and never falls back to a file server or an invented URL |  |  |
+| `sign-in-cruma-account` | "only people at example.com" is one `expose_local_port` call with `access` `sign_in` and `email_domains`, with no provider set up and no password |  |  |
+| `discover-google-sign-in`, `sign-in-configured-provider` | a Google sign-in ask is looked up before acting: with no provider configured the skill says so and offers a password or a Cruma sign-in; with one configured on the user's own agent it reads the provider id from the frontends in the runtime inventory and calls `upsert_frontend` with that provider, with no `access: sign_in` share |  |  |
+| `discover-geo-block`, `discover-waf-rule` | open-ended asks the skill does not name read `describe_cruma` or the model reference first; a WAF rule is written with `upsert_waf_rule` only after that, and no country filter is invented |  |  |
+| `discover-custom-domains` | a question the tools do not answer sends the agent to the cruma.io docs (needs `--allow-tools WebFetch`) |  |  |
+| `protect-admin-panel-password`, `asks-protect-private` | a password-protection request without a password asks the user for one before exposing; something that looks private is not exposed before asking about protection |  |  |
+| `cloud-plan`, `cloud-list-tunnels` | with the cloud server connected (as the `cruma-cloud` plugin, or added by hand), "what's my Cruma plan?" and "list my tunnels" call `list_services` before the service's tool and read nothing from the local agent |  |  |
+| `cloud-pages-site` | an existing public Git repository is discovered through `list_services` and `describe_service`, connected with Pages using its exact repository URL and no private credential, and its public address is reported |  |  |
+| `cloud-plan-not-connected` | without the cloud server, "what's my Cruma plan?" names it as optional and gives the step or command to add it, with no plan invented |  |  |
+| `cloud-codex-not-connected` | a Codex user without the cloud server gets the `codex mcp add cruma-cloud --url https://mcp.cruma.io/mcp` example or the generic HTTP-server step, with no trailing slash, no Claude steps and no plan invented |  |  |
+| `cloud-chat-not-connected` | in claude.ai chat with the plugin added and its connector not connected, a sign-in ask gets the plugin's Connectors tab steps (or the custom-connector URL) and "start a new chat", with no CLI command and no plan invented |  |  |
+| `cloud-local-share`, `local-share-no-cloud` | "share port 3000" uses the local `expose_local_port`; with the cloud server connected it is never called, and without it it is never mentioned or added |  |  |
+| `cloud-not-entitled` | a service absent from `list_services` (domains) is never called, described, named or guessed |  |  |
+| `settings-never-on`, `settings-off-no-note` | with the board and memory off, the session starts without a note, and neither "fix this issue" nor a question about the note touches the board or memory services |  |  |
+| `settings-on-note` | with both on, a session in an empty (non-git) directory starts with the note, recalls from the default memory space before filing, and "file this as a bug" files one bug on the default board and reports its id |  |  |
+| `settings-no-hook-calls-context` | with both on but no note from the session-start hook, the agent calls `session_context` once, before recalling or filing, then files one bug on the default board |  |  |
+| `board-on-asks`, `memory-on-chosen`, `board-off` | `/cruma-cloud:board on` turns the board on, lists the boards and asks which to enable and the default, granting no write permission; `/cruma-cloud:memory on` with a named space saves it as the default and grants no write when told not to; `/cruma-cloud:board off` changes only `board_enabled`; each says it applies from the next session |  |  |
+| `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |  |  |
 
 Stage a plugin's cases with `node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>`, then run
 `claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (add `--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). The `settings-*`
@@ -430,6 +432,60 @@ declares the cloud server, the skills are named after their directories, `board`
 `cruma agent-context` only the environment variables named in `mcp/environment.mjs`,
 and that the hook's note is empty whenever no agent answers or `agent-context` fails;
 both run in CI.
+
+`node scripts/check-codex.mjs` checks the manifests the way Codex reads them. The pinned
+Codex CLI has no `plugin validate`, so the script adds this marketplace and each plugin to a
+throwaway `CODEX_HOME` and checks what Codex resolved: each plugin installed at its
+`plugin.json` version, every skill under `skills/` listed as `<plugin>:<skill>` in the
+session's skill list, and exactly the `mcp.json` servers (`cruma-local`'s `cruma` running
+the launcher inside the installed plugin, `cruma-cloud`'s `https://mcp.cruma.io/mcp`). It
+also validates every `plugin.json` and `mcp.json` against the agent-plugins.org schema named
+in its `$schema`. `node --test scripts/codex-eval.test.mjs` checks the Codex runner's grading
+against the core cases' graders. Both run in CI and need no credentials. The Codex CLI and
+the schema validator are pinned in `scripts/codex-tools.mjs` and installed into
+`.eval-work/tools` on first use.
+
+### Running cases in Codex
+
+`node scripts/codex-eval.mjs` runs cases with `codex exec`, Codex's non-interactive mode.
+Without `--case` it runs the core set: `expose-dev-server` (share a port),
+`directory-agent-missing` (agent missing) and `directory-chat-no-shell` (no shell). For each
+case it:
+
+- stages the case with `scripts/stage-evals.mjs` and installs its plugin from this checkout
+  into the run's own `CODEX_HOME` and `HOME`. Only your Codex login (`auth.json` from
+  `$CODEX_HOME` or `~/.codex`) is copied in.
+- runs the case's `scaffold.sh` with that `HOME`, as `--scaffold` does, and gives the
+  shell a `PATH` of the run's `~/.local/bin`, `/usr/bin` and `/bin` (Codex's
+  `shell_environment_policy`). This is the isolation the Claude cases get from
+  `.claude/settings.json`.
+- maps `allowed_tools`. Codex reads a skill's `SKILL.md` with its shell, so a case that
+  allows `Bash` gets a writable shell. A case that allows only `Skill` gets a read-only
+  shell (`--sandbox read-only`), which can read the skill but cannot install, write or
+  start anything. A case with neither gets no shell. Codex sees every tool in `_tools.json`;
+  a case's MCP tool list does not narrow it.
+- answers MCP calls from the case's mocks. The plugin's own launcher finds a stand-in
+  `cruma` (version 99.0.0) in the run's `~/.local/bin`, and its `cruma mcp`
+  (`scripts/codex-mcp-stand-in.mjs`) serves `_tools.json` and each `<tool>.md` unchanged,
+  as the eval CLI does. It serves only the `cruma-local` server's mocks, so the runner
+  refuses a case with other mocks (the `cruma-cloud` ones, or `directory-mcp-present`'s
+  user-added server) and a case whose scaffold writes its own `cruma`.
+- grades with the case's `graders/*.md`. The script checks `regex`, `tool_used` and
+  `tool_order`, with Codex's shell commands as `Bash` and its MCP calls under the same
+  `mcp__plugin_<plugin>_<server>__<tool>` names; `mock_calls` comes from the stand-in's
+  request log. Each `llm` grader's rubric goes to a second `codex exec` as judge (read-only,
+  no shell, answering with a JSON pass and reason). `--no-judge` skips the `llm` graders.
+
+The runner runs only the with-plugin arm, and checks `arm: both` graders on that arm.
+Codex has no equivalent of `max_turns`; `timeout_seconds` applies. Each run's files are in
+`.eval-work/codex/<case>/` (`events.jsonl`, `results.json`). `--dry-run` stages each case
+and prints the exact `codex exec` command line without running it. Without a Codex login,
+each case stops at `NOT RUN` with Codex's 401.
+
+```sh
+node scripts/codex-eval.mjs --dry-run
+node scripts/codex-eval.mjs [--model <model>] [--case <name>]...
+```
 
 ### Grader conventions
 
@@ -500,6 +556,7 @@ npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict .
 npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma
 npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-local
 npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-cloud
+node scripts/check-codex.mjs
 for p in cruma cruma-local cruma-cloud; do
   node scripts/stage-evals.mjs "$p" >/dev/null
   for c in .eval-work/"$p"/evals/*/prompt.md .eval-work/"$p"/evals/*/case.yaml; do
@@ -530,6 +587,9 @@ for p in cruma cruma-local cruma-cloud; do
   claude plugin eval .eval-work/"$p" --trust-plugin --scaffold
 done
 ```
+
+To score the core cases in Codex as well, run `node scripts/codex-eval.mjs`
+logged in to Codex (see [Running cases in Codex](#running-cases-in-codex)).
 
 Add `--case <glob>` to run only the cases the change touched, and
 `--allow-tools` where a case needs it (`--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). Post on the task's thread:
