@@ -234,12 +234,21 @@ password is returned once. `sign_in` lets any verified Cruma account in without
 provider setup. Narrow it with exact `emails`, `email_domains` or one
 `organization`; an organization restriction needs the agent itself signed in,
 and an anonymous agent returns a typed error. The policy ends with the share.
-Before the first share of a session, call `list_agents` once. If
-a running agent other than the temporary session agent has `tunnel_account`
-`registered` (the user's desktop app or a headless agent with tunnel
-credentials), ask once whether to use it (`use_agent`) or a temporary
-anonymous tunnel, and share nothing until they answer. Shares on the temporary
-agent end with the session; never set `persist` for them.
+Before the first share of a session, call `list_agents` once. Choose from its
+typed running/kind/attached/starter/start-hint/channel facts, never from prose,
+process scraping or CLI output. If a desktop agent is running, ask once whether
+to use it and call `use_agent` only after yes; start nothing. For a lasting
+share with an installed but stopped desktop app, offer to open it and wait for
+yes: the visible app owns that lifecycle. For a quick share, or where no GUI is
+available (SSH, CI, a container or server), use the session-owned headless
+agent; connected sessions hold it and it stops after a grace period once none does;
+closing a session returns no result, so state no holder count or grace state
+and report only what `stop_agent` or `keep_session_agent` returned. Only an
+explicit request for a lasting detached headless agent uses `keep_session_agent`
+(agent 1.0.18 and newer; without the tool, none of this lifecycle policy applies
+and nothing is detached). Never silently
+detach one, set `persist` for a session share, scrape processes, start a
+background lifecycle command or parse CLI output to manage it.
 
 For anything else (another sign-in provider, filters, domains, routing,
 processes, rules), do
@@ -274,9 +283,15 @@ server starts the new agent.
 ## 7. Hand-off
 
 After sharing, tell the user: each public URL and what it serves (the local
-port or folder); whether it is public or protected (and how); how you will take it down (`unexpose` with
-the name, or ending the background process); that URLs end with the session
-(the tunnel is also time-limited while anonymous). Say once per session, when
+port or folder); whether it is public or protected (and how); which agent id,
+kind, profile and domain was used; whether the visible desktop app, connected
+coding sessions or the user owns its lifecycle; and how to stop both the share
+and agent. Use `unexpose` for the share. A desktop agent stops when the user
+quits it; a session agent stops after a grace period once no session holds it (or through
+`stop_agent` while session-owned); an
+explicitly kept agent is user-owned and `stop_agent` refuses it, so say that
+and name `unexpose` for stopping the share. Do not claim an agent stop beyond
+what `stop_agent` returned. The tunnel is also time-limited while anonymous. Say once per session, when
 a tool result's `account.state` is `anonymous` or the tunnel is anonymous, that
 signing in to a free Cruma account (`cruma auth login`) keeps the same tunnel
 working past the limit, with `account.sign_up_url` quoted exactly when the
