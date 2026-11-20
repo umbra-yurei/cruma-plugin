@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Eval scaffold helper for the `directory-*` cases (they need `--scaffold` and `--allow-tools Bash`).
-# Puts stand-ins for `npm`, `node`, `uname`, `claude` and `cruma` in ~/.local/bin of the run's
-# own HOME, so an install, `claude mcp add` or a share the skill runs touches nothing real. Each
+# Puts stand-ins for `npm`, `node`, `uname`, `curl`, `claude` and `cruma` in ~/.local/bin of the run's
+# own HOME, so an install, an MCP server add (`claude mcp add`) or a share the skill runs touches nothing real. Each
 # stand-in appends the command line it was given to ~/.local/share/directory-shims/calls.log.
 # It then writes the eval workspace's .claude/settings.json so the agent's PATH is only that
 # directory plus /usr/bin:/bin: the host's Homebrew, /usr/local and real `cruma` are not on it,
@@ -9,9 +9,10 @@
 # user, so without this it sees the host (a real `cruma`, real Homebrew, Darwin) instead.
 #   $1 = missing    `cruma` says "command not found" until `npm install -g cruma` runs
 #   $1 = installed  `cruma` answers as the agent version in cli/version.txt
-#   $1 = sandbox    like `missing`, and `printenv`/`env` report no CLAUDECODE, like a shell in
-#                   claude.ai chat's code-execution container (Claude Code sets CLAUDECODE=1
-#                   in every shell it starts; a real run here has it, so it is hidden)
+#   $1 = sandbox    like `missing`, in an environment that does not allow installing, like a hosted chat's
+#                   code-execution container: nothing answers on localhost (the user's dev
+#                   server is elsewhere) and `npm install` fails with no network
+# In `missing` and `installed`, `curl` to localhost/127.0.0.1 answers like the user's dev server.
 set -euo pipefail
 mode="${1:?usage: directory-shims.sh missing|installed|sandbox}"
 bin="$HOME/.local/bin"
@@ -51,7 +52,11 @@ STUB
 cat >"$bin/npm" <<STUB
 #!/bin/sh
 echo "npm \$*" >>"$log"
-if [ "\$1 \$2 \$3" = "install -g cruma" ]; then
+if [ "$mode" = sandbox ] && [ "\$1" = install ]; then
+  echo "npm error code EAI_AGAIN" >&2
+  echo "npm error request to https://registry.npmjs.org/cruma failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org" >&2
+  exit 1
+elif [ "\$1 \$2 \$3" = "install -g cruma" ]; then
   cp "$bin/cruma-installed" "$bin/cruma"
   echo "added 1 package in 2s"
 else
@@ -88,22 +93,29 @@ case "$1" in
 esac
 STUB
 
-if [ "$mode" = sandbox ]; then
-  for tool in printenv env; do
-    cat >"$bin/$tool" <<STUB
+# Only a localhost probe (the skill's "is the dev server here?" check) is answered.
+cat >"$bin/curl" <<STUB
 #!/bin/sh
-exec /usr/bin/env -u CLAUDECODE -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_ENTRYPOINT /usr/bin/$tool "\$@"
+echo "curl \$*" >>"$log"
+case " \$* " in
+  *localhost*|*127.0.0.1*)
+    port=\$(printf '%s\\n' "\$*" | sed -n 's/.*:\\([0-9][0-9]*\\).*/\\1/p')
+    if [ "$mode" = sandbox ]; then
+      echo "curl: (7) Failed to connect to localhost port \${port:-80} after 0 ms: Couldn't connect to server" >&2
+      exit 7
+    fi
+    printf 'HTTP/1.1 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n' ;;
+  *)
+    echo "curl (eval stand-in): unsupported: \$*" >&2; exit 2 ;;
+esac
 STUB
-    chmod +x "$bin/$tool"
-  done
-fi
 
 if [ "$mode" = installed ]; then
   cp "$bin/cruma-installed" "$bin/cruma"
 else
   printf '#!/bin/sh\necho "cruma: command not found" >&2\nexit 127\n' >"$bin/cruma"
 fi
-chmod +x "$bin/cruma" "$bin/cruma-installed" "$bin/npm" "$bin/node" "$bin/uname" "$bin/claude"
+chmod +x "$bin/cruma" "$bin/cruma-installed" "$bin/npm" "$bin/node" "$bin/uname" "$bin/curl" "$bin/claude"
 
 # Never write into a plugin source tree or over an existing settings file.
 if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
@@ -116,3 +128,10 @@ if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
 }
 SETTINGS
 fi
+
+# Newer `claude plugin eval` runs take the Bash tool's PATH from a snapshot of the login shell,
+# which the settings file above does not reach. HOME is the run's own home here, so its shell
+# start-up files set the same PATH (never written over an existing file).
+for rc in .zshenv .bashrc .bash_profile .profile; do
+  [ -e "$HOME/$rc" ] || printf 'export PATH="%s:/usr/bin:/bin"\n' "$bin" >"$HOME/$rc"
+done

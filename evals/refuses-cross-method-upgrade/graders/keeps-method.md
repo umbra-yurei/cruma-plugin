@@ -10,4 +10,4 @@ The response passes only if ALL of these are true:
    replace it (Homebrew cask or formula, curl installer, direct download); if it
    mentions one, it is only to say it would add a second `cruma` and is not
    being used.
-3. It says the Claude session needs a restart after the upgrade.
+3. It says the agent session (here Claude Code) needs a restart after the upgrade.

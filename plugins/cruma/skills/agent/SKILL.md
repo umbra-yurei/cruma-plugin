@@ -1,6 +1,6 @@
 ---
 name: agent
-description: Use Cruma to put a local dev server port or a folder of files on a public HTTPS URL, optionally protected by a password, IP allowlist or Cruma sign-in, and to install the Cruma agent when it is missing. Sharing and installing need Claude Code on the user's own computer (terminal, IDE, or the desktop app's Code tab); in claude.ai chat, on the web or mobile, it only explains that. Works through the cruma command line, and through Cruma's MCP tools once the user has connected them. Asks before installing anything, before connecting Cruma to Claude Code, and before making anything public.
+description: Use Cruma to put a local dev server port or a folder of files on a public HTTPS URL, optionally protected by a password, IP allowlist or Cruma sign-in, and to install the Cruma agent when it is missing. Sharing needs an agent with a shell on the user's own computer (for example Claude Code, Codex or Cursor); where the environment does not allow installing or running Cruma, such as a hosted chat's sandbox, it says so and points there. Works through the cruma command line, and through Cruma's MCP tools once the user has connected them. Asks before installing anything, before connecting Cruma to your agent, and before making anything public.
 ---
 
 # Cruma tunnels
@@ -14,50 +14,52 @@ This plugin ships no MCP server, no script and no installer. Everything below
 is done with the `cruma` command, or with Cruma's MCP tools when they are
 already in your tool list. Install or connect nothing without a clear yes from
 the user. Never read a secret from the user's machine (a token, key, credential
-file, keychain entry or environment variable other than `CLAUDECODE`); a value
-you need, ask the user for in chat.
+file, keychain entry or environment variable); a value you need, ask the user
+for in chat.
 
 ## 0. Where this works (check first)
 
-Sharing a port, installing `cruma` and `claude mcp add` all need a shell on the
-**user's own computer**, where their dev server runs. That is Claude Code: the
-terminal, an IDE extension or the desktop app's Code tab. In claude.ai chat (web,
-the desktop app's chat, mobile) a shell is Claude's code-execution container, not
-the user's machine: a tunnel started there would put a public URL on a port in
-that container, not on the user's dev server.
+Cruma runs next to what it shares: a local dev server, an existing folder, or a
+site you create for the user are all shared the same way, from the shell you
+run in. Do not try to judge up front whether that shell is the user's own
+computer; let `cruma` and its install tell you.
 
-Go on to section 1 only when one of these is true:
+If Cruma's MCP tools are in your tool list, go on to section 1. Otherwise:
 
-- Cruma's MCP tools are in your tool list. Only a local `cruma mcp` provides
-  them, and chat does not load local servers.
-- You have a shell tool and `printenv CLAUDECODE` prints `1` (PowerShell:
-  `$env:CLAUDECODE`). Claude Code sets it in every shell it starts. Run it in
-  the same call as `cruma --version --json` (section 1).
-- You have no shell tool, so you can run nothing, and the user has said they are
-  in Claude Code on their own computer. Then only describe the steps; start
-  nothing.
+- **No shell tool:** say that you cannot install or run anything from here, and
+  that an AI agent running on their own computer can do it (pointers below).
+  Start nothing.
+- **A shell tool:** run `cruma --version --json` first (section 1), even when
+  the user says it is missing or has already agreed to an install. If it prints
+  a version, go on. If it is not found, offer to install it with exactly one
+  method and wait for the user's yes (section 2). With a yes, run that method.
+- **When installing or running `cruma` fails,** read the error and tell the
+  user why in one or two sentences. When it shows that this environment does
+  not allow it (no network or DNS fails, for example `EAI_AGAIN` or `ENOTFOUND`;
+  the install is refused or not permitted; a read-only file system; a hosted
+  chat's code-execution sandbox such as claude.ai chat's), say plainly that this
+  environment does not allow installing or running Cruma, and that an AI agent
+  running on their own computer can do it. Do not work around it with another
+  install method, a downloaded script, `sudo`, or the same install again with
+  other permissions or outside the sandbox, and start no file server.
+- **A hint, not a gate:** when the user names a port, probe it before you share
+  it (`curl -sI http://localhost:<port>`; PowerShell:
+  `Invoke-WebRequest -Method Head http://localhost:<port>`). If nothing answers,
+  say so ("Nothing answers on port 3000 here. Is your dev server running, and is
+  it on this computer?") and let the user decide.
 
-Otherwise (the variable is empty or unset, there is no shell tool and the user
-did not say they are in Claude Code, or you know this is a Cowork task: its shell
-is a virtual machine, and nothing documented tells it apart from the user's own
-shell) you cannot confirm this is the user's machine. Say so in a few lines
-and stop:
+Pointers to give when this environment cannot do it:
 
-- "Sharing your dev server needs Claude Code on your own computer, because
-  Cruma has to run next to the server it shares."
-- Claude Code is installed with `npm install -g @anthropic-ai/claude-code`
-  (other ways: https://code.claude.com/docs/en/overview); the plugin with
-  `claude plugin marketplace add umbra-yurei/cruma-plugin` then
-  `claude plugin install cruma@cruma-plugin`. If they installed the plugin from
-  claude.ai, it is already synced into Claude Code and appears at the next
-  session start.
+- An AI coding agent running on their own computer (for example Claude Code,
+  Codex or Cursor) can do it with this skill. In Claude Code, for example, the
+  plugin installs with `claude plugin marketplace add umbra-yurei/cruma-plugin`
+  then `claude plugin install cruma@cruma-plugin` (a plugin installed from
+  claude.ai is already synced into Claude Code at its next session start);
+  Claude Code itself installs with `npm install -g @anthropic-ai/claude-code`
+  (other ways: https://code.claude.com/docs/en/overview).
 - You can still answer questions about Cruma from its docs
   (https://cruma.io/llms.txt). Questions about their account (plan, tunnels,
   sites) belong to the optional `cruma-cloud` plugin.
-
-Never install or run `cruma`, run `claude mcp add`, start a file server or offer
-a public URL from a shell you cannot confirm is the user's machine, even when
-the user asks you to.
 
 ## 1. Which path are you on
 
@@ -65,9 +67,7 @@ the user asks you to.
    `expose_local_directory`, `list_shares`, `unexpose`, from a server named
    `cruma`.) If so, use them (section 5) and skip everything about installing
    and connecting.
-2. **Is the agent installed?** Run `printenv CLAUDECODE; cruma --version --json`
-   (in PowerShell `$env:CLAUDECODE; cruma --version --json`). If the first line
-   is not `1`, stop as section 0 says, whatever the second part printed. Older
+2. **Is the agent installed?** Run `cruma --version --json`. Older
    agents print `cruma <version>` for `cruma --version`; use that line then. If
    the version prints, Cruma is installed: check it (section 6), then go to
    section 3. If the command is not found, go to section 2.
@@ -119,7 +119,7 @@ Offer exactly one method and mention no other. There is no Intel Mac build yet
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`; if it is, do not install again: the `cruma` command then needs a newly opened
-terminal (or a new Claude session), and may need Cruma switched on under
+terminal (or a new agent session), and may need Cruma switched on under
 Settings, Apps, Advanced app settings, App execution aliases. Tell the user
 that and stop until `cruma --version` works. Never start a Python or other
 file server meanwhile, and never invent a URL.
@@ -139,33 +139,40 @@ own choice, ask first, and tell them to run `npm uninstall -g cruma` before it: 
 existing install with a different method, because two `cruma` commands on
 `PATH` let the older one win.
 
-## 3. Connect Claude Code to the agent (optional, ask first)
+## 3. Connect your agent to Cruma (optional, ask first)
 
 Cruma's MCP tools give the coding agent more than the command line does. They
 come from `cruma mcp`, a local program that starts nothing public by itself.
 Once per session, when `cruma` is installed and its MCP tools are not in your
-tool list, offer to connect it. Run `claude mcp list` first; if it already
-shows a `cruma` server, do not add it again: tell the user the tools load in a
-new Claude Code session (and that `/mcp` shows whether the server connected).
+tool list, offer to connect it: in your agent's MCP settings, add a stdio MCP
+server named `cruma` that runs `cruma mcp`. First check your agent's list of
+MCP servers; if it already shows a `cruma` server, do not add it again: tell
+the user the tools load in a new agent session.
 
-Otherwise ask: "Shall I connect Claude Code to Cruma? It runs
-`claude mcp add --scope user cruma -- cruma mcp`, which adds a user-level MCP
+Otherwise ask, with your agent's command from the table below: "Shall I
+connect this agent to Cruma? It runs `<command>`, which adds a user-level MCP
 server named `cruma` that starts the `cruma` program on this machine." Run the
 command only after a yes. If they decline, do not ask again this session and
 continue with section 4.
 
-After running it, say plainly: **the Cruma tools load in a new Claude Code
+| Agent | List servers | Add the server |
+| --- | --- | --- |
+| Claude Code | `claude mcp list` (`/mcp` shows whether it connected) | `claude mcp add --scope user cruma -- cruma mcp` |
+| Codex | `codex mcp list` | `codex mcp add cruma -- cruma mcp` |
+| Any other agent | its MCP settings | a stdio server named `cruma`, command `cruma mcp` |
+
+Run the command only for the agent you are. For another agent, give the user
+its row instead of running it.
+
+After adding it, say plainly: **the Cruma tools load in a new agent
 session**; adding a server does not make its tools appear in the session that
 is already running. Do not promise otherwise. Anything the user asked for in
 this session is done through the command line (section 4). In a later session,
 use the tools (section 5).
 
-If `cruma` is only reachable by the full path of the desktop app,
-the command is `claude mcp add --scope user cruma -- <full path> mcp`.
-
-Other coding agents add the same server with their own command (for example
-`codex mcp add cruma -- cruma mcp`). Give it to the user instead of running
-it for a client you are not.
+If `cruma` is only reachable by the full path of the desktop app, use that
+full path in place of `cruma`, for example
+`claude mcp add --scope user cruma -- <full path> mcp`.
 
 ## 4. Without the MCP tools: the command line
 
@@ -231,12 +238,21 @@ tool to generate one, or write a `${secret:...}` reference. When the project is 
 provider setup. Narrow it with exact `emails`, `email_domains` or one
 `organization`; an organization restriction needs the agent itself signed in,
 and an anonymous agent returns a typed error. The policy ends with the share.
-Before the first share of a session, call `list_agents` once. If
-a running agent other than the temporary session agent has `tunnel_account`
-`registered` (the user's desktop app or a headless agent with tunnel
-credentials), ask once whether to use it (`use_agent`) or a temporary
-anonymous tunnel, and share nothing until they answer. Shares on the temporary
-agent end with the session; never set `persist` for them.
+Before the first share of a session, call `list_agents` once. Choose from its
+typed running/kind/attached/starter/start-hint/channel facts, never from prose,
+process scraping or CLI output. If a desktop agent is running, ask once whether
+to use it and call `use_agent` only after yes; start nothing. For a lasting
+share with an installed but stopped desktop app, offer to open it and wait for
+yes: the visible app owns that lifecycle. For a quick share, or where no GUI is
+available (SSH, CI, a container or server), use the session-owned headless
+agent; connected sessions hold it and it stops after a grace period once none does;
+closing a session returns no result, so state no holder count or grace state
+and report only what `stop_agent` or `keep_session_agent` returned. Only an
+explicit request for a lasting detached headless agent uses `keep_session_agent`
+(agent 1.0.18 and newer; without the tool, none of this lifecycle policy applies
+and nothing is detached). Never silently
+detach one, set `persist` for a session share, scrape processes, start a
+background lifecycle command or parse CLI output to manage it.
 
 For anything else (another sign-in provider, filters, domains, routing,
 processes, rules), do
@@ -262,18 +278,24 @@ known, ask.
 | Homebrew formula (Linux) | `brew upgrade umbra-yurei/brew/cruma` |
 | npm | `npm update -g cruma` |
 | Desktop app downloaded from cruma.io (macOS) | quit Cruma, then download the current app from https://cruma.io yourself and replace `Cruma.app` (the skill runs nothing for this) |
-| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
+| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart your agent session |
 
 Give the row for the user's install, exactly as written, and name no other
-row. Restart the Claude Code session after an upgrade so the MCP server starts
-the new agent.
+row. Tell the user to restart their agent session after an upgrade so the MCP
+server starts the new agent.
 
 ## 7. Hand-off
 
 After sharing, tell the user: each public URL and what it serves (the local
-port or folder); whether it is public or protected (and how); how you will take it down (`unexpose` with
-the name, or ending the background process); that URLs end with the session
-(the tunnel is also time-limited while anonymous). Say once per session, when
+port or folder); whether it is public or protected (and how); which agent id,
+kind, profile and domain was used; whether the visible desktop app, connected
+coding sessions or the user owns its lifecycle; and how to stop both the share
+and agent. Use `unexpose` for the share. A desktop agent stops when the user
+quits it; a session agent stops after a grace period once no session holds it (or through
+`stop_agent` while session-owned); an
+explicitly kept agent is user-owned and `stop_agent` refuses it, so say that
+and name `unexpose` for stopping the share. Do not claim an agent stop beyond
+what `stop_agent` returned. The tunnel is also time-limited while anonymous. Say once per session, when
 a tool result's `account.state` is `anonymous` or the tunnel is anonymous, that
 signing in to a free Cruma account (`cruma auth login`) keeps the same tunnel
 working past the limit, with `account.sign_up_url` quoted exactly when the

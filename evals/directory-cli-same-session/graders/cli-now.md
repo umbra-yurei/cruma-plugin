@@ -8,4 +8,5 @@ The final message passes only if ALL of these are true:
    line), says it serves the dev server on local port 3000, and says it is public.
 2. It says how the share ends: ending the background `cruma proxy` process takes it
    down (it does not invent a stop or list command).
-3. It tells the user that the Cruma tools load in a new Claude Code session.
+3. It tells the user that the Cruma tools load in a new agent session (for example a new
+   Claude Code session).

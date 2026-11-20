@@ -8,7 +8,7 @@
   "counts": {
     "frontends": 1,
     "backends": 0,
-    "oauth2_providers": 2,
+    "oauth2_providers": 1,
     "processes": 1,
     "listeners": 1,
     "transports": 2,
@@ -44,6 +44,7 @@
             "has_builtin_auth": false,
             "callback_path": "/oauth2/callback",
             "has_bearer_validator": false,
+            "signed_in_widget": false,
             "session_secret": "<redacted>"
           }
         ],
@@ -56,14 +57,8 @@
     "backends": [],
     "oauth2_providers": [
       {
-        "id": "cruma",
-        "label": "Sign in with Cruma",
-        "built_in": true
-      },
-      {
         "id": "google",
-        "label": "Google",
-        "built_in": false
+        "label": "Google"
       }
     ],
     "processes": [

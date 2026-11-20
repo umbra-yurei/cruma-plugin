@@ -1,7 +1,8 @@
 {
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "cruma",
-  "version": "0.16.2",
-  "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. Needs Claude Code on your own computer; in claude.ai chat it only explains that. A skill only: it asks before installing Cruma or connecting it to Claude Code.",
+  "version": "0.17.1",
+  "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. Needs a coding agent with a shell on your own computer (for example Claude Code or Codex); where the environment does not allow installing it, such as claude.ai chat's sandbox, it explains that. A skill only: it asks before installing Cruma or connecting it to your agent.",
   "author": {
     "name": "Cruma"
   },
