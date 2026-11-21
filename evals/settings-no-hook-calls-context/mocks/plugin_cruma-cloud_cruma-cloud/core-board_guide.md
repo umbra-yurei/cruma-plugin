@@ -1,0 +1,1 @@
+Using the Cruma board: work on the user's default board unless they name another. File a bug with board_create_task (board_id, a one-line title, a body with the steps to reproduce and what is expected, kind: bug), then give the user the task's short id. Do not create duplicates: one request, one task.

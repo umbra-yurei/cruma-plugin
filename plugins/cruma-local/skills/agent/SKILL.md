@@ -59,37 +59,40 @@ that your windows share and that holds nothing the user saved. It is not the
 user's own Cruma.
 
 **Before the first share in a session**, call `list_agents` once (it reads
-nothing from any agent, so it is fine first). Look for a running agent that is
-not the session agent and whose `tunnel_account` is `registered` (the desktop
-app or a headless agent, signed in or with tunnel credentials). A running agent
-with `tunnel_account` `anonymous` is not one.
+nothing from any agent, so it is fine first). Decide from its typed fields only:
+`running`, `kind`, `attached`, `starter`, `start_hint`, `channel` and
+`tunnel_account`. Never infer whether the desktop app is installed or usable,
+who owns an agent, how it started or which release it runs from prose, process
+names, shell output or a remembered machine setup.
 
-- **One such agent runs: ask once, before sharing anything.** Name the choice
-  with its kind, profile, domain and what the other option means, for example:
-  "Use your running Cruma (desktop, profile `work`, `acme.tun.example.test`) or a
-  temporary anonymous tunnel (random address, browser warning page, time-limited,
-  gone with the session)?" Share nothing, and call no other tool that reads or
-  changes an agent, until they answer. If several run, list them in the same
-  question.
-  - They pick their own: call `use_agent` on that agent (this is the
-    confirmation **Ask before `use_agent`** asks for) and make every share of
-    the session there. Mention the known limit when it applies: a share made on
-    one agent of a tunnel that several agents serve is reachable only through
-    that agent.
-  - They pick the temporary tunnel: stay on the session agent.
-  - Remember the answer for the rest of the session. Do not ask again for later
-    shares, and do not call `list_agents` again for them. Ask again only if the
-    user raises it.
-- **No such agent runs** (none, or only anonymous ones such as the session
-  agent): no question. Use the session agent as is and report the URLs.
-- **You cannot ask** (a non-interactive run, or no way to get an answer): use
-  the session agent, and say in the hand-off that you did, and that a running
-  signed-in Cruma was available when `list_agents` showed one.
-- The question is not needed when the user already named where the share goes
-  ("on my desktop Cruma", "use a temporary tunnel"): follow that.
+- **A desktop agent is running:** ask once whether to use that visible agent or
+  the session agent, even for a quick share. Name its profile and domain from
+  the result. Share nothing until the user answers; after yes, call `use_agent`
+  and start no agent. Remember the choice for later shares in this session.
+- **A lasting share is requested and a stopped desktop profile is listed:**
+  offer to open the desktop app. Wait for yes before `open_desktop_app`; the
+  visible app owns the share's lasting lifecycle. Do not silently start or keep
+  a detached headless agent. If the typed open result says the app is
+  unavailable, report its reason and hint rather than guessing another route.
+- **A quick or throwaway share, or no GUI is available** (SSH, CI, container or
+  server): use the attached session agent. Its connection is the lifecycle
+  hold; another coding session may attach to the same agent and keep it alive.
+  The agent stays up while any connected session holds it and stops after its
+  grace period once none does. Closing a session returns no result to you, so
+  never state a holder count or a pending grace stop as fact; relay another
+  holder only when the user said so, and otherwise say what the policy is.
+- **A lasting detached headless agent:** use `keep_session_agent` (agent 1.0.18
+  and newer; when the tool is absent none of these lifecycle rules apply and you
+  detach nothing) only when the user explicitly asks for that outcome. It converts the session agent to user
+  ownership; never use it merely because a share sounds important or lasting.
+- **No other eligible agent runs:** use the session agent without a question
+  for a quick share. For a request about the user's own Cruma, follow the
+  no-running-agent rule below instead.
 
-The shares stay session-owned and are withdrawn when the session ends; never
-set `persist` for them.
+The question is not needed when the user already named the desired ownership.
+Never set `persist` on a session-owned share. Do not scrape processes, run a
+background command or parse CLI output to decide or manage this lifecycle; the
+typed tools and the coding connection own it.
 
 When the request is about *their* Cruma (their
 app, sites, routes, domains, processes or logs: "why does my site return 502?",
@@ -161,6 +164,31 @@ On the user's own agent, after they agreed to the switch:
   with `persist: true` to make it permanent without the same approval. This is
   the only use of `persist`, and never on the session agent.
 
+### Project files
+
+An attached `cruma.yaml` or `cruma.toml` starts as a preview. Summarize the
+frontends, backends, processes and ignored sections returned by
+`attach_project`, then ask explicitly before calling `apply_project`. A
+request to inspect, attach or use a file is not approval to apply it. If the
+user declines, leave it previewed and call no apply or write tool. Run `cruma
+up` only when the user asks to start the project from the terminal; MCP uses
+`attach_project` and the confirmation-gated `apply_project` instead.
+
+Once applied, shares and processes created through this connection can be
+written back to the project file. Read and report the result's `project_file`
+status: say which file was saved, or say that the change is live but was not
+saved and give its reason. Generated or typed passwords, folders outside the
+project root and literal process environment values stay live but are not
+saved. For a password or secret that should be saved, ask the user to provide
+a reference such as `${env:NAME}` or `${file:PATH}`; never put the secret value
+in the project file. A project file containing a literal secret is refused:
+name the reported field and ask the user to replace it with a reference.
+
+When persistence is wanted and no project file exists, offer to create
+`cruma.yaml` with `attach_project {create: true}`. Create it only after the
+user agrees; never introduce a project file for an ordinary temporary share
+or without being asked to persist the work.
+
 ### Protect what looks private
 
 Before exposing something that looks private (an admin UI, a database tool,
@@ -169,8 +197,18 @@ whether to protect it, and suggest a password. Wait for the answer; do not
 expose first. If the user already asked for protection, do not ask again.
 
 - A password or an IP allowlist: pass `access` to `expose_local_port` or
-  `expose_local_directory` (the tool schema lists the types). A generated
-  password is returned once. Without an `access` argument in the schema (an
+  `expose_local_directory` (the tool schema lists the types). When the user
+  asks for password protection without supplying the password, ask them for
+  it before exposing. Pass exactly what they typed as `password`;
+  never invent one, never take one from a file, environment variable or
+  keychain, and never write a `${secret:...}` reference yourself. In a project
+  with a `cruma.toml` the agent stores a typed password on the user's computer
+  and the file holds only its name; the result's `password_stored` says so.
+  Tell the user "stored on this computer as NAME" and do not repeat the
+  password. Passwords generated directly through the tool API are for the
+  session only and are not saved; do not ask the tool to generate one.
+  If `project_file` says the share was not saved, relay the reason. Without an
+  `access` argument in the schema (an
   older agent), build the site with `upsert_backend` and `upsert_frontend` and
   a `basic_auth` middleware; read `middleware_model` for its shape.
 - Sign-in with a Cruma account: this is `access` `sign_in` on
@@ -226,20 +264,28 @@ Say all of these in the final message:
 3. Which path you used: `expose_local_port`, `expose_local_directory`,
    `upsert_process` (the agent hosts and supervises the app, so its logs are
    available through `get_process_logs`), or `upsert_backend`/`upsert_frontend`.
-4. Which agent you acted on: kind (desktop, headless or temporary session),
-   profile and domain, so a temporary share is never taken for a change to
-   the user's app. When you used the session agent because you could not ask,
-   say so.
-5. For the session agent: the URLs end with the session, an anonymous tunnel
-   also ends at its time limit (item 7), and nothing is written to disk. For
-   the user's own agent: whether the change is temporary or saved.
+4. Which agent you acted on: its id, kind (desktop, headless or temporary
+   session), profile and domain, so a temporary share is never mistaken for a
+   change to the user's app. Say who owns its lifecycle: the visible desktop
+   app, the connected coding sessions, or the user after an explicit keep.
+5. How to stop the agent as well as the share. A visible desktop agent stops
+   when the user quits it. A session-owned agent stops after its last holder
+   releases it and the reported grace period ends, and can also be stopped with
+   `stop_agent` while it is session-owned. An explicitly kept headless agent is
+   user-owned and `stop_agent` refuses it; say that explicitly, and still name
+   `unexpose` as the way to stop the share. Report only what `stop_agent` or
+   `keep_session_agent` returned (`stopped`, `already_gone`, `refused`,
+   `control_failed`, `kept`, `already_kept`) rather than promising the agent
+   stopped or claiming a holder count or grace state no tool reported. For the user's own agent,
+   also say whether the change is temporary or saved.
 6. How to take one down: ask you, and you call `unexpose` with its name for
    an `expose_*` share, or `remove_frontend`, `remove_backend` and
    `remove_process` for an `upsert_*` one. For a folder share, that editing
    the files updates the site immediately.
 7. For a protected share: what protects it (password, allowed networks or
-   sign-in), the credential once if you generated one (username `cruma`), and
-   that the protection ends with the share. A share with no protection is
+   sign-in), the credential once if you generated one (username `cruma`), where
+   a password the user typed was stored (`password_stored`, never the password
+   itself), and that the protection ends with the share. A share with no protection is
    public: say so.
 8. The account notice, **once per session**, when a tool result's
    `account.state` is `anonymous`: the tunnel is anonymous and time-limited,
@@ -293,9 +339,9 @@ Get-AppxPackage -Name 'Umbra-Yurei.Cruma'
 
 If that returns a package, Cruma is already installed. Do not install it again.
 The installed version must contain the `cruma` command alias, and Windows may
-need a newly opened terminal or Claude session before that alias is available.
+need a newly opened terminal or agent session before that alias is available.
 Tell the user to update Cruma in Microsoft Store, then open a new terminal and
-restart Claude. This branch is terminal: stop until `cruma --version` succeeds
+restart your agent session. This branch is terminal: stop until `cruma --version` succeeds
 or the MCP tools connect. Never start Python, Node, or another file server as a
 workaround, and never claim or invent a public URL.
 
@@ -354,17 +400,17 @@ any kind.
 
 ### Versions
 
-The **minimum version is 1.0.12**: older agents lose sessions (for example the
-second Claude window exits) and lack tools this skill uses. Take the version
+The **minimum version is 1.0.19**: older agents lose sessions (for example the
+second agent window exits) and lack tools this skill uses. Take the version
 from the `version` field of `cruma --version --json`. When no JSON line comes
 back, read the `cruma <version>` line that `cruma --version` prints; that is
 the only human text you read.
 
-- **Older than 1.0.12:** before doing anything else, tell the user their Cruma
+- **Older than 1.0.19:** before doing anything else, tell the user their Cruma
   is too old and give the upgrade command for their install method (see
   **Update**). Do not start a tunnel on it. Continue once they have upgraded
-  and `cruma --version` shows 1.0.12 or newer.
-- **1.0.12 or newer:** use it. With the MCP tools connected, a newer stable
+  and `cruma --version` shows 1.0.19 or newer.
+- **1.0.19 or newer:** use it. With the MCP tools connected, a newer stable
   release shows up in `get_runtime_summary` as `version.update_available`
   (`version.latest_stable_version`, `version.upgrade_hint`); mention it once, as
   in the hand-off, and carry on. Never block a share on an optional update.
@@ -507,7 +553,7 @@ Read its one JSON line. When `event` is `"ready"`, report the first address in
 When `event` is `"error"`, report the error and inspect the logs on stderr;
 do not invent a URL. Do not require an account: anonymous tunnels are
 supported. If you installed `cruma` during this session, the MCP tools stay
-unavailable until the plugin is reloaded or Claude Code restarts, so keep using
+unavailable until the plugin is reloaded or the agent session restarts, so keep using
 this path and tell the user.
 
 There is no one-line command for a folder. Do not start a Python or other file
@@ -541,15 +587,15 @@ it as given. Otherwise pick by how Cruma was installed:
 | npm install | `npm update -g cruma` |
 | Signed DMG (macOS) | quit Cruma, then repeat the signed DMG steps of **macOS** (same checks) and replace `Cruma.app` |
 | `npx -y cruma` | run the same `npx -y cruma` command again (it fetches the newest release) |
-| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart Claude |
+| Microsoft Store (Windows) | update Cruma in Microsoft Store, then open a new terminal and restart your agent session |
 
 Give the command of the row for the install the user has, exactly as the row
 writes it and in a code block, even when you offer to run it. Name no other
 row's command, not even to say it is not used, and not when that package is newer
 or has a desktop window (**An existing install**). If the method is not known,
 ask the user; do not guess one. After upgrading,
-the running MCP server keeps the old agent until the Claude session is
-restarted. Tell the user to restart it.
+the running MCP server keeps the old agent until the agent session is
+restarted. Tell the user to restart their agent session.
 
 ## Environments without a shell
 

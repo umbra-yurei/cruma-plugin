@@ -1,0 +1,9 @@
+---
+max_turns: 10
+timeout_seconds: 240
+allowed_tools: [Skill, mcp__plugin_cruma-local_cruma__describe_cruma, mcp__plugin_cruma-local_cruma__list_agents, mcp__plugin_cruma-local_cruma__use_agent, mcp__plugin_cruma-local_cruma__get_runtime_summary, mcp__plugin_cruma-local_cruma__get_health_summary, mcp__plugin_cruma-local_cruma__get_site_summary, mcp__plugin_cruma-local_cruma__get_proxy_routes, mcp__plugin_cruma-local_cruma__probe_route, mcp__plugin_cruma-local_cruma__get_process_logs, mcp__plugin_cruma-local_cruma__list_recorded_requests, mcp__plugin_cruma-local_cruma__expose_local_port, mcp__plugin_cruma-local_cruma__expose_local_directory, mcp__plugin_cruma-local_cruma__list_shares, mcp__plugin_cruma-local_cruma__unexpose, mcp__plugin_cruma-local_cruma__upsert_backend, mcp__plugin_cruma-local_cruma__upsert_frontend, mcp__plugin_cruma-local_cruma__upsert_process, mcp__cruma-cloud__whoami, mcp__cruma-cloud__list_services, mcp__cruma-cloud__describe_service, mcp__cruma-cloud__select_organization, mcp__cruma-cloud__pages-create_site, mcp__cruma-cloud__pages-get_site_address]
+---
+
+The current folder is already pushed to the public Git repository https://github.com/dana/example-site.git and is ready for Pages.
+
+Give this folder a public website.

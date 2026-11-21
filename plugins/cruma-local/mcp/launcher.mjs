@@ -23,6 +23,10 @@ export function candidatePaths(localAppData) {
 // to the plugin. It is fixed here, not read from the plugin's configuration or argv.
 export const ORIGIN_ARGS = ["--origin", "plugin"];
 
+// The oldest agent that implements every tool the bundled skill teaches. Keep this as the
+// single machine-readable fact; scripts/check-plugin.mjs checks the skill and eval prose against it.
+export const MINIMUM_AGENT_VERSION = "1.0.19";
+
 // The first agent version whose `cruma mcp` accepts `--origin plugin`; an older one rejects the flag.
 // cruma-sdk was at 1.0.17 (the stable agent) when the flag was added, so 1.0.18, the next
 // release, is the first to ship it; lower this only if a release before it carries the flag.
@@ -67,7 +71,7 @@ export function launch({ source, candidates, spawnSync, spawn, exit, onSignal, e
 
   if (!chosen) {
     error(
-      "cruma: the Cruma agent (1.0.12 or newer) was not found. Ask the cruma-local:agent skill to install it, or see https://cruma.io/book/cruma-tunnels/coding-agents.md, then restart Claude Code.",
+      `cruma: the Cruma agent (${MINIMUM_AGENT_VERSION} or newer) was not found. Ask the cruma-local:agent skill to install it, or see https://cruma.io/book/cruma-tunnels/coding-agents.md, then restart your agent session.`,
     );
     exit(1);
     return;

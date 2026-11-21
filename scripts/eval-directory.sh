@@ -1,56 +1,67 @@
 #!/usr/bin/env bash
-# Runs the skill-only `cruma` plugin's directory-* eval cases in an isolated environment.
+# Runs the skill-only `cruma` plugin's directory-* eval cases and fails when the agent was not isolated.
 #   scripts/eval-directory.sh [--check-only] [claude plugin eval options...]
-# `claude plugin eval` gives the agent the PATH of the shell that started it, so this puts the
-# stand-ins (evals/fake-cruma/bin) first on that PATH, checks them without a model call, and
-# starts the suite with `--scaffold --allow-tools Bash --case 'directory-*'`. Extra options are
-# passed on (--keep-temp, --runs 1, --case <glob>, ...). --check-only stops after the check.
+# --check-only: runs the scaffold in throwaway homes (no model call) and checks the stand-ins it writes.
+# Otherwise: starts `claude plugin eval --scaffold --allow-tools Bash --case 'directory-*'` with the
+# extra options, keeps each run's temp directory, and fails if its out/trace.jsonl shows the host leaking in
+# (`Operation not permitted` on a stand-in, /opt/homebrew, Darwin). The kept directories are removed
+# afterwards unless --keep-temp was passed.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-claude_bin="$(command -v claude)" || { echo "claude is not on PATH" >&2; exit 2; }
-check_only=0
-if [ "${1:-}" = --check-only ]; then check_only=1; shift; fi
-
-shims="$root/.eval-work/shims"
-rm -rf "$shims"
-mkdir -p "$shims/bin"
-cp -p "$root/evals/fake-cruma/bin/"* "$root/evals/fake-cruma/bin/.cruma-eval-shims" "$shims/bin/"
-chmod +x "$shims/bin/"*
-ln -s printenv "$shims/bin/env"
-isolated="$shims/bin:/usr/bin:/bin"
-
-# Check the stand-ins in a throwaway home, with the PATH the agent will get.
-home="$(mktemp -d)"
-trap 'rm -rf "$home"' EXIT
-iso() { env -i HOME="$home" PATH="$isolated" CLAUDECODE=1 /bin/sh -c 'exec "$@"' sh "$@"; }
-fail() { echo "eval-directory: check failed: $*" >&2; exit 1; }
 scaffold="$root/evals/fake-cruma/directory-shims.sh"
 cli="$root/evals/fake-cruma/cli"
+fail() { echo "eval-directory: $*" >&2; exit 1; }
 
-[ "$(iso uname -sm)" = "Linux x86_64" ] || fail "uname does not answer Linux x86_64"
-[ "$(iso uname -s)" = Linux ] || fail "uname -s does not answer Linux"
-iso bash "$scaffold" missing || fail "scaffold (missing) refused the isolated PATH"
-iso cruma --version >/dev/null 2>&1 && fail "cruma answers before npm install -g cruma"
-iso npm install -g cruma >/dev/null || fail "npm install -g cruma"
-[ "$(iso cruma --version)" = "$(cat "$cli/version.txt")" ] || fail "cruma --version differs from cli/version.txt"
-[ "$(iso printenv CLAUDECODE)" = 1 ] || fail "printenv hides CLAUDECODE outside the sandbox case"
-iso bash "$scaffold" sandbox || fail "scaffold (sandbox)"
-[ -z "$(iso printenv CLAUDECODE || true)" ] || fail "printenv shows CLAUDECODE in the sandbox case"
-[ -z "$(iso env | grep '^CLAUDECODE=' || true)" ] || fail "env shows CLAUDECODE in the sandbox case"
-iso bash "$scaffold" installed || fail "scaffold (installed)"
-iso cruma proxy http 3000 --json >"$home/ready.out" 2>&1 &
+check_only=0
+if [ "${1:-}" = --check-only ]; then check_only=1; shift; fi
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+# The scaffold refuses (exit 3) when a stand-in does not resolve first in a login shell of the run's home.
+for mode in missing installed sandbox; do
+  mkdir -p "$tmp/home-$mode" "$tmp/ws-$mode"
+  (cd "$tmp/ws-$mode" && env -i HOME="$tmp/home-$mode" PATH="$PATH" bash "$scaffold" "$mode") \
+    || fail "scaffold ($mode) refused its isolation"
+done
+bin="$tmp/home-missing/.local/bin"
+[ "$("$bin/uname" -sm)" = "Linux x86_64" ] || fail "uname -sm does not answer Linux x86_64"
+"$bin/cruma" --version >/dev/null 2>&1 && fail "cruma answers before npm install -g cruma"
+"$bin/npm" install -g cruma >/dev/null || fail "npm install -g cruma"
+[ "$("$bin/cruma" --version)" = "$(cat "$cli/version.txt")" ] || fail "cruma --version differs from cli/version.txt"
+"$tmp/home-sandbox/.local/bin/npm" install -g cruma >/dev/null 2>&1 && fail "npm install succeeds in the sandbox mode"
+"$tmp/home-sandbox/.local/bin/curl" -s localhost:3000 >/dev/null 2>&1 && fail "curl reaches localhost in the sandbox mode"
+"$tmp/home-installed/.local/bin/cruma" proxy http 3000 --json >"$tmp/ready.out" 2>&1 &
 proxy=$!
-for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$home/ready.out" ] && break; sleep 0.3; done
+for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$tmp/ready.out" ] && break; sleep 0.3; done
 kill "$proxy" 2>/dev/null || true
-cmp -s "$home/ready.out" "$cli/ready.json" || fail "cruma proxy did not print cli/ready.json without a network"
-# The scaffold must refuse the host PATH.
-if env -i HOME="$home" PATH="/usr/bin:/bin" bash "$scaffold" installed 2>/dev/null; then
-  fail "scaffold accepted a PATH without the stand-ins"
-fi
-echo "eval-directory: stand-ins first on PATH ($shims/bin), check passed"
+cmp -s "$tmp/ready.out" "$cli/ready.json" || fail "cruma proxy did not print cli/ready.json without a network"
+echo "eval-directory: stand-ins resolve first in a login shell of the run's home, check passed"
 [ "$check_only" = 0 ] || exit 0
 
+claude_bin="$(command -v claude)" || fail "claude is not on PATH"
+keep=0
+for arg in "$@"; do [ "$arg" != --keep-temp ] || keep=1; done
 node "$root/scripts/stage-evals.mjs" cruma >/dev/null
 cd "$root"
-exec env PATH="$isolated" "$claude_bin" plugin eval .eval-work/cruma --trust-plugin --scaffold \
-  --allow-tools Bash --case 'directory-*' "$@"
+set +e
+"$claude_bin" plugin eval .eval-work/cruma --trust-plugin --scaffold --allow-tools Bash \
+  --case 'directory-*' --keep-temp "$@" 2>&1 | tee "$tmp/run.log"
+status=${PIPESTATUS[0]}
+set -e
+
+leaks=0
+while IFS= read -r dir; do
+  case "$dir" in */claude-eval-*) ;; *) continue ;; esac
+  [ -d "$dir" ] || continue
+  while IFS= read -r -d '' trace; do
+    if grep -qE 'Operation not permitted|/opt/homebrew|Darwin' "$trace"; then
+      echo "eval-directory: host leaked into $trace:" >&2
+      grep -oE 'Operation not permitted|/opt/homebrew|Darwin' "$trace" | sort | uniq -c >&2
+      leaks=1
+    fi
+  done < <(find "$dir/out" -name trace.jsonl -print0 2>/dev/null)
+  if [ "$keep" = 0 ]; then chmod -R u+rwx "$dir" 2>/dev/null || true; rm -rf "$dir"; fi
+done < <(sed -n 's/^ *kept temp: //p' "$tmp/run.log")
+
+[ "$leaks" = 0 ] || fail "the run was not isolated from the host; its scores do not count"
+exit "$status"
