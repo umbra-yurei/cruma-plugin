@@ -68,7 +68,7 @@ elif has --help || [ \$# -eq 0 ]; then
   esac
 elif [ "\$1" = proxy ] || [ "\$1" = serve ]; then
   cat "$data/ready.json"
-  exec sleep 120
+  exec sleep 2147483647
 else
   echo "cruma (eval stand-in): unsupported: \$*" >&2
   exit 2

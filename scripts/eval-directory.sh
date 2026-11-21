@@ -43,6 +43,9 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$tmp/ready.out" ] && break; sleep 0.3; d
 alive=0; kill -0 "$proxy" 2>/dev/null && alive=1
 kill "$proxy" 2>/dev/null || true
 [ "$alive" = 1 ] || fail "cruma proxy exited after its ready line"
+# The stand-in must stay up until the agent kills it: any finite sleep shorter than a day can end mid-case and read as a dead tunnel.
+life="$(sed -n 's/^ *exec sleep \([0-9][0-9]*\)$/\1/p' "$tmp/home-installed/.local/bin/cruma")"
+[ -n "$life" ] && [ "$life" -ge 86400 ] || fail "the cruma proxy stand-in sleeps ${life:-an unreadable time} seconds after its ready line; it must stay up until killed"
 cmp -s "$tmp/ready.out" "$cli/ready.json" || fail "cruma proxy did not print cli/ready.json without a network"
 [ "$("$tmp/home-macos/.local/bin/uname" -sm)" = "Darwin arm64" ] || fail "macos mode: uname -sm does not answer Darwin arm64"
 "$tmp/home-macos/.local/bin/npm" install -g cruma >/dev/null || fail "macos mode: npm install -g cruma"
