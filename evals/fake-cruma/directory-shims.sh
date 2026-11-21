@@ -15,9 +15,28 @@
 #   $1 = sandbox    like `missing`, in an environment that does not allow installing, like a hosted chat's
 #                   code-execution container: nothing answers on localhost (the user's dev
 #                   server is elsewhere) and `npm install` fails with no network
-# In `missing` and `installed`, `curl` to localhost/127.0.0.1 answers like the user's dev server.
+#   $1 = macos      like `missing` on an Apple Silicon Mac (`uname` answers Darwin arm64) that has Node and npm
+#                   but no Homebrew
+#   $1 = macos-bare like `macos` with neither Node nor npm (`node` and `npm` say "command not found")
+#   $1 = windows    like `missing` on a Windows 11 PC's Git Bash (`uname` answers MINGW64_NT) that has Node and
+#                   npm but no winget
+# In every mode but `sandbox`, `curl` to localhost/127.0.0.1 answers like the user's dev server.
+# The stand-ins log best-effort: the eval sandbox may refuse the write, and a stand-in (the long-running
+# `cruma proxy` above all) must keep working then.
 set -euo pipefail
-mode="${1:?usage: directory-shims.sh missing|installed|sandbox}"
+mode="${1:?usage: directory-shims.sh missing|installed|sandbox|macos|macos-bare|windows}"
+case "$mode" in
+  missing|installed|sandbox)
+    os=Linux arch=x86_64 release=6.8.0-eval
+    uname_a="Linux eval-host 6.8.0-eval #1 SMP x86_64 GNU/Linux" ;;
+  macos|macos-bare)
+    os=Darwin arch=arm64 release=23.6.0
+    uname_a="Darwin eval-host 23.6.0 Eval Release 23.6.0 RELEASE_ARM64 arm64" ;;
+  windows)
+    os=MINGW64_NT-10.0-22631 arch=x86_64 release=3.5.4
+    uname_a="MINGW64_NT-10.0-22631 eval-host 3.5.4 2024-08-25 x86_64 Msys" ;;
+  *) echo "directory-shims: unknown mode '$mode'; usage: directory-shims.sh missing|installed|sandbox|macos|macos-bare|windows" >&2; exit 2 ;;
+esac
 bin="$HOME/.local/bin"
 log="$HOME/.local/share/directory-shims/calls.log"
 mkdir -p "$bin" "$(dirname "$log")"
@@ -26,12 +45,16 @@ mkdir -p "$bin" "$(dirname "$log")"
 # Everything the stand-in `cruma` prints is a file the cruma-sdk plugin-mocks generator wrote
 # from the real types and clap definitions (cli/); nothing is typed out here.
 data="$(dirname "$log")/cli"
+# Pasted at the top of every stand-in: a log write that fails (read-only path in the sandbox) is dropped,
+# silently, and never changes what the stand-in does or returns.
+logfn="log() { { echo \"\$*\" >>\"$log\"; } 2>/dev/null || true; }"
 mkdir -p "$data"
 cp "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cli/"* "$data/"
 
 cat >"$bin/cruma-installed" <<STUB
 #!/bin/sh
-echo "cruma \$*" >>"$log"
+$logfn
+log "cruma \$*"
 args=" \$* "
 has() { case "\$args" in *" \$1 "*) return 0 ;; *) return 1 ;; esac; }
 if has --version; then
@@ -54,7 +77,8 @@ STUB
 
 cat >"$bin/npm" <<STUB
 #!/bin/sh
-echo "npm \$*" >>"$log"
+$logfn
+log "npm \$*"
 if [ "$mode" = sandbox ] && [ "\$1" = install ]; then
   echo "npm error code EAI_AGAIN" >&2
   echo "npm error request to https://registry.npmjs.org/cruma failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org" >&2
@@ -69,7 +93,8 @@ STUB
 
 cat >"$bin/claude" <<STUB
 #!/bin/sh
-echo "claude \$*" >>"$log"
+$logfn
+log "claude \$*"
 case "\$1 \$2" in
   "mcp list") echo "No MCP servers configured." ;;
   "mcp add") echo "Added stdio MCP server cruma to user config" ;;
@@ -79,28 +104,31 @@ STUB
 
 cat >"$bin/node" <<STUB
 #!/bin/sh
-echo "node \$*" >>"$log"
+$logfn
+log "node \$*"
 case "\$1" in
   --version|-v) echo v22.12.0 ;;
   *) echo "node (eval stand-in): unsupported: \$*" >&2; exit 2 ;;
 esac
 STUB
 
-cat >"$bin/uname" <<'STUB'
+cat >"$bin/uname" <<STUB
 #!/bin/sh
-case "$*" in
-  -m) echo x86_64 ;;
-  -a) echo "Linux eval-host 6.8.0-eval #1 SMP x86_64 GNU/Linux" ;;
-  -r) echo 6.8.0-eval ;;
-  "-s -m"|"-m -s"|-sm|-ms) echo "Linux x86_64" ;;
-  *) echo Linux ;;
+case "\$*" in
+  -m) echo $arch ;;
+  -a) echo "$uname_a" ;;
+  -r) echo $release ;;
+  -s) echo $os ;;
+  "-s -m"|"-m -s"|-sm|-ms) echo "$os $arch" ;;
+  *) echo $os ;;
 esac
 STUB
 
 # Only a localhost probe (the skill's "is the dev server here?" check) is answered.
 cat >"$bin/curl" <<STUB
 #!/bin/sh
-echo "curl \$*" >>"$log"
+$logfn
+log "curl \$*"
 case " \$* " in
   *localhost*|*127.0.0.1*)
     port=\$(printf '%s\\n' "\$*" | sed -n 's/.*:\\([0-9][0-9]*\\).*/\\1/p')
@@ -114,6 +142,11 @@ case " \$* " in
 esac
 STUB
 
+if [ "$mode" = macos-bare ]; then
+  for tool in npm node; do
+    printf '#!/bin/sh\necho "%s: command not found" >&2\nexit 127\n' "$tool" >"$bin/$tool"
+  done
+fi
 if [ "$mode" = installed ]; then
   cp "$bin/cruma-installed" "$bin/cruma"
 else

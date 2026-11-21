@@ -1,17 +1,61 @@
 #!/usr/bin/env node
-// Scans `claude plugin eval` out/trace.jsonl files for the host leaking into the agent's Bash.
-//   node scripts/scan-eval-trace.mjs <trace.jsonl>...
-// Only tool results count (what the agent's commands printed), never the model's own words or the
-// harness's session records. Prints one line per leaking trace and "tool_results <n>" for the total;
-// exits 1 on a leak. The caller treats a total of 0 as "scanned nothing".
-import { readFileSync } from "node:fs";
+// Scans the runs of a `claude plugin eval --json <file>` result for the host leaking into the agent's Bash.
+//   node scripts/scan-eval-trace.mjs <result.json>          scan; exit 1 on a leak or an unscannable run
+//   node scripts/scan-eval-trace.mjs --dirs <result.json>   print each run's temp directory, one per line
+// The traces come from the result's own `tracePath` fields, never from the harness's log wording or
+// temp-directory names. Only tool results count (what the agent's commands printed), never the model's
+// own words or the harness's session records. Prints "leak <trace>: ..." per leaking run, "missing ..."
+// per run without a readable trace, and "runs <n>" / "tool_results <n>" totals. The caller treats a total
+// of 0 runs or 0 tool results as "scanned nothing". `Darwin` is a leak except in a case whose scaffold
+// is a macOS mode (the stand-in `uname` answers it there).
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
-const LEAK = /Operation not permitted|\/opt\/homebrew|Darwin/g;
-let leaked = false;
+const args = process.argv.slice(2);
+const listDirs = args[0] === "--dirs";
+const resultFile = listDirs ? args[1] : args[0];
+if (!resultFile) {
+  console.error("usage: scan-eval-trace.mjs [--dirs] <result.json>");
+  process.exit(2);
+}
+
+// The result is the harness's own report; only the fields read here are typed.
+const result = JSON.parse(readFileSync(resultFile, "utf8"));
+const root = result?.suite?.root ?? "";
+
+function runsOf(result) {
+  const runs = [];
+  for (const testCase of result?.cases ?? []) {
+    for (const [arm, armRuns] of Object.entries(testCase?.arms ?? {})) {
+      for (const [index, run] of (armRuns ?? []).entries()) runs.push({ label: `${testCase.name} ${arm}#${index + 1}`, dir: testCase.dir, tracePath: run?.tracePath });
+    }
+  }
+  return runs;
+}
+
+const runs = runsOf(result);
+if (listDirs) {
+  for (const run of runs) if (run.tracePath) console.log(dirname(dirname(run.tracePath)));
+  process.exit(0);
+}
+
+function scaffoldMode(caseDir) {
+  const file = join(resolve(root, caseDir ?? ""), "scaffold.sh");
+  if (!existsSync(file)) return "";
+  return /directory-shims\.sh"?\s+(\S+)/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+}
+
+let bad = false;
 let results = 0;
-for (const file of process.argv.slice(2)) {
+for (const run of runs) {
+  if (!run.tracePath || !existsSync(run.tracePath)) {
+    bad = true;
+    console.log(`missing ${run.label}: no readable trace${run.tracePath ? ` at ${run.tracePath}` : ""}`);
+    continue;
+  }
+  const leak = scaffoldMode(run.dir).startsWith("macos") ? /Operation not permitted|\/opt\/homebrew/g : /Operation not permitted|\/opt\/homebrew|Darwin/g;
   const counts = new Map();
-  for (const line of readFileSync(file, "utf8").split("\n")) {
+  for (const line of readFileSync(run.tracePath, "utf8").split("\n")) {
     let record;
     try { record = JSON.parse(line); } catch { continue; }
     const content = record?.message?.content;
@@ -22,13 +66,14 @@ for (const file of process.argv.slice(2)) {
       const text = typeof block.content === "string"
         ? block.content
         : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "";
-      for (const hit of text.match(LEAK) ?? []) counts.set(hit, (counts.get(hit) ?? 0) + 1);
+      for (const hit of text.match(leak) ?? []) counts.set(hit, (counts.get(hit) ?? 0) + 1);
     }
   }
   if (counts.size > 0) {
-    leaked = true;
-    console.log(`leak ${file}: ${[...counts].map(([k, n]) => `${n} x ${k}`).join(", ")}`);
+    bad = true;
+    console.log(`leak ${run.label} (${run.tracePath}): ${[...counts].map(([k, n]) => `${n} x ${k}`).join(", ")}`);
   }
 }
+console.log(`runs ${runs.length}`);
 console.log(`tool_results ${results}`);
-process.exit(leaked ? 1 : 0);
+process.exit(bad ? 1 : 0);
