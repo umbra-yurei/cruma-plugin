@@ -3,9 +3,10 @@
 #   scripts/eval-directory.sh [--check-only] [claude plugin eval options...]
 # --check-only: runs the scaffold in throwaway homes (no model call) and checks the stand-ins it writes.
 # Otherwise: starts `claude plugin eval --scaffold --allow-tools Bash --case 'directory-*'` with the
-# extra options, keeps each run's temp directory, and fails if its out/trace.jsonl shows the host leaking in
-# (`Operation not permitted` on a stand-in, /opt/homebrew, Darwin). The kept directories are removed
-# afterwards unless --keep-temp was passed.
+# extra options, keeps each run's temp directory, and fails if no directory or trace was scanned, or if a
+# tool result in a run's out/trace.jsonl shows the host leaking in (scripts/scan-eval-trace.mjs:
+# `Operation not permitted`, /opt/homebrew, Darwin). The kept directories are removed afterwards
+# unless --keep-temp was passed.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scaffold="$root/evals/fake-cruma/directory-shims.sh"
@@ -49,19 +50,29 @@ set +e
 status=${PIPESTATUS[0]}
 set -e
 
-leaks=0
+dirs=0
+traces=()
 while IFS= read -r dir; do
   case "$dir" in */claude-eval-*) ;; *) continue ;; esac
   [ -d "$dir" ] || continue
-  while IFS= read -r -d '' trace; do
-    if grep -qE 'Operation not permitted|/opt/homebrew|Darwin' "$trace"; then
-      echo "eval-directory: host leaked into $trace:" >&2
-      grep -oE 'Operation not permitted|/opt/homebrew|Darwin' "$trace" | sort | uniq -c >&2
-      leaks=1
-    fi
-  done < <(find "$dir/out" -name trace.jsonl -print0 2>/dev/null)
-  if [ "$keep" = 0 ]; then chmod -R u+rwx "$dir" 2>/dev/null || true; rm -rf "$dir"; fi
+  dirs=$((dirs + 1))
+  if [ -f "$dir/out/trace.jsonl" ]; then traces+=("$dir/out/trace.jsonl"); else echo "eval-directory: $dir has no out/trace.jsonl" >&2; fi
 done < <(sed -n 's/^ *kept temp: //p' "$tmp/run.log")
 
-[ "$leaks" = 0 ] || fail "the run was not isolated from the host; its scores do not count"
+scan_status=0
+scan_out=""
+if [ "${#traces[@]}" -gt 0 ]; then
+  scan_out="$(node "$root/scripts/scan-eval-trace.mjs" "${traces[@]}")" || scan_status=$?
+  [ -z "$scan_out" ] || echo "$scan_out" >&2
+fi
+if [ "$keep" = 0 ]; then
+  while IFS= read -r dir; do
+    case "$dir" in */claude-eval-*) chmod -R u+rwx "$dir" 2>/dev/null || true; rm -rf "$dir" ;; esac
+  done < <(sed -n 's/^ *kept temp: //p' "$tmp/run.log")
+fi
+
+[ "$dirs" -gt 0 ] || fail "the run kept no temp directory, so nothing was scanned; its scores do not count"
+[ "${#traces[@]}" -eq "$dirs" ] || fail "a kept temp directory has no out/trace.jsonl, so it was not scanned; its scores do not count"
+[ "$scan_status" = 0 ] || fail "the host leaked into the agent's Bash (see above); its scores do not count"
+case "$scan_out" in *"tool_results 0") fail "no tool results in any trace, so nothing was scanned; its scores do not count" ;; esac
 exit "$status"

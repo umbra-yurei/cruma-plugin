@@ -3,10 +3,13 @@
 # Puts stand-ins for `npm`, `node`, `uname`, `curl`, `claude` and `cruma` in ~/.local/bin of the run's
 # own HOME, so an install, an MCP server add (`claude mcp add`) or a share the skill runs touches nothing real. Each
 # stand-in appends the command line it was given to ~/.local/share/directory-shims/calls.log.
-# It then writes the eval workspace's .claude/settings.json so the agent's PATH is only that
-# directory plus /usr/bin:/bin: the host's Homebrew, /usr/local and real `cruma` are not on it,
-# and `uname` answers Linux x86_64 like the prompts say. The agent runs Bash unsandboxed as the
-# user, so without this it sees the host (a real `cruma`, real Homebrew, Darwin) instead.
+# The agent's Bash PATH is then only that directory plus /usr/bin:/bin, so the host's Homebrew,
+# /usr/local and real `cruma` are not on it, and `uname` answers Linux x86_64 like the prompts say.
+# PATH is set in the eval workspace's .claude/settings.json and in the run home's shell start-up
+# files (`claude plugin eval` takes it from either, depending on the version). The stand-ins are in
+# the run's home because the eval sandbox allows reading it, and blocks the repository's .eval-work. The scaffold exits 3 when a zsh or bash login shell with only the run's
+# HOME resolves a stand-in anywhere else; whether the sandbox runs them shows only in the run's
+# trace, which scripts/eval-directory.sh scans.
 #   $1 = missing    `cruma` says "command not found" until `npm install -g cruma` runs
 #   $1 = installed  `cruma` answers as the agent version in cli/version.txt
 #   $1 = sandbox    like `missing`, in an environment that does not allow installing, like a hosted chat's

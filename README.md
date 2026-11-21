@@ -362,7 +362,7 @@ scripts/eval-directory.sh                   # scores every directory-* case, the
 scripts/eval-directory.sh --case directory-cli-same-session --runs 1 --keep-temp
 ```
 
-The script keeps every run's temp directory, and fails the suite when a trace contains `Operation not permitted` (the sandbox refused a stand-in, so the agent fell back to the host's tools), `/opt/homebrew` or `Darwin`; a failed scan means the scores do not count. It removes the kept directories afterwards unless `--keep-temp` was passed, in which case `sealed/home/.local/share/directory-shims/calls.log` lists every stand-in call. A Mac and a clean Linux host should then score the same; compare a run on each.
+The script keeps every run's temp directory, and fails the suite when a tool result in a run's `out/trace.jsonl` (what the agent's commands printed, not the model's own words) contains `Operation not permitted` (the sandbox refused a stand-in, so the agent fell back to the host's tools), `/opt/homebrew` or `Darwin`. It also fails when the run kept no temp directory, a kept directory has no `out/trace.jsonl`, or no trace holds any tool result, because then nothing was scanned. A failed scan means the scores do not count. It removes the kept directories afterwards unless `--keep-temp` was passed, in which case `sealed/home/.local/share/directory-shims/calls.log` lists every stand-in call. A Mac and a clean Linux host should then score the same; compare a run on each.
 Every "never runs X" grader sets `min: 0` as well as `max: 0`, because a `tool_used` grader's `min` defaults to 1.
 
 The cases below run against `cruma-local`:
