@@ -28,7 +28,10 @@ If Cruma's MCP tools are in your tool list, go on to section 1. Otherwise:
 
 - **No shell tool:** say that you cannot install or run anything from here, and
   that an AI agent running on their own computer can do it (pointers below).
-  Start nothing.
+  Start nothing. When the user says they already are in such an agent on their
+  own computer (for example "I am in Claude Code on my Mac"), skip the pointers:
+  only running commands is off in this session, so answer with section 2's one
+  method for the machine they describe, as a command for them to run.
 - **A shell tool:** run `cruma --version --json` first (section 1), even when
   the user says it is missing or has already agreed to an install. If it prints
   a version, go on. If it is not found, offer to install it with exactly one
@@ -83,7 +86,7 @@ method from the table, then say, in one message:
 - the one method you would use (the command) and where it comes from;
 - a question: "Shall I run it?"
 
-On a Mac, first look for an existing `Cruma.app` (`ls -d /Applications/Cruma.app
+On a Mac where you can run commands, first look for an existing `Cruma.app` (`ls -d /Applications/Cruma.app
 ~/Applications/Cruma.app`). If there is one, Cruma is installed and `cruma` is
 just not on `PATH`: install nothing and use its `Contents/MacOS/cruma` by full
 path (for example `/Applications/Cruma.app/Contents/MacOS/cruma`) for the rest
@@ -109,12 +112,16 @@ Homebrew row.
 | Anything else | no command: point the user to https://cruma.io for the install options | cruma.io |
 
 On a Mac with neither `brew` nor `npm` there is no command to ask about:
-download nothing and run no installer. Say that the signed, notarized app
-installs from https://cruma.io (its Download button), ask the user to install
-it themselves, and stop until `cruma --version --json` works (a fresh app is
-reached by the full path described above).
+download nothing and run no installer, and give no download steps. Say that
+the signed, notarized app installs from https://cruma.io (its Download button),
+ask the user to install it themselves, and say you will carry on once
+`cruma --version` works (a fresh app is reached by the full path described
+above).
 
-Offer exactly one method and mention no other. There is no Intel Mac build yet
+Offer exactly one method and mention no other. Write out only that row's
+command: never name the command of a row that does not apply, not even to say
+why you skip it (no `brew install` without Homebrew, no `npm install` without
+npm, no disk image, `curl` or script). There is no Intel Mac build yet
 (`uname -m` prints `x86_64` on one): say so and install nothing. Never download
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
