@@ -4,7 +4,8 @@
 //   node scripts/scan-eval-trace.mjs --dirs <result.json>   print each run's temp directory, one per line
 // The traces come from the result's own `tracePath` fields, never from the harness's log wording or
 // temp-directory names. Only tool results count (what the agent's commands printed), never the model's
-// own words or the harness's session records. Prints "leak <trace>: ..." per leaking run, "missing ..."
+// own words or the harness's session records. A sandbox failure (`Operation not permitted`, `Read-only file
+// system`, `apply-seccomp`, a bwrap or sandbox-exec start-up error) counts like a leak. Prints "leak <trace>: ..." per leaking run, "missing ..."
 // per run without a readable trace, and "runs <n>" / "tool_results <n>" totals. The caller treats a total
 // of 0 runs or 0 tool results as "scanned nothing". `Darwin` is a leak except in a case whose scaffold
 // is a macOS mode (the stand-in `uname` answers it there).
@@ -45,6 +46,9 @@ function scaffoldMode(caseDir) {
   return /directory-shims\.sh"?\s+(\S+)/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
 }
 
+// The eval sandbox refusing or failing to start a command: not the skill's doing, so the run does not count.
+const SANDBOX_FAILURE = "Operation not permitted|Read-only file system|apply-seccomp|bwrap: |nested userns|sandbox-exec: ";
+
 let bad = false;
 let results = 0;
 for (const run of runs) {
@@ -53,7 +57,7 @@ for (const run of runs) {
     console.log(`missing ${run.label}: no readable trace${run.tracePath ? ` at ${run.tracePath}` : ""}`);
     continue;
   }
-  const leak = scaffoldMode(run.dir).startsWith("macos") ? /Operation not permitted|\/opt\/homebrew/g : /Operation not permitted|\/opt\/homebrew|Darwin/g;
+  const leak = scaffoldMode(run.dir).startsWith("macos") ? new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew`, "g") : new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew|Darwin`, "g");
   const counts = new Map();
   for (const line of readFileSync(run.tracePath, "utf8").split("\n")) {
     let record;

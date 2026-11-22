@@ -6,8 +6,8 @@
 # with the extra options (not --json: the script owns it), keeps each run's temp directory, and takes the
 # runs' traces from the result's own `tracePath` fields (never from the harness's log wording). It fails
 # if no run, trace or tool result was scanned, or if a tool result in a run's trace shows the host
-# leaking in (scripts/scan-eval-trace.mjs: `Operation not permitted`, /opt/homebrew, Darwin outside
-# the macOS cases). The kept directories are removed afterwards unless --keep-temp was passed.
+# leaking in or the sandbox failing (scripts/scan-eval-trace.mjs: `Operation not permitted`, `Read-only file system`,
+# `apply-seccomp`, bwrap start-up errors, /opt/homebrew, Darwin outside the macOS cases). The kept directories are removed afterwards unless --keep-temp was passed.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scaffold="$root/evals/fake-cruma/directory-shims.sh"
@@ -28,8 +28,18 @@ done
 bin="$tmp/home-missing/.local/bin"
 [ "$("$bin/uname" -sm)" = "Linux x86_64" ] || fail "uname -sm does not answer Linux x86_64"
 "$bin/cruma" --version >/dev/null 2>&1 && fail "cruma answers before npm install -g cruma"
-"$bin/npm" install -g cruma >/dev/null || fail "npm install -g cruma"
-[ "$("$bin/cruma" --version)" = "$(cat "$cli/version.txt")" ] || fail "cruma --version differs from cli/version.txt"
+# `npm install -g cruma` must write nothing under the run's home or workspace (the Linux eval sandbox mounts the home
+# read-only): only a marker in $TMPDIR. With the home made read-only too (not possible as root) it must still succeed.
+mkdir "$tmp/tmpdir" "$tmp/tmpdir-other"
+touch "$tmp/ref"; sleep 1
+[ "$(id -u)" = 0 ] || chmod -R a-w "$tmp/home-missing" "$tmp/ws-missing"
+(cd "$tmp/ws-missing" && TMPDIR="$tmp/tmpdir" "$bin/npm" install -g cruma >/dev/null) || fail "npm install -g cruma"
+chmod -R u+w "$tmp/home-missing" "$tmp/ws-missing"
+changed="$(find "$tmp/home-missing" "$tmp/ws-missing" -newer "$tmp/ref" ! -type d ! -name calls.log)"
+[ -z "$changed" ] || fail "npm install -g cruma wrote into the run's home or workspace: $changed"
+[ -n "$(ls "$tmp/tmpdir")" ] || fail "npm install -g cruma left no marker in \$TMPDIR"
+[ "$(TMPDIR="$tmp/tmpdir" "$bin/cruma" --version)" = "$(cat "$cli/version.txt")" ] || fail "cruma --version differs from cli/version.txt after npm install -g cruma"
+TMPDIR="$tmp/tmpdir-other" "$bin/cruma" --version >/dev/null 2>&1 && fail "cruma answers where npm install -g cruma left no marker"
 "$tmp/home-sandbox/.local/bin/npm" install -g cruma >/dev/null 2>&1 && fail "npm install succeeds in the sandbox mode"
 "$tmp/home-sandbox/.local/bin/curl" -s localhost:3000 >/dev/null 2>&1 && fail "curl reaches localhost in the sandbox mode"
 # Every stand-in below runs with an unwritable log (the eval sandbox may refuse the write): `cruma proxy` must still print its ready line and stay up.
@@ -48,12 +58,13 @@ life="$(sed -n 's/^ *exec sleep \([0-9][0-9]*\)$/\1/p' "$tmp/home-installed/.loc
 [ -n "$life" ] && [ "$life" -ge 86400 ] || fail "the cruma proxy stand-in sleeps ${life:-an unreadable time} seconds after its ready line; it must stay up until killed"
 cmp -s "$tmp/ready.out" "$cli/ready.json" || fail "cruma proxy did not print cli/ready.json without a network"
 [ "$("$tmp/home-macos/.local/bin/uname" -sm)" = "Darwin arm64" ] || fail "macos mode: uname -sm does not answer Darwin arm64"
-"$tmp/home-macos/.local/bin/npm" install -g cruma >/dev/null || fail "macos mode: npm install -g cruma"
+TMPDIR="$tmp/tmpdir" "$tmp/home-macos/.local/bin/npm" install -g cruma >/dev/null || fail "macos mode: npm install -g cruma"
 for tool in npm node; do
-  "$tmp/home-macos-bare/.local/bin/$tool" --version >/dev/null 2>&1 && fail "macos-bare mode: $tool answers"
+  [ ! -e "$tmp/home-macos-bare/.local/bin/$tool" ] || fail "macos-bare mode: a $tool stand-in exists, so command -v $tool finds it"
+  env -i HOME="$tmp/home-macos-bare" PATH="$tmp/home-macos-bare/.local/bin" sh -c "command -v $tool" >/dev/null 2>&1 && fail "macos-bare mode: command -v $tool finds something"
 done
 case "$("$tmp/home-windows/.local/bin/uname" -sm)" in MINGW64_NT-*" x86_64") ;; *) fail "windows mode: uname -sm does not answer MINGW64_NT x86_64" ;; esac
-"$tmp/home-windows/.local/bin/npm" install -g cruma >/dev/null || fail "windows mode: npm install -g cruma"
+TMPDIR="$tmp/tmpdir" "$tmp/home-windows/.local/bin/npm" install -g cruma >/dev/null || fail "windows mode: npm install -g cruma"
 echo "eval-directory: stand-ins resolve first in a login shell of the run's home, check passed"
 [ "$check_only" = 0 ] || exit 0
 

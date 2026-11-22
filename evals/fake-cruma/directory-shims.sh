@@ -17,10 +17,13 @@
 #                   server is elsewhere) and `npm install` fails with no network
 #   $1 = macos      like `missing` on an Apple Silicon Mac (`uname` answers Darwin arm64) that has Node and npm
 #                   but no Homebrew
-#   $1 = macos-bare like `macos` with neither Node nor npm (`node` and `npm` say "command not found")
+#   $1 = macos-bare like `macos` with neither Node nor npm (no `node` or `npm` on PATH at all)
 #   $1 = windows    like `missing` on a Windows 11 PC's Git Bash (`uname` answers MINGW64_NT) that has Node and
 #                   npm but no winget
 # In every mode but `sandbox`, `curl` to localhost/127.0.0.1 answers like the user's dev server.
+# `npm install -g cruma` writes nothing under the run's home (the Linux eval sandbox mounts it read-only):
+# it drops a per-run marker in the first writable of $TMPDIR, /tmp/claude, /tmp and the working directory,
+# and the stand-in `cruma` (always in ~/.local/bin) answers "command not found" until that marker exists.
 # The stand-ins log best-effort: the eval sandbox may refuse the write, and a stand-in (the long-running
 # `cruma proxy` above all) must keep working then.
 set -euo pipefail
@@ -48,6 +51,10 @@ data="$(dirname "$log")/cli"
 # Pasted at the top of every stand-in: a log write that fails (read-only path in the sandbox) is dropped,
 # silently, and never changes what the stand-in does or returns.
 logfn="log() { { echo \"\$*\" >>\"$log\"; } 2>/dev/null || true; }"
+# Where `npm install -g cruma` records that it ran, and where the `cruma` stand-in looks for it.
+id="$$-$RANDOM-$(date +%s)"
+marker="cruma-eval-installed-$id"
+markdirs='"${TMPDIR:-/tmp}" /tmp/claude /tmp "$PWD"'
 mkdir -p "$data"
 cp "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cli/"* "$data/"
 
@@ -84,7 +91,15 @@ if [ "$mode" = sandbox ] && [ "\$1" = install ]; then
   echo "npm error request to https://registry.npmjs.org/cruma failed, reason: getaddrinfo EAI_AGAIN registry.npmjs.org" >&2
   exit 1
 elif [ "\$1 \$2 \$3" = "install -g cruma" ]; then
-  cp "$bin/cruma-installed" "$bin/cruma"
+  ok=0
+  for d in $markdirs; do
+    if { : >"\$d/$marker"; } 2>/dev/null; then ok=1; break; fi
+  done
+  if [ "\$ok" != 1 ]; then
+    echo "npm error code EACCES" >&2
+    echo "npm error Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/cruma'" >&2
+    exit 243
+  fi
   echo "added 1 package in 2s"
 else
   echo "npm (eval stand-in): unsupported: \$*" >&2; exit 2
@@ -142,17 +157,25 @@ case " \$* " in
 esac
 STUB
 
-if [ "$mode" = macos-bare ]; then
-  for tool in npm node; do
-    printf '#!/bin/sh\necho "%s: command not found" >&2\nexit 127\n' "$tool" >"$bin/$tool"
-  done
-fi
 if [ "$mode" = installed ]; then
   cp "$bin/cruma-installed" "$bin/cruma"
 else
-  printf '#!/bin/sh\necho "cruma: command not found" >&2\nexit 127\n' >"$bin/cruma"
+  cat >"$bin/cruma" <<STUB
+#!/bin/sh
+for d in $markdirs; do
+  [ -e "\$d/$marker" ] && exec "$bin/cruma-installed" "\$@"
+done
+echo "cruma: command not found" >&2
+exit 127
+STUB
 fi
-chmod +x "$bin/cruma" "$bin/cruma-installed" "$bin/npm" "$bin/node" "$bin/uname" "$bin/curl" "$bin/claude"
+# A Mac without Node has no npm or node on PATH at all, so `command -v npm` finds nothing.
+tools="cruma cruma-installed npm node uname curl claude"
+if [ "$mode" = macos-bare ]; then
+  rm -f "$bin/npm" "$bin/node"
+  tools="cruma cruma-installed uname curl claude"
+fi
+for tool in $tools; do chmod +x "$bin/$tool"; done
 
 # Never write into a plugin source tree or over an existing settings file.
 if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
@@ -176,14 +199,20 @@ for rc in .zshenv .zprofile .zshrc .bashrc .bash_profile .profile; do
 done
 
 # Fail closed: an unisolated run is an error, never a score. Resolve every stand-in the way the
-# agent's Bash will (a login shell with only the run's HOME) and require it to come from $bin.
+# agent's Bash will (a login shell with only the run's HOME) and require it to come from $bin
+# (in macos-bare, `npm` and `node` must not resolve at all).
 # This cannot see the eval sandbox: the harness's `Operation not permitted` on a stand-in only
 # shows in a run's trace, which scripts/eval-directory.sh scans for.
 for sh in zsh bash; do
   shell="$(command -v "$sh" 2>/dev/null)" || continue
   for tool in cruma npm node uname curl claude; do
     found="$(env -i HOME="$HOME" PATH=/usr/bin:/bin "$shell" -lic "command -v $tool" 2>/dev/null | tail -n 1 || true)"
-    if [ "$found" != "$bin/$tool" ]; then
+    if [ "$mode" = macos-bare ] && { [ "$tool" = npm ] || [ "$tool" = node ]; }; then
+      if [ -n "$found" ]; then
+        echo "directory-shims: $tool resolves to '$found' in a $sh login shell, but macos-bare has neither Node nor npm; refusing to run an unisolated eval" >&2
+        exit 3
+      fi
+    elif [ "$found" != "$bin/$tool" ]; then
       echo "directory-shims: $tool resolves to '${found:-nothing}' in a $sh login shell, not to $bin/$tool; refusing to run an unisolated eval" >&2
       exit 3
     fi
