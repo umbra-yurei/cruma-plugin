@@ -346,16 +346,27 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 | `directory-mcp-present` | with the `cruma` MCP tools present, `expose_local_port` is used and no install, `claude mcp add`, `cruma proxy` or `cruma serve` appears (generated mocks in `mocks/cruma/`, the user-added `cruma` server) |  |  |
 | `directory-install-declined` | the user declines: nothing is installed or shared (no `npm`/`brew`/`cruma proxy` command, no `curl` other than a localhost probe), the manual command or cruma.io is given, and no other way of publishing is used |  |  |
 
-The `directory-*` cases that run commands (all except `directory-mcp-present`, `directory-chat-no-shell` and the three
-`directory-install-*` cases that only ask) need
-`--scaffold --allow-tools Bash`. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` (`directory-chat-sandbox` passes `sandbox`, where `npm install` fails with no network and the `curl` stand-in cannot connect to `localhost`; in the other modes a `curl` to `localhost` answers like the user's dev server), which puts
-stand-in `npm`, `node`, `uname`, `curl`, `claude` and `cruma` commands in the run's own home directory: nothing is installed,
-added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent
-runs Bash as you with no OS sandbox, so the scaffold also writes the eval workspace's `.claude/settings.json`
-with `env.PATH` set to that directory plus `/usr/bin:/bin`, and writes the same `PATH` into the run home's shell start-up files (`.zshenv`, `.bashrc`, `.bash_profile`, `.profile`), because newer `claude plugin eval` runs take the Bash tool's `PATH` from the login shell; the host's Homebrew, `/usr/local` and real
-`cruma` are then not on the agent's `PATH`, and the stand-in `uname` answers Linux x86_64 like the prompts say.
-A scored run is only meaningful with that isolation in place: check with `--keep-temp` that the workspace
-has the `.claude/settings.json` and that no trace shows `/opt/homebrew`, a real `cruma` version or `Darwin`.
+Every `directory-*` case needs
+`--scaffold --allow-tools Bash`, including the ones that only ask or answer in text (`directory-chat-no-shell`, the three
+`directory-install-*` cases, `directory-mcp-present`): with Bash granted, an unscaffolded case would reach the host's own tools. Their `scaffold.sh` calls `evals/fake-cruma/directory-shims.sh` with the mode that matches the prompt: `sandbox` for `directory-chat-sandbox` and `directory-chat-no-shell` (a hosted chat's container: `npm install` fails with no network and the `curl` stand-in cannot connect to `localhost`), `macos` for `directory-install-macos-npm` (`uname` answers `Darwin arm64`; Node and npm, no Homebrew), `macos-bare` for `directory-install-macos-download-page` (as `macos`, but there is no `node` or `npm` on the `PATH` at all, so `command -v npm` finds nothing), `windows` for `directory-install-windows-npm` (`uname` answers a Git Bash `MINGW64_NT`; Node and npm, no winget), and `missing` or `installed` for the rest (`uname` answers Linux x86_64; a `curl` to `localhost` answers like the user's dev server). The scaffold puts
+stand-in `npm`, `node`, `uname`, `curl`, `claude` and `cruma` commands in the run's own home directory (the one place the eval sandbox lets the agent run them from): nothing is installed,
+added or shared for real, and the `tool_used` graders read the command lines the agent runs. The agent's Bash gets its `PATH` from the
+workspace's `.claude/settings.json` or from a login-shell snapshot, depending on the `claude` version, so the scaffold sets `PATH` to that directory plus `/usr/bin:/bin` in both, and in the run home's shell start-up files (`.zshenv`, `.zprofile`, `.zshrc`, `.bashrc`, `.bash_profile`, `.profile`; macOS runs `path_helper` before `.zshenv`, which would put `/usr/bin` first). The host's Homebrew, `/usr/local` and real
+`cruma` are then not on the agent's `PATH`, and the stand-in `uname` answers the platform the prompt names (Linux x86_64 unless the mode says otherwise).
+`npm install -g cruma` writes nothing under the run's home or workspace (the Linux eval sandbox mounts the home read-only): it drops a per-run marker in the first writable of `$TMPDIR`, `/tmp/claude`, `/tmp` and the working directory, and the `cruma` stand-in (always in the home's `.local/bin`) answers "command not found" until that marker exists.
+Every stand-in logs best-effort: a write to `calls.log` the sandbox refuses is dropped silently, so a stand-in (above all the long-running `cruma proxy`) still prints its output and stays up.
+The scaffold **fails the run** (exit 3 naming the tool) when a zsh or bash login shell with only the run's home resolves a stand-in anywhere else (or, in `macos-bare`, resolves `npm` or `node` at all, which a host with Node in `/usr/bin` does: use a host without it), so an unisolated run is an error and never a score.
+It cannot see the eval sandbox itself, so **start these cases with `scripts/eval-directory.sh`**, not a bare `claude plugin eval`:
+
+```sh
+scripts/eval-directory.sh --check-only      # no model call: runs the scaffold in throwaway homes and checks the stand-ins
+scripts/eval-directory.sh                   # scores every directory-* case, then scans each run's trace
+scripts/eval-directory.sh --case directory-cli-same-session --runs 1 --keep-temp
+```
+
+The script runs the suite with `--keep-temp --json <file>` (it owns `--json`; use `--output-dir` for the harness's result files), reads each run's `out/trace.jsonl` from the `tracePath` fields of that result (never from the harness's log wording or its temp-directory names, which differ between `claude` versions and between macOS and Linux), and fails the suite when a tool result in a trace (what the agent's commands printed, not the model's own words) contains `Operation not permitted` (the sandbox refused a stand-in, so the agent fell back to the host's tools), `Read-only file system`, `apply-seccomp` or another sandbox start-up error (the sandbox itself failed, so the run measures the host, not the skill), `/opt/homebrew` or, outside the macOS cases, `Darwin`. It also fails when the result lists no run, a run has no readable trace, or no trace holds any tool result, because then nothing was scanned. A failed scan means the scores do not count. It removes the kept directories afterwards unless `--keep-temp` was passed, in which case `sealed/home/.local/share/directory-shims/calls.log` lists the stand-in calls the sandbox let through. A Mac and a clean Linux host should then score the same; compare a run on each.
+
+**Linux hosts.** On Ubuntu 23.10+ AppArmor confines `/usr/bin/bwrap` (`unpriv_bwrap`), so every Bash call in the eval sandbox dies with `apply-seccomp: ... Permission denied` and the scan fails the run. Run on a Debian host, or in a Debian container: `podman run --security-opt apparmor=unconfined --security-opt seccomp=unconfined --security-opt unmask=ALL ... node:22-bookworm` as a non-root user with `claude` installed and signed in, and move bwrap from `/usr/bin/bwrap` to `/usr/local/bin/bwrap` inside it (the AppArmor rule matches the path even in a container).
 Every "never runs X" grader sets `min: 0` as well as `max: 0`, because a `tool_used` grader's `min` defaults to 1.
 
 The cases below run against `cruma-local`:
@@ -406,7 +417,7 @@ The cases below run against `cruma-local`:
 | `trigger-*` | "serve this folder", "put a password on my site", "run two sites at once" and "help me with my Cruma app" load the skill; "deploy to Vercel" does not |  |  |
 
 Stage a plugin's cases with `node scripts/stage-evals.mjs <cruma|cruma-local|cruma-cloud>`, then run
-`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (add `--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). The `settings-*`
+`claude plugin eval .eval-work/<plugin> --trust-plugin --scaffold` (for the `cruma` plugin's `directory-*` cases use `scripts/eval-directory.sh` instead, as above). The `settings-*`
 cases need `--scaffold`: their `scaffold.sh` puts a stand-in `cruma` (from
 `evals/fake-cruma/install.sh`) in the run's own home directory, whose
 `agent-context` prints the case's note, so the hook runs exactly as with a real
@@ -592,7 +603,7 @@ To score the core cases in Codex as well, run `node scripts/codex-eval.mjs`
 logged in to Codex (see [Running cases in Codex](#running-cases-in-codex)).
 
 Add `--case <glob>` to run only the cases the change touched, and
-`--allow-tools` where a case needs it (`--allow-tools Bash` for the `cruma` plugin's `directory-*` cases). Post on the task's thread:
+`--allow-tools` where a case needs it (the `cruma` plugin's `directory-*` cases run through `scripts/eval-directory.sh`, which grants Bash). Post on the task's thread:
 the agent version, the exit code, the cost line, and the per-case table
 (`CASE SCORE PASS% RUNS COST NOTES`, covering both the with-plugin and the
 no-plugin baseline arm).
