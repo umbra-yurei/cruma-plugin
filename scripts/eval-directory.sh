@@ -5,12 +5,12 @@
 # Otherwise: starts one `claude plugin eval --scaffold --case <name> --json <file>` per directory-* case (`--case <glob>`
 # picks them; default 'directory-*'), granting each case exactly the gated tools its prompt.md `allowed_tools` declares
 # (`--allow-tools Bash` for `[Skill, Bash]`, no grant for `[Skill]`: scripts/eval-grants.mjs), with the other options
-# (not --json or --allow-tools: the script owns them), keeps each run's temp directory, and takes the
+# (not --json, --allow-tools or --output-dir: the script owns them), keeps each run's temp directory, and takes the
 # runs' traces from the result's own `tracePath` fields (never from the harness's log wording). It fails
 # if no run, trace or tool result was scanned, or if a tool result in a run's trace shows the host
 # leaking in or the sandbox failing (scripts/scan-eval-trace.mjs: `Operation not permitted`, `Read-only file system`,
 # `apply-seccomp`, bwrap start-up errors, /opt/homebrew, Darwin outside the macOS cases, the host's Cruma.app,
-# a `"build_flavor":"gui"` version). The kept directories are removed afterwards unless --keep-temp was passed.
+# a `"build_flavor":"gui"` version, a Bash call in a case whose allowed_tools has no Bash). The kept directories are removed afterwards unless --keep-temp was passed.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scaffold="$root/evals/fake-cruma/directory-shims.sh"
@@ -30,8 +30,9 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --case) [ $# -ge 2 ] || fail "--case needs a glob"; case_glob="$2"; shift 2; continue ;;
     --case=*) case_glob="${1#--case=}" ;;
-    --keep-temp) keep=1 ;;
-    --json|--json=*) fail "the script owns --json (it reads the runs' traces from it); use --output-dir for the harness's result files" ;;
+    --keep-temp) keep=1; shift; continue ;;
+    --output-dir|--output-dir=*) fail "the script owns --output-dir: every case is a separate run and its result file would overwrite the last" ;;
+    --json|--json=*) fail "the script owns --json (it reads the runs' traces from it); the result files are kept with --keep-temp" ;;
     --allow-tools|--allow-tools=*) fail "the script owns --allow-tools: each case is granted exactly the gated tools its prompt.md allowed_tools declares" ;;
   esac
   case "$1" in --case=*) ;; *) harness_args+=("$1") ;; esac

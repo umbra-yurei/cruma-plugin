@@ -17,15 +17,15 @@ test("a case is granted exactly the gated tools it declares", () => {
   assert.deepEqual(grantedTools([]), []);
 });
 
-test("the directory-* cases that declare [Skill] only get no Bash, the others get Bash", () => {
+test("only the no-shell and mock-tool cases run without Bash; the macOS and Windows install cases keep their shell", () => {
   const grants = Object.fromEntries(directoryCases().map(({ name, grant }) => [name, grant]));
-  for (const name of ["directory-chat-no-shell", "directory-install-macos-download-page", "directory-install-macos-npm", "directory-install-windows-npm", "directory-mcp-present"]) {
+  for (const name of ["directory-chat-no-shell", "directory-mcp-present"]) {
     assert.deepEqual(grants[name], [], name);
   }
-  for (const name of ["directory-agent-missing", "directory-chat-sandbox", "directory-cli-same-session", "directory-sandbox-install-fails"]) {
+  for (const name of ["directory-agent-missing", "directory-chat-sandbox", "directory-cli-same-session", "directory-sandbox-install-fails", "directory-install-macos-download-page", "directory-install-macos-npm", "directory-install-windows-npm"]) {
     assert.deepEqual(grants[name], ["Bash"], name);
   }
-  assert.deepEqual(directoryCases("directory-install-macos-*").map(({ name }) => name), ["directory-install-macos-download-page", "directory-install-macos-npm"]);
+  assert.deepEqual(directoryCases("directory-install-macos-*").map(({ name, grant }) => [name, grant]), [["directory-install-macos-download-page", ["Bash"]], ["directory-install-macos-npm", ["Bash"]]]);
   assert.deepEqual(directoryCases("directory-chat-no-shell").map(({ name }) => name), ["directory-chat-no-shell"]);
   assert.deepEqual(directoryCases("nothing-*"), []);
 });
@@ -37,15 +37,23 @@ test("the case glob knows * and ? and takes every other character literally", ()
   assert.ok(!globMatches("a.c", "abc"));
 });
 
-// One run's trace holding the given tool results, scanned for a case whose scaffold is `mode`.
+// One run's trace holding the given tool results (after `bashCalls` Bash tool_use records), scanned for a case
+// whose scaffold is `mode` and whose prompt.md declares `allowedTools`.
 function scan(mode, ...outputs) {
+  return scanRun(mode, "[Skill, Bash]", 0, ...outputs);
+}
+
+function scanRun(mode, allowedTools, bashCalls, ...outputs) {
   const dir = mkdtempSync(join(tmpdir(), "scan-"));
   const caseDir = join(dir, "case");
   mkdirSync(caseDir);
   writeFileSync(join(caseDir, "scaffold.sh"), `exec bash "$here/../fake-cruma/directory-shims.sh" ${mode}\n`);
+  writeFileSync(join(caseDir, "prompt.md"), `---\nallowed_tools: ${allowedTools}\n---\n\nInstall it.\n`);
   const tracePath = join(dir, "out", "trace.jsonl");
   mkdirSync(join(dir, "out"));
-  writeFileSync(tracePath, outputs.map((text) => JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", content: text }] } })).join("\n"));
+  const calls = Array.from({ length: bashCalls }, () => ({ type: "assistant", message: { content: [{ type: "tool_use", name: "Bash", input: { command: "ls" } }] } }));
+  const results = outputs.map((text) => ({ type: "user", message: { content: [{ type: "tool_result", content: text }] } }));
+  writeFileSync(tracePath, [...calls, ...results].map((record) => JSON.stringify(record)).join("\n"));
   const result = join(dir, "result.json");
   writeFileSync(result, JSON.stringify({ suite: { root: dir }, cases: [{ name: "case", dir: "case", arms: { with: [{ tracePath }] } }] }));
   const run = spawnSync("node", [join(root, "scripts/scan-eval-trace.mjs"), result], { encoding: "utf8" });
@@ -82,6 +90,15 @@ test("the scanner passes the stand-in's own answers", () => {
   }
   assert.equal(scan("macos", "Darwin").status, 0);
   assert.equal(scan("missing", "Darwin").status, 1);
+});
+
+test("the scanner fails a Bash call in a case that does not declare Bash, and only there", () => {
+  const undeclared = scanRun("macos", "[Skill]", 2, "Darwin");
+  assert.equal(undeclared.status, 1);
+  assert.match(undeclared.out, /^leak case with#1 .*: 2 x Bash call without Bash in allowed_tools/m);
+  assert.equal(scanRun("macos", "[Skill, Bash]", 2, "Darwin").status, 0);
+  assert.equal(scanRun("macos", "[Skill, Bash(npm test:*)]", 1, "Darwin").status, 0);
+  assert.equal(scanRun("macos", "[Skill]", 0, "Darwin").status, 0);
 });
 
 test("the stand-in ls and open hide the host's Cruma app, and the Mac workspace settings deny reading it", () => {

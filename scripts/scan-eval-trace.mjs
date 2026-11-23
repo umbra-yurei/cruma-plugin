@@ -10,9 +10,11 @@
 // of 0 runs or 0 tool results as "scanned nothing". `Darwin` is a leak except in a case whose scaffold
 // is a macOS mode (the stand-in `uname` answers it there). The developer's own Cruma app is a leak in every
 // case: a line of output that shows a `Cruma*.app` that exists (one that is not a "No such file or directory" answer)
-// and a `"build_flavor":"gui"` version string (the stand-in `cruma` is a `server-agent`).
+// and a `"build_flavor":"gui"` version string (the stand-in `cruma` is a `server-agent`). A Bash call in a case
+// whose prompt.md `allowed_tools` has no Bash is a leak too: the run was not limited to what the case declares.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { parseFrontmatter } from "./codex-grade.mjs";
 
 const args = process.argv.slice(2);
 const listDirs = args[0] === "--dirs";
@@ -48,6 +50,14 @@ function scaffoldMode(caseDir) {
   return /directory-shims\.sh"?\s+(\S+)/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
 }
 
+// Whether the case's prompt.md declares Bash; a case without a readable prompt.md is not judged.
+function declaresBash(caseDir) {
+  const file = join(resolve(root, caseDir ?? ""), "prompt.md");
+  if (!existsSync(file)) return true;
+  const tools = parseFrontmatter(readFileSync(file, "utf8")).fields.allowed_tools ?? [];
+  return tools.some((tool) => tool === "Bash" || tool.startsWith("Bash("));
+}
+
 // The eval sandbox refusing or failing to start a command: not the skill's doing, so the run does not count.
 const SANDBOX_FAILURE = "Operation not permitted|Read-only file system|apply-seccomp|bwrap: |nested userns|sandbox-exec: ";
 
@@ -56,6 +66,7 @@ const HOST_APP = /\/Applications\/Cruma[^/\n]*\.app/;
 const APP_ABSENT = /No such file or directory|cannot access|not found|Unable to find|does not exist/i;
 const HOST_APP_LEAK = "/Applications/Cruma.app";
 const GUI_BUILD = /"build_flavor"\s*:\s*"gui"/g;
+const UNDECLARED_BASH = "Bash call without Bash in allowed_tools";
 const GUI_BUILD_LEAK = '"build_flavor":"gui"';
 
 let bad = false;
@@ -68,10 +79,14 @@ for (const run of runs) {
   }
   const leak = scaffoldMode(run.dir).startsWith("macos") ? new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew`, "g") : new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew|Darwin`, "g");
   const counts = new Map();
+  const bashAllowed = declaresBash(run.dir);
   for (const line of readFileSync(run.tracePath, "utf8").split("\n")) {
     let record;
     try { record = JSON.parse(line); } catch { continue; }
     const content = record?.message?.content;
+    if (!bashAllowed && record?.type === "assistant" && Array.isArray(content)) {
+      for (const block of content) if (block?.type === "tool_use" && block?.name === "Bash") counts.set(UNDECLARED_BASH, (counts.get(UNDECLARED_BASH) ?? 0) + 1);
+    }
     if (record?.type !== "user" || !Array.isArray(content)) continue;
     for (const block of content) {
       if (block?.type !== "tool_result") continue;
