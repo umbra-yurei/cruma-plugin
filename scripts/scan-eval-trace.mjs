@@ -8,7 +8,9 @@
 // system`, `apply-seccomp`, a bwrap or sandbox-exec start-up error) counts like a leak. Prints "leak <trace>: ..." per leaking run, "missing ..."
 // per run without a readable trace, and "runs <n>" / "tool_results <n>" totals. The caller treats a total
 // of 0 runs or 0 tool results as "scanned nothing". `Darwin` is a leak except in a case whose scaffold
-// is a macOS mode (the stand-in `uname` answers it there).
+// is a macOS mode (the stand-in `uname` answers it there). The developer's own Cruma app is a leak in every
+// case: a line of output that shows a `Cruma*.app` that exists (one that is not a "No such file or directory" answer)
+// and a `"build_flavor":"gui"` version string (the stand-in `cruma` is a `server-agent`).
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
@@ -49,6 +51,13 @@ function scaffoldMode(caseDir) {
 // The eval sandbox refusing or failing to start a command: not the skill's doing, so the run does not count.
 const SANDBOX_FAILURE = "Operation not permitted|Read-only file system|apply-seccomp|bwrap: |nested userns|sandbox-exec: ";
 
+// A line naming the host's app is the leak, unless it is the answer that the app is not there.
+const HOST_APP = /\/Applications\/Cruma[^/\n]*\.app/;
+const APP_ABSENT = /No such file or directory|cannot access|not found|Unable to find|does not exist/i;
+const HOST_APP_LEAK = "/Applications/Cruma.app";
+const GUI_BUILD = /"build_flavor"\s*:\s*"gui"/g;
+const GUI_BUILD_LEAK = '"build_flavor":"gui"';
+
 let bad = false;
 let results = 0;
 for (const run of runs) {
@@ -71,6 +80,11 @@ for (const run of runs) {
         ? block.content
         : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "";
       for (const hit of text.match(leak) ?? []) counts.set(hit, (counts.get(hit) ?? 0) + 1);
+      for (const line of text.split("\n")) {
+        if (HOST_APP.test(line) && !APP_ABSENT.test(line)) counts.set(HOST_APP_LEAK, (counts.get(HOST_APP_LEAK) ?? 0) + 1);
+      }
+      const guiBuilds = text.match(GUI_BUILD)?.length ?? 0;
+      if (guiBuilds > 0) counts.set(GUI_BUILD_LEAK, (counts.get(GUI_BUILD_LEAK) ?? 0) + guiBuilds);
     }
   }
   if (counts.size > 0) {
