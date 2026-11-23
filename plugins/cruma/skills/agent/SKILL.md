@@ -114,8 +114,8 @@ installs from https://cruma.io (its Download button), ask the user to install
 it themselves, and stop until `cruma --version --json` works (a fresh app is
 reached by the full path described above).
 
-Offer exactly one method and mention no other. There is no Intel Mac build yet
-(`uname -m` prints `x86_64` on one): say so and install nothing. Never download
+Offer exactly one method and mention no other. Cruma on macOS needs Apple Silicon
+(`uname -m` prints `x86_64` on a Mac without it): say so and install nothing. Never download
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`; if it is, do not install again: the `cruma` command then needs a newly opened
