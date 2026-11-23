@@ -438,8 +438,8 @@ the Linux section below applies as well.
 
 #### macOS
 
-Apple Silicon only. There is no Intel Mac build yet (`uname -m` prints
-`x86_64` on one): say so and install nothing. First look for an existing app
+Cruma on macOS needs Apple Silicon (`uname -m` prints
+`x86_64` on a Mac without it): say so and install nothing. First look for an existing app
 (`ls -d /Applications/Cruma.app ~/Applications/Cruma.app`): if there is one,
 Cruma is installed and `cruma` is just not on `PATH`; install nothing and use
 its `Contents/MacOS/cruma` by full path (step 7 below).
