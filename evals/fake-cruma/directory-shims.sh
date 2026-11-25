@@ -233,7 +233,8 @@ fi
 for tool in $tools; do chmod +x "$bin/$tool"; done
 
 # Never write into a plugin source tree or over an existing settings file.
-# On a Mac the sandbox also refuses reading the host's Cruma app, for the probes that go round the `ls` stand-in.
+# On a Mac the sandbox also refuses reading the host's Cruma app, for the probes that go round the `ls` stand-in,
+# and Read deny rules cover the Read, Glob and Grep tools, which the sandbox does not confine and no stand-in answers.
 if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
   mkdir -p .claude
   sandbox=""
@@ -243,6 +244,9 @@ if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
     \"filesystem\": {
       \"denyRead\": [\"$host_apps/Cruma.app\"]
     }
+  },
+  \"permissions\": {
+    \"deny\": [\"Read(/$host_apps/Cruma.app)\", \"Read(/$host_apps/Cruma.app/**)\", \"Read(//opt/homebrew/**)\"]
   }"
   fi
   cat >.claude/settings.json <<SETTINGS

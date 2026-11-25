@@ -79,12 +79,15 @@ for (const run of runs) {
   }
   const leak = scaffoldMode(run.dir).startsWith("macos") ? new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew`, "g") : new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew|Darwin`, "g");
   const counts = new Map();
+  const calls = new Map(); // tool_use id -> "Name {input}", so a leak names the call that produced it
+  const culprits = [];
   const bashAllowed = declaresBash(run.dir);
   for (const line of readFileSync(run.tracePath, "utf8").split("\n")) {
     let record;
     try { record = JSON.parse(line); } catch { continue; }
     const content = record?.message?.content;
     if (!bashAllowed && record?.type === "assistant" && Array.isArray(content)) {
+      for (const block of content) if (block?.type === "tool_use") calls.set(block.id, `${block.name} ${JSON.stringify(block.input ?? {}).slice(0, 300)}`);
       for (const block of content) if (block?.type === "tool_use" && block?.name === "Bash") counts.set(UNDECLARED_BASH, (counts.get(UNDECLARED_BASH) ?? 0) + 1);
     }
     if (record?.type !== "user" || !Array.isArray(content)) continue;
@@ -94,17 +97,20 @@ for (const run of runs) {
       const text = typeof block.content === "string"
         ? block.content
         : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "";
-      for (const hit of text.match(leak) ?? []) counts.set(hit, (counts.get(hit) ?? 0) + 1);
+      let leaked = false;
+      for (const hit of text.match(leak) ?? []) { counts.set(hit, (counts.get(hit) ?? 0) + 1); leaked = true; }
       for (const line of text.split("\n")) {
-        if (HOST_APP.test(line) && !APP_ABSENT.test(line)) counts.set(HOST_APP_LEAK, (counts.get(HOST_APP_LEAK) ?? 0) + 1);
+        if (HOST_APP.test(line) && !APP_ABSENT.test(line)) { counts.set(HOST_APP_LEAK, (counts.get(HOST_APP_LEAK) ?? 0) + 1); leaked = true; }
       }
       const guiBuilds = text.match(GUI_BUILD)?.length ?? 0;
-      if (guiBuilds > 0) counts.set(GUI_BUILD_LEAK, (counts.get(GUI_BUILD_LEAK) ?? 0) + guiBuilds);
+      if (guiBuilds > 0) { counts.set(GUI_BUILD_LEAK, (counts.get(GUI_BUILD_LEAK) ?? 0) + guiBuilds); leaked = true; }
+      if (leaked && culprits.length < 5) culprits.push(calls.get(block.tool_use_id) ?? "unknown call");
     }
   }
   if (counts.size > 0) {
     bad = true;
     console.log(`leak ${run.label} (${run.tracePath}): ${[...counts].map(([k, n]) => `${n} x ${k}`).join(", ")}`);
+    for (const call of culprits) console.log(`  by ${call}`);
   }
 }
 console.log(`runs ${runs.length}`);

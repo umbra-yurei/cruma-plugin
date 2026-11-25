@@ -132,4 +132,6 @@ test("the stand-in ls and open hide the host's Cruma app, and the Mac workspace 
 
   const settings = readFileSync(join(workspace, ".claude/settings.json"), "utf8");
   assert.deepEqual(JSON.parse(settings).sandbox.filesystem.denyRead, [join(apps, "Cruma.app")]);
+  // The Read, Glob and Grep tools are not confined by the sandbox: Read deny rules keep them off the app.
+  assert.deepEqual(JSON.parse(settings).permissions.deny, [`Read(/${join(apps, "Cruma.app")})`, `Read(/${join(apps, "Cruma.app")}/**)`, "Read(//opt/homebrew/**)"]);
 });
