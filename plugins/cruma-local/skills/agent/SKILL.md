@@ -511,17 +511,13 @@ asking whether they want to go ahead or need anything else.
 
 #### Windows
 
-Find the current Microsoft Store product ID:
+Install the Microsoft Store listing without prompts:
 
 ```powershell
-winget search Cruma --source msstore
+winget install --id 9NXKT3W34HVL --source msstore --accept-package-agreements --accept-source-agreements
 ```
 
-Then install the matching product ID with:
-
-```powershell
-winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements
-```
+A new terminal then has `cruma` on its PATH; check with `cruma --version`.
 
 If Winget or its Microsoft Store source is unavailable and `npm` is installed,
 offer exactly `npm install -g cruma` instead, and say it is the terminal agent
