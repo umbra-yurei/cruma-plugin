@@ -54,21 +54,30 @@ support what the user asked for, say so; do not invent a setting or a tool.
 
 ### Whose Cruma
 
-The tools start attached to a **temporary session agent**: an anonymous tunnel
-that your windows share and that holds nothing the user saved. It is not the
-user's own Cruma.
+The tools start attached either to the sole running user agent, or to a
+**temporary session agent** when no user agent or several user agents run. The
+temporary agent is an anonymous tunnel that your windows share and that holds
+nothing the user saved. Read `attached` from `list_agents`; do not assume which
+kind is attached.
 
 **Before the first share in a session**, call `list_agents` once (it reads
 nothing from any agent, so it is fine first). Decide from its typed fields only:
-`running`, `kind`, `attached`, `starter`, `start_hint`, `channel` and
-`tunnel_account`. Never infer whether the desktop app is installed or usable,
+`running`, `kind`, `attached`, `starter`, `start_hint`, `channel`, `version`,
+`account.state` and `tunnel_plan`. Never infer whether the desktop app is installed or usable,
 who owns an agent, how it started or which release it runs from prose, process
 names, shell output or a remembered machine setup.
 
-- **A desktop agent is running:** ask once whether to use that visible agent or
-  the session agent, even for a quick share. Name its profile and domain from
-  the result. Share nothing until the user answers; after yes, call `use_agent`
-  and start no agent. Remember the choice for later shares in this session.
+- **Exactly one user agent runs:** `cruma mcp` already attaches to it. Do not
+  present a false choice and do not call `use_agent`; make the share on the
+  attached agent.
+- **Several user agents run:** ask once before sharing anything. Name every
+  running choice with its kind, profile (when present), channel, version,
+  domain, `account.state` (anonymous or signed in), and plan (or "plan not
+  reported" when `tunnel_plan` is absent). Also name the temporary option: a
+  random address, browser warning page, time limit, and removal with the
+  session. Share nothing until the user answers; after a choice, call
+  `use_agent` and start no agent. Remember the choice for later shares in this
+  session.
 - **A lasting share is requested and a stopped desktop profile is listed:**
   offer to open the desktop app. Wait for yes before `open_desktop_app`; the
   visible app owns the share's lasting lifecycle. Do not silently start or keep

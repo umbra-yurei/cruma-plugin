@@ -6,9 +6,20 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma-local/mcp/environment.mjs";
-import { ORIGIN_ARGS, launch } from "../plugins/cruma-local/mcp/launcher.mjs";
+import { ORIGIN_ARGS, candidatePaths, launch } from "../plugins/cruma-local/mcp/launcher.mjs";
 import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
 import { LAUNCHER_FLAG as CLOUD_LAUNCHER_FLAG, buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
+
+test("fallback discovery includes system and per-user Preview and stable apps", () => {
+  const candidates = candidatePaths(undefined, "/Users/alice");
+  assert.deepEqual(candidates.slice(0, 4), [
+    "/Applications/Cruma Preview.app/Contents/MacOS/cruma",
+    "/Users/alice/Applications/Cruma Preview.app/Contents/MacOS/cruma",
+    "/Applications/Cruma.app/Contents/MacOS/cruma",
+    "/Users/alice/Applications/Cruma.app/Contents/MacOS/cruma",
+  ]);
+  assert.equal(candidates.at(-1), "cruma");
+});
 
 test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
   const environment = buildEnvironment({

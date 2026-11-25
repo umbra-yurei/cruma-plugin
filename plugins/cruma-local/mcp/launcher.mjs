@@ -5,9 +5,10 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { buildEnvironment } from "./environment.mjs";
 
-export function candidatePaths(localAppData) {
-  const home = homedir();
+export function candidatePaths(localAppData, home = homedir()) {
   return [
+    "/Applications/Cruma Preview.app/Contents/MacOS/cruma",
+    join(home, "Applications", "Cruma Preview.app", "Contents", "MacOS", "cruma"),
     "/Applications/Cruma.app/Contents/MacOS/cruma",
     join(home, "Applications", "Cruma.app", "Contents", "MacOS", "cruma"),
     "/opt/homebrew/bin/cruma",

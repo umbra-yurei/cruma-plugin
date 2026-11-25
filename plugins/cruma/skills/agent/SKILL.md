@@ -239,9 +239,11 @@ provider setup. Narrow it with exact `emails`, `email_domains` or one
 `organization`; an organization restriction needs the agent itself signed in,
 and an anonymous agent returns a typed error. The policy ends with the share.
 Before the first share of a session, call `list_agents` once. Choose from its
-typed running/kind/attached/starter/start-hint/channel facts, never from prose,
-process scraping or CLI output. If a desktop agent is running, ask once whether
-to use it and call `use_agent` only after yes; start nothing. For a lasting
+typed running/kind/attached/starter/start-hint/channel/version/account-state/plan
+facts, never from prose, process scraping or CLI output. With exactly one user
+agent, use the already attached agent without a false choice or `use_agent`.
+With several, ask once and name every choice's kind, profile, channel, version,
+domain, account state and plan; call `use_agent` only after the answer. For a lasting
 share with an installed but stopped desktop app, offer to open it and wait for
 yes: the visible app owns that lifecycle. For a quick share, or where no GUI is
 available (SSH, CI, a container or server), use the session-owned headless
