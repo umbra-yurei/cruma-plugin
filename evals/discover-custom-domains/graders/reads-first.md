@@ -1,5 +1,5 @@
 ---
 type: regex
 target: mock_calls
-pattern: '(?:mcp__plugin_cruma_cruma__(describe_cruma|get_config_model_reference))'
+pattern: '(?:mcp__plugin_cruma-local_cruma__(describe_cruma|get_config_model_reference))'
 ---

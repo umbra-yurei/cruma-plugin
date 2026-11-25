@@ -1,0 +1,27 @@
+Serve a local directory as a static file server
+
+Usage: cruma serve [OPTIONS] <PATH>
+
+Arguments:
+  <PATH>  The local directory path to serve (e.g., ./public or /var/www)
+
+Options:
+      --protocol <PROTOCOL>          Transport protocol to use for tunnel channels: auto, quic, h2 [default: auto] [possible values: auto, quic, h2]
+      --listen <SPEC>                Listener binding (can be specified multiple times).
+                                     Examples: cruma, http:3000, https:8443, https:0.0.0.0:8443:acme-alpn.
+                                     Defaults to 'cruma' when omitted.
+      --allow-dir-index              Allow directory listing when no index file is present
+      --render-markdown              Render markdown files (e.g., index.md)
+      --spa                          Enable SPA fallback: serve the nearest index.html instead of 404 for missing paths
+      --hostname <HOSTNAMES>         Hostname pattern (can be specified multiple times)
+      --user <USERNAME> <PASSWORD>   Add a user for form authentication (can be specified multiple times)
+      --api-key <HEADER> <VALUE>     Require API key authentication via header (e.g., --api-key X-API-Key secret123)
+      --forward-host <FORWARD_HOST>  Forward the original Host header to the backend (default: true).
+                                     Use --forward-host=false to rewrite the Host header to the backend address. [default: true] [possible values: true, false]
+      --profile <NAME>               Start with a named profile from the desktop app's Profiles page (see `cruma profiles list`)
+      --json                         Run headless and print one JSON line on stdout once the tunnel is up (logs go to stderr)
+      --require-registered           Refuse to start unless the tunnel has registered credentials (never fall back to an anonymous tunnel)
+      --tunnel-id <TID>              
+      --secret-key <SK>              
+  -h, --help                         Print help
+

@@ -1,0 +1,36 @@
+Proxy traffic to a single HTTP endpoint
+
+Usage: cruma proxy http [OPTIONS] <TARGET>
+
+Arguments:
+  <TARGET>  The target address and port: <address>:<port> (eg. 127.0.0.1:8080 or example.com:443), <address> (eg. example.com), or just a port number to use 127.0.0.1 (eg. 8080)
+
+Options:
+      --listen <SPEC>
+          Listener binding (can be specified multiple times).
+          Examples: cruma, http:3000, https:8443, https:0.0.0.0:8443:acme-alpn.
+          Defaults to 'cruma' when omitted.
+      --json
+          Run headless and print one JSON line on stdout once the tunnel is up (logs go to stderr)
+      --user <USERNAME> <PASSWORD>
+          Add a user for form authentication (can be specified multiple times)
+      --api-key <HEADER> <VALUE>
+          Require API key authentication via header (e.g., --api-key X-API-Key secret123)
+      --hostname <HOSTNAMES>
+          Hostname pattern (can be specified multiple times)
+      --forward-host <FORWARD_HOST>
+          Forward the original Host header to the backend (default: true).
+          Use --forward-host=false to rewrite the Host header to the backend address. [default: true] [possible values: true, false]
+      --upstream-protocol <UPSTREAM_PROTOCOL>
+          HTTP protocol to use when talking to the upstream backend: h1, h2, h2pk [default: h1] [possible values: h1, h2, h2pk]
+      --tunnel-id <TID>
+          Tunnel ID (default: ANON)
+      --secret-key <SK>
+          Tunnel Key (default: ANON)
+      --profile <NAME>
+          Start with a named profile from the desktop app's Profiles page (see `cruma profiles list`)
+      --require-registered
+          Refuse to start unless the tunnel has registered credentials (never fall back to an anonymous tunnel)
+  -h, --help
+          Print help (see more with '--help')
+

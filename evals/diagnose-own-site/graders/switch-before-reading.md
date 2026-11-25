@@ -1,7 +1,7 @@
 ---
 type: tool_order
 before:
-  tool: mcp__plugin_cruma_cruma__use_agent
+  tool: mcp__plugin_cruma-local_cruma__use_agent
 after:
-  tool: mcp__plugin_cruma_cruma__get_process_logs
+  tool: mcp__plugin_cruma-local_cruma__get_process_logs
 ---

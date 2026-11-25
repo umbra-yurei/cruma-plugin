@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "./environment.mjs";
-import { readFileSync } from "node:fs";
-import { AGENT_CONTEXT_TIMEOUT_MS, ORIGIN_ARGS, candidatePaths, launch, sessionNote } from "./launcher.mjs";
+import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma-local/mcp/environment.mjs";
+import { ORIGIN_ARGS, candidatePaths, launch } from "../plugins/cruma-local/mcp/launcher.mjs";
+import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
+import { LAUNCHER_FLAG as CLOUD_LAUNCHER_FLAG, buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
 
 test("fallback discovery includes system and per-user Preview and stable apps", () => {
-  const candidates = candidatePaths({ HOME: "/Users/alice" });
+  const candidates = candidatePaths(undefined, "/Users/alice");
   assert.deepEqual(candidates.slice(0, 4), [
     "/Applications/Cruma Preview.app/Contents/MacOS/cruma",
     "/Users/alice/Applications/Cruma Preview.app/Contents/MacOS/cruma",
@@ -30,6 +36,16 @@ test("buildEnvironment keeps only allowlisted names and sets the launcher flag",
 test("buildEnvironment lists exact names, never prefixes", () => {
   for (const name of FORWARDED_NAMES) assert.match(name, /^[A-Za-z0-9_]+$/);
   assert.equal(new Set(FORWARDED_NAMES).size, FORWARDED_NAMES.length);
+});
+
+test("plugin entries read only named environment values", () => {
+  for (const file of [
+    "../plugins/cruma-local/mcp/cruma-mcp.mjs",
+    "../plugins/cruma-cloud/hooks/session-context.mjs",
+  ]) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /process\.env\b(?!\[name\])/g);
+  }
 });
 
 test("the launcher gives the probe and the started agent exactly the allowlisted environment", () => {
@@ -113,7 +129,7 @@ function startedArgs(version) {
 
 test("the launcher hands `cruma mcp` the fixed origin flag, and the configs pass the launcher no arguments", () => {
   for (const [file, key] of [[".mcp.json", "cruma"], ["mcp.json", "cruma"]]) {
-    const parsed = JSON.parse(readFileSync(new URL(`../${file}`, import.meta.url), "utf8"));
+    const parsed = JSON.parse(readFileSync(new URL(`../plugins/cruma-local/${file}`, import.meta.url), "utf8"));
     const args = (parsed.mcpServers ?? parsed)[key].args;
     assert.equal(args.length, 1, `${file} passes only the launcher file`);
     assert.match(args[0], /\/mcp\/cruma-mcp\.mjs$/);
@@ -145,7 +161,7 @@ test("the session note comes from `cruma agent-context` on the newest install, w
   assert.deepEqual(calls.at(-1), {
     executable: "/new",
     args: ["agent-context"],
-    env: buildEnvironment(source),
+    env: buildCloudEnvironment(source),
     timeout: AGENT_CONTEXT_TIMEOUT_MS,
   });
 });
@@ -168,5 +184,34 @@ test("the session note is empty without an agent, on a failing or silent `agent-
       },
     });
     assert.equal(note, "");
+  }
+});
+
+test("the session-start hook runs `cruma agent-context` with exactly the allowlisted environment, proxy and CA names included", () => {
+  const dir = mkdtempSync(join(tmpdir(), "cruma-hook-"));
+  try {
+    // A stand-in `cruma` on PATH, newer than any real install, that prints the names it was given.
+    const fake = join(dir, "cruma");
+    writeFileSync(fake, `#!${process.execPath}\nif (process.argv[2] === "--version") console.log("cruma 999.0.0");\nelse console.log(Object.keys(process.env).sort().join(" "));\n`);
+    chmodSync(fake, 0o755);
+    const passed = {
+      PATH: dir,
+      HOME: dir,
+      HTTPS_PROXY: "http://proxy.example.test:3128",
+      https_proxy: "http://proxy.example.test:3128",
+      ALL_PROXY: "socks5://proxy.example.test:1080",
+      NO_PROXY: "localhost",
+      SSL_CERT_FILE: join(dir, "ca.pem"),
+      SSL_CERT_DIR: dir,
+    };
+    const dropped = { ANTHROPIC_API_KEY: "secret", CLAUDE_PLUGIN_ROOT: dir, NODE_OPTIONS: "--trace-warnings" };
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL("../plugins/cruma-cloud/hooks/session-context.mjs", import.meta.url))], {
+      env: { ...passed, ...dropped },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout.trim(), [...Object.keys(passed), CLOUD_LAUNCHER_FLAG].sort().join(" "));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
