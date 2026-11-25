@@ -104,7 +104,7 @@ Homebrew row.
 | macOS (Apple Silicon) with neither | no command: the skill installs nothing and sends the user to https://cruma.io to download and open the signed, notarized desktop app themselves | cruma.io |
 | Linux with `brew` | `brew install umbra-yurei/brew/cruma` | Homebrew, tap `umbra-yurei/brew` |
 | Linux with `npm`, no `brew` | `npm install -g cruma` (the terminal agent; no `sudo` with a user-level npm prefix) | the `cruma` package on npm |
-| Windows | find the Cruma product with `winget search Cruma --source msstore`, then `winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements` | Microsoft Store |
+| Windows | `winget install --id 9NXKT3W34HVL --source msstore --accept-package-agreements --accept-source-agreements`, then open a new terminal and check with `cruma --version` | Microsoft Store |
 | Windows without `winget` or its `msstore` source, with `npm` | `npm install -g cruma` (the terminal agent, x64; the desktop app comes from the Microsoft Store listing, https://apps.microsoft.com/detail/9NXKT3W34HVL) | the `cruma` package on npm |
 | Anything else | no command: point the user to https://cruma.io for the install options | cruma.io |
 
