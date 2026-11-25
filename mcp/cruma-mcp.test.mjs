@@ -1,0 +1,206 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { test } from "node:test";
+import { FORWARDED_NAMES, LAUNCHER_FLAG, buildEnvironment } from "../plugins/cruma-local/mcp/environment.mjs";
+import { ORIGIN_ARGS, launch } from "../plugins/cruma-local/mcp/launcher.mjs";
+import { AGENT_CONTEXT_TIMEOUT_MS, sessionNote } from "../plugins/cruma-cloud/mcp/launcher.mjs";
+import { LAUNCHER_FLAG as CLOUD_LAUNCHER_FLAG, buildEnvironment as buildCloudEnvironment } from "../plugins/cruma-cloud/mcp/environment.mjs";
+
+test("buildEnvironment keeps only allowlisted names and sets the launcher flag", () => {
+  const environment = buildEnvironment({
+    PATH: "/bin",
+    HOME: "/home/user",
+    ANTHROPIC_API_KEY: "secret",
+    AWS_SECRET_ACCESS_KEY: "secret",
+    CRUMA_TOKEN: "secret",
+    GITHUB_TOKEN: "secret",
+  });
+  assert.deepEqual(environment, { PATH: "/bin", HOME: "/home/user", [LAUNCHER_FLAG]: "1" });
+});
+
+test("buildEnvironment lists exact names, never prefixes", () => {
+  for (const name of FORWARDED_NAMES) assert.match(name, /^[A-Za-z0-9_]+$/);
+  assert.equal(new Set(FORWARDED_NAMES).size, FORWARDED_NAMES.length);
+});
+
+test("plugin entries read only named environment values", () => {
+  for (const file of [
+    "../plugins/cruma-local/mcp/cruma-mcp.mjs",
+    "../plugins/cruma-cloud/hooks/session-context.mjs",
+  ]) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /process\.env\b(?!\[name\])/g);
+  }
+});
+
+test("the launcher gives the probe and the started agent exactly the allowlisted environment", () => {
+  const source = { PATH: "/bin", HOME: "/home/user", ANTHROPIC_API_KEY: "secret", SECRET_TOKEN: "secret" };
+  const expected = buildEnvironment(source);
+  const probes = [];
+  const starts = [];
+  const exits = [];
+  const child = { on() {}, kill() {} };
+  launch({
+    source,
+    candidates: ["/opt/cruma"],
+    spawnSync: (executable, args, options) => {
+      probes.push({ executable, args, env: options.env });
+      return { status: 0, stdout: "cruma 99.0.0" };
+    },
+    spawn: (executable, args, options) => {
+      starts.push({ executable, args, env: options.env });
+      return child;
+    },
+    exit: (code) => exits.push(code),
+    onSignal() {},
+    error() {},
+  });
+  assert.deepEqual(expected, { PATH: "/bin", HOME: "/home/user", [LAUNCHER_FLAG]: "1" });
+  assert.deepEqual(probes, [{ executable: "/opt/cruma", args: ["--version"], env: expected }]);
+  assert.deepEqual(starts, [{ executable: "/opt/cruma", args: ["mcp", ...ORIGIN_ARGS], env: expected }]);
+  assert.deepEqual(exits, []);
+});
+
+test("the launcher exits 1 with install guidance and starts nothing when no agent answers", () => {
+  const errors = [];
+  const exits = [];
+  launch({
+    source: {},
+    candidates: ["/opt/cruma"],
+    spawnSync: () => ({ status: 1, stdout: "" }),
+    spawn: () => assert.fail("nothing may be started"),
+    exit: (code) => exits.push(code),
+    onSignal() {},
+    error: (message) => errors.push(message),
+  });
+  assert.deepEqual(exits, [1]);
+  assert.match(errors[0], /not found/);
+});
+
+test("the launcher prefers the strictly newer install", () => {
+  const versions = { "/old": "cruma 1.0.12", "/new": "cruma 1.0.17", "/same": "cruma 1.0.17" };
+  const starts = [];
+  launch({
+    source: {},
+    candidates: ["/old", "/new", "/same"],
+    spawnSync: (executable) => ({ status: 0, stdout: versions[executable] }),
+    spawn: (executable) => {
+      starts.push(executable);
+      return { on() {}, kill() {} };
+    },
+    exit() {},
+    onSignal() {},
+    error() {},
+  });
+  assert.deepEqual(starts, ["/new"]);
+});
+
+function startedArgs(version) {
+  const starts = [];
+  launch({
+    source: {},
+    candidates: ["/opt/cruma"],
+    spawnSync: () => ({ status: 0, stdout: `cruma ${version}` }),
+    spawn: (executable, args) => {
+      starts.push(args);
+      return { on() {}, kill() {} };
+    },
+    exit() {},
+    onSignal() {},
+    error() {},
+  });
+  return starts;
+}
+
+test("the launcher hands `cruma mcp` the fixed origin flag, and the configs pass the launcher no arguments", () => {
+  for (const [file, key] of [[".mcp.json", "cruma"], ["mcp.json", "cruma"]]) {
+    const parsed = JSON.parse(readFileSync(new URL(`../plugins/cruma-local/${file}`, import.meta.url), "utf8"));
+    const args = (parsed.mcpServers ?? parsed)[key].args;
+    assert.equal(args.length, 1, `${file} passes only the launcher file`);
+    assert.match(args[0], /\/mcp\/cruma-mcp\.mjs$/);
+  }
+  assert.deepEqual(ORIGIN_ARGS, ["--origin", "plugin"]);
+  assert.deepEqual(startedArgs("1.0.18"), [["mcp", "--origin", "plugin"]]);
+  assert.deepEqual(startedArgs("2.0.0"), [["mcp", "--origin", "plugin"]]);
+});
+
+test("an agent older than the origin flag is started without it", () => {
+  assert.deepEqual(startedArgs("1.0.17"), [["mcp"]]);
+  assert.deepEqual(startedArgs("1.0.12"), [["mcp"]]);
+});
+
+test("the session note comes from `cruma agent-context` on the newest install, with the allowlisted environment", () => {
+  const source = { PATH: "/bin", HOME: "/home/user", ANTHROPIC_API_KEY: "secret" };
+  const versions = { "/old": "cruma 1.0.17", "/new": "cruma 1.0.18" };
+  const calls = [];
+  const note = sessionNote({
+    source,
+    candidates: ["/old", "/new"],
+    spawnSync: (executable, args, options) => {
+      calls.push({ executable, args, env: options.env, timeout: options.timeout });
+      if (args[0] === "--version") return { status: 0, stdout: versions[executable] };
+      return { status: 0, stdout: "Cruma coding-agent settings for this user\n" };
+    },
+  });
+  assert.equal(note, "Cruma coding-agent settings for this user");
+  assert.deepEqual(calls.at(-1), {
+    executable: "/new",
+    args: ["agent-context"],
+    env: buildCloudEnvironment(source),
+    timeout: AGENT_CONTEXT_TIMEOUT_MS,
+  });
+});
+
+test("the session note is empty without an agent, on a failing or silent `agent-context`", () => {
+  const cases = [
+    { version: { status: 1, stdout: "" }, context: undefined },
+    { version: { status: 0, stdout: "cruma 1.0.17" }, context: { status: 2, stdout: "error: unrecognized subcommand" } },
+    { version: { status: 0, stdout: "cruma 1.0.18" }, context: { status: null, stdout: "partial", signal: "SIGTERM" } },
+    { version: { status: 0, stdout: "cruma 1.0.18" }, context: { status: 0, stdout: "" } },
+  ];
+  for (const { version, context } of cases) {
+    const note = sessionNote({
+      source: {},
+      candidates: ["/opt/cruma"],
+      spawnSync: (_executable, args) => {
+        if (args[0] === "--version") return version;
+        assert.ok(context, "agent-context runs only when an agent was found");
+        return context;
+      },
+    });
+    assert.equal(note, "");
+  }
+});
+
+test("the session-start hook runs `cruma agent-context` with exactly the allowlisted environment, proxy and CA names included", () => {
+  const dir = mkdtempSync(join(tmpdir(), "cruma-hook-"));
+  try {
+    // A stand-in `cruma` on PATH, newer than any real install, that prints the names it was given.
+    const fake = join(dir, "cruma");
+    writeFileSync(fake, `#!${process.execPath}\nif (process.argv[2] === "--version") console.log("cruma 999.0.0");\nelse console.log(Object.keys(process.env).sort().join(" "));\n`);
+    chmodSync(fake, 0o755);
+    const passed = {
+      PATH: dir,
+      HOME: dir,
+      HTTPS_PROXY: "http://proxy.example.test:3128",
+      https_proxy: "http://proxy.example.test:3128",
+      ALL_PROXY: "socks5://proxy.example.test:1080",
+      NO_PROXY: "localhost",
+      SSL_CERT_FILE: join(dir, "ca.pem"),
+      SSL_CERT_DIR: dir,
+    };
+    const dropped = { ANTHROPIC_API_KEY: "secret", CLAUDE_PLUGIN_ROOT: dir, NODE_OPTIONS: "--trace-warnings" };
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL("../plugins/cruma-cloud/hooks/session-context.mjs", import.meta.url))], {
+      env: { ...passed, ...dropped },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0);
+    assert.equal(result.stdout.trim(), [...Object.keys(passed), CLOUD_LAUNCHER_FLAG].sort().join(" "));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

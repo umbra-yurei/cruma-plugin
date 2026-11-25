@@ -1,0 +1,1 @@
+{"subscriptions":[{"id":"sub_8f2k","status":"active","plan_id":"pro-monthly","plan_name":"Cruma Pro","current_period_start":"2026-10-14T00:00:00Z","renews_at":"2026-11-14T00:00:00Z","cancel_at_period_end":false,"items":[],"source":"stripe","pending_update":null}],"allocations":[{"tier":"pro","tunnels":3}],"available_plans":[]}

@@ -1,4 +1,4 @@
-name: Validate Claude plugin
+name: Validate plugins
 
 on:
   pull_request:
@@ -17,5 +17,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 --version
-      - run: npx -y @anthropic-ai/claude-code@2.1.280 plugin validate --strict .
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 --version
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-local
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-cloud
+      - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict .
+      - run: node scripts/check-plugin.mjs
+      - run: node --test mcp/cruma-mcp.test.mjs
+      # Codex has no `plugin validate`: this installs the marketplace and each plugin into a
+      # throwaway CODEX_HOME with the pinned Codex CLI (scripts/codex-tools.mjs) and checks what
+      # Codex resolved, and validates each plugin.json and mcp.json against its declared schema.
+      - run: node scripts/check-codex.mjs
+      - run: node --test scripts/codex-eval.test.mjs

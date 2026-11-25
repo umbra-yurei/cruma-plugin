@@ -1,0 +1,1 @@
+{"services": [{"service": "tunnels", "title": "Tunnels", "available": true}, {"service": "subscriptions", "title": "Subscriptions", "available": true}, {"service": "core", "title": "Board", "available": true}, {"service": "memgraph", "title": "Memory", "available": true}]}

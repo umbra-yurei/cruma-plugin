@@ -1,15 +1,47 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "cruma-plugin",
-  "description": "Claude Code plugin marketplace for the Cruma tunnel agent.",
+  "description": "Cruma tunnel agent plugins: publish a dev server or a folder on a public URL from a coding agent with a shell on your own computer. One marketplace for any harness that reads this format, for example Claude Code or Codex.",
   "owner": {
     "name": "Cruma"
   },
   "plugins": [
     {
       "name": "cruma",
-      "source": "./",
-      "description": "Install the Cruma tunnel agent, publish a dev server or a folder (several sites at once) and drive it over MCP.",
-      "version": "0.4.4",
+      "source": "./plugins/cruma",
+      "description": "Install the Cruma tunnel agent and publish a dev server or a folder on a public URL. Needs a coding agent with a shell on your own computer (for example Claude Code or Codex); where the environment does not allow installing it, such as claude.ai chat's sandbox, it explains that. A skill only: it asks before installing Cruma or connecting it to your agent.",
+      "homepage": "https://cruma.io",
+      "repository": "https://github.com/umbra-yurei/cruma-plugin",
+      "relevance": {
+        "topic": "tunnels",
+        "signals": {
+          "cli": [
+            "ngrok",
+            "cloudflared",
+            "localtunnel",
+            "lt",
+            "cruma"
+          ],
+          "manifestDeps": [
+            {
+              "file": "[/\\\\]package\\.json$",
+              "pattern": "\"(vite|next|@sveltejs/kit|webpack-dev-server)\"\\s*:"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "cruma-local",
+      "source": "./plugins/cruma-local",
+      "description": "Cruma with its local MCP server bundled: in any harness that loads plugin MCP servers, the plugin connects `cruma mcp` itself, with no extra setup. The plain `cruma` plugin is the skill-only one.",
+      "homepage": "https://cruma.io",
+      "repository": "https://github.com/umbra-yurei/cruma-plugin"
+    },
+    {
+      "name": "cruma-cloud",
+      "source": "./plugins/cruma-cloud",
+      "description": "Optional: Cruma's hosted MCP server for your Cruma account (plan, account tunnels, sites). Asks you to sign in. Not needed for local tunnels.",
       "homepage": "https://cruma.io",
       "repository": "https://github.com/umbra-yurei/cruma-plugin"
     }

@@ -1,7 +1,7 @@
 ---
 max_turns: 10
 timeout_seconds: 240
-allowed_tools: [Skill, Bash]
+allowed_tools: [Skill]
 ---
 
 I'm on Windows and installed Cruma from Microsoft Store, but `cruma` is not on
