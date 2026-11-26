@@ -109,12 +109,16 @@ Homebrew row.
 | Anything else | no command: point the user to https://cruma.io for the install options | cruma.io |
 
 On a Mac with neither `brew` nor `npm` there is no command to ask about:
-download nothing and run no installer. Say that the signed, notarized app
-installs from https://cruma.io (its Download button), ask the user to install
-it themselves, and stop until `cruma --version --json` works (a fresh app is
-reached by the full path described above).
+download nothing and run no installer, and give no download steps. Say that
+the signed, notarized app installs from https://cruma.io (its Download button),
+ask the user to install it themselves, and say you will carry on once
+`cruma --version` works (a fresh app is reached by the full path described
+above).
 
-Offer exactly one method and mention no other. Cruma on macOS needs Apple Silicon
+Offer exactly one method and mention no other. Write out only that row's
+command: never name the command of a row that does not apply, not even to say
+why you skip it (no `brew install` without Homebrew, no `npm install` without
+npm, no disk image, `curl` or script). Cruma on macOS needs Apple Silicon
 (`uname -m` prints `x86_64` on a Mac without it): say so and install nothing. Never download
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
