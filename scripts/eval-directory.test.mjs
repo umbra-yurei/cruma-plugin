@@ -105,6 +105,12 @@ test("the scanner fails a Bash call in a case that does not declare Bash, and on
   assert.equal(scanRun("macos", "[Skill]", 0, "Darwin").status, 0);
 });
 
+test("the scanner ignores the scaffold's own deny lists when the agent prints its settings.json, and still fails real host output", () => {
+  const settings = '{\n  "sandbox": {\n    "filesystem": {\n      "denyRead": ["/Applications/Cruma.app"]\n    }\n  },\n  "permissions": {\n    "deny": ["Agent", "Read(//opt/homebrew/**)", "Read(//Applications/Cruma.app/**)"]\n  }\n}';
+  assert.equal(scan("macos-bare", settings).status, 0);
+  assert.equal(scan("macos-bare", `${settings}\n/Applications/Cruma.app`).status, 1);
+});
+
 test("the scanner fails a subagent call in a case that does not declare Agent, and only there", () => {
   for (const name of ["Agent", "Task"]) {
     const undeclared = scanTrace("macos", "[Skill, Bash]", name, 1, "Darwin");

@@ -67,6 +67,8 @@ const SANDBOX_FAILURE = "Operation not permitted|Read-only file system|apply-sec
 const HOST_APP = /\/Applications\/Cruma[^/\n]*\.app/;
 const APP_ABSENT = /No such file or directory|cannot access|not found|Unable to find|does not exist/i;
 const HOST_APP_LEAK = "/Applications/Cruma.app";
+// The scaffold's own .claude/settings.json names the paths it hides in its deny lists; printing the file is not a leak.
+const SCAFFOLD_DENY_LINE = /^\s*"(?:denyRead|deny)"\s*:/;
 const GUI_BUILD = /"build_flavor"\s*:\s*"gui"/g;
 const UNDECLARED_BASH = "Bash call without Bash in allowed_tools";
 const UNDECLARED_SUBAGENT = "Agent call without Agent in allowed_tools";
@@ -102,9 +104,10 @@ for (const run of runs) {
     for (const block of content) {
       if (block?.type !== "tool_result") continue;
       results += 1;
-      const text = typeof block.content === "string"
+      const text = (typeof block.content === "string"
         ? block.content
-        : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "";
+        : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "")
+        .split("\n").filter((line) => !SCAFFOLD_DENY_LINE.test(line)).join("\n");
       let leaked = false;
       for (const hit of text.match(leak) ?? []) { counts.set(hit, (counts.get(hit) ?? 0) + 1); leaked = true; }
       for (const line of text.split("\n")) {
