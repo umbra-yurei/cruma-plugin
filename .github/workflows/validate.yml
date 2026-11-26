@@ -29,3 +29,4 @@ jobs:
       # Codex resolved, and validates each plugin.json and mcp.json against its declared schema.
       - run: node scripts/check-codex.mjs
       - run: node --test scripts/codex-eval.test.mjs
+      - run: node --test scripts/eval-directory.test.mjs

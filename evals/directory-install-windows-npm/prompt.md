@@ -1,7 +1,7 @@
 ---
 max_turns: 6
 timeout_seconds: 180
-allowed_tools: [Skill]
+allowed_tools: [Skill, Bash]
 ---
 
 I am in Claude Code on my Windows 11 PC, and `cruma` is not found; the Cruma Microsoft Store package is not
