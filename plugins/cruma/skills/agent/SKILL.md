@@ -28,10 +28,7 @@ If Cruma's MCP tools are in your tool list, go on to section 1. Otherwise:
 
 - **No shell tool:** say that you cannot install or run anything from here, and
   that an AI agent running on their own computer can do it (pointers below).
-  Start nothing. When the user says they already are in such an agent on their
-  own computer (for example "I am in Claude Code on my Mac"), skip the pointers:
-  only running commands is off in this session, so answer with section 2's one
-  method for the machine they describe, as a command for them to run.
+  Start nothing.
 - **A shell tool:** run `cruma --version --json` first (section 1), even when
   the user says it is missing or has already agreed to an install. If it prints
   a version, go on. If it is not found, offer to install it with exactly one
@@ -86,7 +83,7 @@ method from the table, then say, in one message:
 - the one method you would use (the command) and where it comes from;
 - a question: "Shall I run it?"
 
-On a Mac where you can run commands, first look for an existing `Cruma.app` (`ls -d /Applications/Cruma.app
+On a Mac, first look for an existing `Cruma.app` (`ls -d /Applications/Cruma.app
 ~/Applications/Cruma.app`). If there is one, Cruma is installed and `cruma` is
 just not on `PATH`: install nothing and use its `Contents/MacOS/cruma` by full
 path (for example `/Applications/Cruma.app/Contents/MacOS/cruma`) for the rest
@@ -107,7 +104,7 @@ Homebrew row.
 | macOS (Apple Silicon) with neither | no command: the skill installs nothing and sends the user to https://cruma.io to download and open the signed, notarized desktop app themselves | cruma.io |
 | Linux with `brew` | `brew install umbra-yurei/brew/cruma` | Homebrew, tap `umbra-yurei/brew` |
 | Linux with `npm`, no `brew` | `npm install -g cruma` (the terminal agent; no `sudo` with a user-level npm prefix) | the `cruma` package on npm |
-| Windows | find the Cruma product with `winget search Cruma --source msstore`, then `winget install --id <StoreProductId> --source msstore --accept-package-agreements --accept-source-agreements` | Microsoft Store |
+| Windows | `winget install --id 9NXKT3W34HVL --source msstore --accept-package-agreements --accept-source-agreements`, then open a new terminal and check with `cruma --version` | Microsoft Store |
 | Windows without `winget` or its `msstore` source, with `npm` | `npm install -g cruma` (the terminal agent, x64; the desktop app comes from the Microsoft Store listing, https://apps.microsoft.com/detail/9NXKT3W34HVL) | the `cruma` package on npm |
 | Anything else | no command: point the user to https://cruma.io for the install options | cruma.io |
 
@@ -121,8 +118,8 @@ above).
 Offer exactly one method and mention no other. Write out only that row's
 command: never name the command of a row that does not apply, not even to say
 why you skip it (no `brew install` without Homebrew, no `npm install` without
-npm, no disk image, `curl` or script). There is no Intel Mac build yet
-(`uname -m` prints `x86_64` on one): say so and install nothing. Never download
+npm, no disk image, `curl` or script). Cruma on macOS needs Apple Silicon
+(`uname -m` prints `x86_64` on a Mac without it): say so and install nothing. Never download
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
 `Get-AppxPackage -Name 'Umbra-Yurei.Cruma'`; if it is, do not install again: the `cruma` command then needs a newly opened
@@ -246,9 +243,11 @@ provider setup. Narrow it with exact `emails`, `email_domains` or one
 `organization`; an organization restriction needs the agent itself signed in,
 and an anonymous agent returns a typed error. The policy ends with the share.
 Before the first share of a session, call `list_agents` once. Choose from its
-typed running/kind/attached/starter/start-hint/channel facts, never from prose,
-process scraping or CLI output. If a desktop agent is running, ask once whether
-to use it and call `use_agent` only after yes; start nothing. For a lasting
+typed running/kind/attached/starter/start-hint/channel/version/account-state/plan
+facts, never from prose, process scraping or CLI output. With exactly one user
+agent, use the already attached agent without a false choice or `use_agent`.
+With several, ask once and name every choice's kind, profile, channel, version,
+domain, account state and plan; call `use_agent` only after the answer. For a lasting
 share with an installed but stopped desktop app, offer to open it and wait for
 yes: the visible app owns that lifecycle. For a quick share, or where no GUI is
 available (SSH, CI, a container or server), use the session-owned headless

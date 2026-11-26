@@ -8,9 +8,13 @@
 // system`, `apply-seccomp`, a bwrap or sandbox-exec start-up error) counts like a leak. Prints "leak <trace>: ..." per leaking run, "missing ..."
 // per run without a readable trace, and "runs <n>" / "tool_results <n>" totals. The caller treats a total
 // of 0 runs or 0 tool results as "scanned nothing". `Darwin` is a leak except in a case whose scaffold
-// is a macOS mode (the stand-in `uname` answers it there).
+// is a macOS mode (the stand-in `uname` answers it there). The developer's own Cruma app is a leak in every
+// case: a line of output that shows a `Cruma*.app` that exists (one that is not a "No such file or directory" answer)
+// and a `"build_flavor":"gui"` version string (the stand-in `cruma` is a `server-agent`). A Bash call in a case
+// whose prompt.md `allowed_tools` has no Bash is a leak too: the run was not limited to what the case declares.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { parseFrontmatter } from "./codex-grade.mjs";
 
 const args = process.argv.slice(2);
 const listDirs = args[0] === "--dirs";
@@ -46,8 +50,29 @@ function scaffoldMode(caseDir) {
   return /directory-shims\.sh"?\s+(\S+)/.exec(readFileSync(file, "utf8"))?.[1] ?? "";
 }
 
+// Whether the case's prompt.md declares Bash; a case without a readable prompt.md is not judged.
+function declaredTools(caseDir) {
+  const file = join(resolve(root, caseDir ?? ""), "prompt.md");
+  if (!existsSync(file)) return null;
+  return parseFrontmatter(readFileSync(file, "utf8")).fields.allowed_tools ?? [];
+}
+const declares = (tools, name) => tools === null || tools.some((tool) => tool === name || tool.startsWith(`${name}(`));
+// A subagent (Agent, formerly Task) has its own Bash outside the case's tools and the stand-ins.
+const SUBAGENT_TOOLS = ["Agent", "Task"];
+
 // The eval sandbox refusing or failing to start a command: not the skill's doing, so the run does not count.
 const SANDBOX_FAILURE = "Operation not permitted|Read-only file system|apply-seccomp|bwrap: |nested userns|sandbox-exec: ";
+
+// A line naming the host's app is the leak, unless it is the answer that the app is not there.
+const HOST_APP = /\/Applications\/Cruma[^/\n]*\.app/;
+const APP_ABSENT = /No such file or directory|cannot access|not found|Unable to find|does not exist/i;
+const HOST_APP_LEAK = "/Applications/Cruma.app";
+// The scaffold's own .claude/settings.json names the paths it hides in its deny lists; printing the file is not a leak.
+const SCAFFOLD_DENY_LINE = /^\s*"(?:denyRead|deny)"\s*:/;
+const GUI_BUILD = /"build_flavor"\s*:\s*"gui"/g;
+const UNDECLARED_BASH = "Bash call without Bash in allowed_tools";
+const UNDECLARED_SUBAGENT = "Agent call without Agent in allowed_tools";
+const GUI_BUILD_LEAK = '"build_flavor":"gui"';
 
 let bad = false;
 let results = 0;
@@ -59,23 +84,44 @@ for (const run of runs) {
   }
   const leak = scaffoldMode(run.dir).startsWith("macos") ? new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew`, "g") : new RegExp(`${SANDBOX_FAILURE}|/opt/homebrew|Darwin`, "g");
   const counts = new Map();
+  const calls = new Map(); // tool_use id -> "Name {input}", so a leak names the call that produced it
+  const culprits = [];
+  const tools = declaredTools(run.dir);
+  const bashAllowed = declares(tools, "Bash");
   for (const line of readFileSync(run.tracePath, "utf8").split("\n")) {
     let record;
     try { record = JSON.parse(line); } catch { continue; }
     const content = record?.message?.content;
+    if (record?.type === "assistant" && Array.isArray(content)) {
+      for (const block of content) {
+        if (block?.type !== "tool_use") continue;
+        calls.set(block.id, `${block.name} ${JSON.stringify(block.input ?? {}).slice(0, 300)}`);
+        if (!bashAllowed && block.name === "Bash") counts.set(UNDECLARED_BASH, (counts.get(UNDECLARED_BASH) ?? 0) + 1);
+        if (SUBAGENT_TOOLS.includes(block.name) && !SUBAGENT_TOOLS.some((name) => declares(tools, name))) counts.set(UNDECLARED_SUBAGENT, (counts.get(UNDECLARED_SUBAGENT) ?? 0) + 1);
+      }
+    }
     if (record?.type !== "user" || !Array.isArray(content)) continue;
     for (const block of content) {
       if (block?.type !== "tool_result") continue;
       results += 1;
-      const text = typeof block.content === "string"
+      const text = (typeof block.content === "string"
         ? block.content
-        : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "";
-      for (const hit of text.match(leak) ?? []) counts.set(hit, (counts.get(hit) ?? 0) + 1);
+        : Array.isArray(block.content) ? block.content.map((part) => part?.text ?? "").join("\n") : "")
+        .split("\n").filter((line) => !SCAFFOLD_DENY_LINE.test(line)).join("\n");
+      let leaked = false;
+      for (const hit of text.match(leak) ?? []) { counts.set(hit, (counts.get(hit) ?? 0) + 1); leaked = true; }
+      for (const line of text.split("\n")) {
+        if (HOST_APP.test(line) && !APP_ABSENT.test(line)) { counts.set(HOST_APP_LEAK, (counts.get(HOST_APP_LEAK) ?? 0) + 1); leaked = true; }
+      }
+      const guiBuilds = text.match(GUI_BUILD)?.length ?? 0;
+      if (guiBuilds > 0) { counts.set(GUI_BUILD_LEAK, (counts.get(GUI_BUILD_LEAK) ?? 0) + guiBuilds); leaked = true; }
+      if (leaked && culprits.length < 5) culprits.push(calls.get(block.tool_use_id) ?? "unknown call");
     }
   }
   if (counts.size > 0) {
     bad = true;
     console.log(`leak ${run.label} (${run.tracePath}): ${[...counts].map(([k, n]) => `${n} x ${k}`).join(", ")}`);
+    for (const call of culprits) console.log(`  by ${call}`);
   }
 }
 console.log(`runs ${runs.length}`);
