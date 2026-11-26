@@ -306,7 +306,10 @@ a tool result's `account.state` is `anonymous` or the tunnel is anonymous, that
 signing in to a free Cruma account (`cruma auth login`) keeps the same tunnel
 working past the limit, with `account.sign_up_url` quoted exactly when the
 result carries it. Say nothing about accounts when the result says
-`signed_in`.
+`signed_in`, except once per session when it carries `account.subscribe_url`
+(the daily traffic cap is near or reached): say so, quote that link exactly,
+and do not repeat it on later results. Say traffic still flows when the
+`traffic_limit` block has `enforced: false`.
 
 Account features (plan, account tunnels, sites) belong to the optional
 `cruma-cloud` plugin, not to this skill.

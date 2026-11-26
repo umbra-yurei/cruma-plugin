@@ -306,7 +306,14 @@ Say all of these in the final message:
    carries the same block: once you have given the notice in this
    conversation, do not give it again, in this message or on later tool
    calls. When `account.state` is `signed_in`, say nothing about accounts or
-   signing up.
+   signing up, except the subscribe notice: when a signed-in result carries
+   `account.subscribe_url`, the tunnel's traffic cap is near or reached. Say
+   so **once per session**, from the `traffic_limit` block of
+   `get_runtime_summary` when you have it (used and `resets_at`; when
+   `enforced` is false say traffic still flows and never call the tunnel
+   blocked), and give the link `account.subscribe_url` exactly as given,
+   written once. Every later result carries the same link: do not repeat it,
+   in this message or on later tool calls.
 9. The update notice, **once per session**, when `version.update_available` is
    `true`: the installed `version.installed_version`, the newer
    `version.latest_stable_version`, and `version.upgrade_hint` as given. Say
