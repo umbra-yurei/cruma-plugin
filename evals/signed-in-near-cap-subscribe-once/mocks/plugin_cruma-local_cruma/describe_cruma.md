@@ -19,7 +19,7 @@
   "this_agent": "This is the user's own agent (the Cruma desktop app, domain demo1234.tun.example.test). Changes apply to the running agent only and are not saved; saving needs `allow_persistent_changes` in the user's settings.",
   "account": {
     "state": "signed_in",
-    "subscribe_url": "https://dash.cruma.io/?ref=agent-mcp&client=claude-code"
+    "subscribe_url": "https://dash.cruma.io/account/subscriptions?ref=agent-mcp&client=claude-code"
   },
   "capabilities": [
     {

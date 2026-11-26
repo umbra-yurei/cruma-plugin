@@ -22,7 +22,7 @@
   },
   "account": {
     "state": "signed_in",
-    "subscribe_url": "https://dash.cruma.io/?ref=agent-mcp&client=claude-code"
+    "subscribe_url": "https://dash.cruma.io/account/subscriptions?ref=agent-mcp&client=claude-code"
   },
   "version": {
     "installed_version": "1.0.16",
