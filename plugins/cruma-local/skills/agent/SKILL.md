@@ -68,14 +68,16 @@ who owns an agent, how it started or which release it runs from prose, process
 names, shell output or a remembered machine setup.
 
 - **Exactly one user agent runs:** `cruma mcp` already attaches to it. Do not
-  present a false choice and do not call `use_agent`; make the share on the
-  attached agent.
+  present a false choice and do not call `use_agent`. After `list_agents`
+  returns, continue in the same turn to the expose call the user already
+  confirmed, on the attached agent; do not stop after listing it.
 - **Several user agents run:** ask once before sharing anything. Name every
   running choice with its kind, profile (when present), channel, version,
   domain, `account.state` (anonymous or signed in), and plan (or "plan not
   reported" when `tunnel_plan` is absent). Also name the temporary option: a
   random address, browser warning page, time limit, and removal with the
-  session. Share nothing until the user answers; after a choice, call
+  session. Stop after asking: share nothing and do not call `use_agent` until
+  the user answers; after a choice, call
   `use_agent` and start no agent. Remember the choice for later shares in this
   session.
 - **A lasting share is requested and a stopped desktop profile is listed:**
@@ -95,8 +97,11 @@ names, shell output or a remembered machine setup.
   detach nothing) only when the user explicitly asks for that outcome. It converts the session agent to user
   ownership; never use it merely because a share sounds important or lasting.
 - **No other eligible agent runs:** use the session agent without a question
-  for a quick share. For a request about the user's own Cruma, follow the
-  no-running-agent rule below instead.
+  for a quick share. When it is the only running agent, including when it is
+  anonymous, continue in the same turn from `list_agents` to the expose call
+  the user already confirmed; do not call `use_agent` or stop to ask a choice.
+  For a request about the user's own Cruma, follow the no-running-agent rule
+  below instead.
 
 The question is not needed when the user already named the desired ownership.
 Never set `persist` on a session-owned share. Do not scrape processes, run a
@@ -126,10 +131,12 @@ creating the tunnels on their account is the account's (see above), not
   domain), ask, say that nothing is changed until they answer, and stop.
   Diagnose after the switch, from the user's agent.
 - `use_agent` never starts an agent. If none is running for what the user
-  means, say so and ask them to open the desktop app, or run
+  means, say only that no user agent is running and ask them to open the desktop
+  app, or run
   `cruma --profile <name>` (use the name `list_agents` gives for a stopped
   profile). Do not fall back to the temporary tunnel for a request about their
-  own sites.
+  own sites, and do not claim that their profiles, sites, routes, processes,
+  settings or health are absent or have any state unless a tool returned it.
 - **Say only what a tool returned.** `list_agents` lists the agents it knows;
   from it you may say which agents are running and their kind, profile and
   domain. Do not claim that profiles, sites, settings or an account exist or
