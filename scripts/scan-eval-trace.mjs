@@ -51,12 +51,14 @@ function scaffoldMode(caseDir) {
 }
 
 // Whether the case's prompt.md declares Bash; a case without a readable prompt.md is not judged.
-function declaresBash(caseDir) {
+function declaredTools(caseDir) {
   const file = join(resolve(root, caseDir ?? ""), "prompt.md");
-  if (!existsSync(file)) return true;
-  const tools = parseFrontmatter(readFileSync(file, "utf8")).fields.allowed_tools ?? [];
-  return tools.some((tool) => tool === "Bash" || tool.startsWith("Bash("));
+  if (!existsSync(file)) return null;
+  return parseFrontmatter(readFileSync(file, "utf8")).fields.allowed_tools ?? [];
 }
+const declares = (tools, name) => tools === null || tools.some((tool) => tool === name || tool.startsWith(`${name}(`));
+// A subagent (Agent, formerly Task) has its own Bash outside the case's tools and the stand-ins.
+const SUBAGENT_TOOLS = ["Agent", "Task"];
 
 // The eval sandbox refusing or failing to start a command: not the skill's doing, so the run does not count.
 const SANDBOX_FAILURE = "Operation not permitted|Read-only file system|apply-seccomp|bwrap: |nested userns|sandbox-exec: ";
@@ -67,6 +69,7 @@ const APP_ABSENT = /No such file or directory|cannot access|not found|Unable to 
 const HOST_APP_LEAK = "/Applications/Cruma.app";
 const GUI_BUILD = /"build_flavor"\s*:\s*"gui"/g;
 const UNDECLARED_BASH = "Bash call without Bash in allowed_tools";
+const UNDECLARED_SUBAGENT = "Agent call without Agent in allowed_tools";
 const GUI_BUILD_LEAK = '"build_flavor":"gui"';
 
 let bad = false;
@@ -81,14 +84,19 @@ for (const run of runs) {
   const counts = new Map();
   const calls = new Map(); // tool_use id -> "Name {input}", so a leak names the call that produced it
   const culprits = [];
-  const bashAllowed = declaresBash(run.dir);
+  const tools = declaredTools(run.dir);
+  const bashAllowed = declares(tools, "Bash");
   for (const line of readFileSync(run.tracePath, "utf8").split("\n")) {
     let record;
     try { record = JSON.parse(line); } catch { continue; }
     const content = record?.message?.content;
-    if (!bashAllowed && record?.type === "assistant" && Array.isArray(content)) {
-      for (const block of content) if (block?.type === "tool_use") calls.set(block.id, `${block.name} ${JSON.stringify(block.input ?? {}).slice(0, 300)}`);
-      for (const block of content) if (block?.type === "tool_use" && block?.name === "Bash") counts.set(UNDECLARED_BASH, (counts.get(UNDECLARED_BASH) ?? 0) + 1);
+    if (record?.type === "assistant" && Array.isArray(content)) {
+      for (const block of content) {
+        if (block?.type !== "tool_use") continue;
+        calls.set(block.id, `${block.name} ${JSON.stringify(block.input ?? {}).slice(0, 300)}`);
+        if (!bashAllowed && block.name === "Bash") counts.set(UNDECLARED_BASH, (counts.get(UNDECLARED_BASH) ?? 0) + 1);
+        if (SUBAGENT_TOOLS.includes(block.name) && !SUBAGENT_TOOLS.some((name) => declares(tools, name))) counts.set(UNDECLARED_SUBAGENT, (counts.get(UNDECLARED_SUBAGENT) ?? 0) + 1);
+      }
     }
     if (record?.type !== "user" || !Array.isArray(content)) continue;
     for (const block of content) {

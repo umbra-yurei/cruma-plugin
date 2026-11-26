@@ -237,7 +237,11 @@ for tool in $tools; do chmod +x "$bin/$tool"; done
 # and Read deny rules cover the Read, Glob and Grep tools, which the sandbox does not confine and no stand-in answers.
 if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
   mkdir -p .claude
-  sandbox=""
+  # A subagent has its own Bash, outside the case's tools and the stand-ins, so none is allowed.
+  sandbox=",
+  \"permissions\": {
+    \"deny\": [\"Agent\", \"Task\"]
+  }"
   if [ "$os" = Darwin ]; then
     sandbox=",
   \"sandbox\": {
@@ -246,7 +250,7 @@ if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
     }
   },
   \"permissions\": {
-    \"deny\": [\"Read(/$host_apps/Cruma.app)\", \"Read(/$host_apps/Cruma.app/**)\", \"Read(//opt/homebrew/**)\"]
+    \"deny\": [\"Agent\", \"Task\", \"Read(/$host_apps/Cruma.app)\", \"Read(/$host_apps/Cruma.app/**)\", \"Read(//opt/homebrew/**)\"]
   }"
   fi
   cat >.claude/settings.json <<SETTINGS

@@ -44,6 +44,10 @@ function scan(mode, ...outputs) {
 }
 
 function scanRun(mode, allowedTools, bashCalls, ...outputs) {
+  return scanTrace(mode, allowedTools, "Bash", bashCalls, ...outputs);
+}
+
+function scanTrace(mode, allowedTools, toolName, bashCalls, ...outputs) {
   const dir = mkdtempSync(join(tmpdir(), "scan-"));
   const caseDir = join(dir, "case");
   mkdirSync(caseDir);
@@ -51,7 +55,7 @@ function scanRun(mode, allowedTools, bashCalls, ...outputs) {
   writeFileSync(join(caseDir, "prompt.md"), `---\nallowed_tools: ${allowedTools}\n---\n\nInstall it.\n`);
   const tracePath = join(dir, "out", "trace.jsonl");
   mkdirSync(join(dir, "out"));
-  const calls = Array.from({ length: bashCalls }, () => ({ type: "assistant", message: { content: [{ type: "tool_use", name: "Bash", input: { command: "ls" } }] } }));
+  const calls = Array.from({ length: bashCalls }, () => ({ type: "assistant", message: { content: [{ type: "tool_use", name: toolName, input: { command: "ls" } }] } }));
   const results = outputs.map((text) => ({ type: "user", message: { content: [{ type: "tool_result", content: text }] } }));
   writeFileSync(tracePath, [...calls, ...results].map((record) => JSON.stringify(record)).join("\n"));
   const result = join(dir, "result.json");
@@ -101,6 +105,15 @@ test("the scanner fails a Bash call in a case that does not declare Bash, and on
   assert.equal(scanRun("macos", "[Skill]", 0, "Darwin").status, 0);
 });
 
+test("the scanner fails a subagent call in a case that does not declare Agent, and only there", () => {
+  for (const name of ["Agent", "Task"]) {
+    const undeclared = scanTrace("macos", "[Skill, Bash]", name, 1, "Darwin");
+    assert.equal(undeclared.status, 1);
+    assert.match(undeclared.out, /^leak case with#1 .*: 1 x Agent call without Agent in allowed_tools/m);
+    assert.equal(scanTrace("macos", `[Skill, Bash, ${name}]`, name, 1, "Darwin").status, 0);
+  }
+});
+
 test("the stand-in ls and open hide the host's Cruma app, and the Mac workspace settings deny reading it", () => {
   const dir = mkdtempSync(join(tmpdir(), "shims-"));
   const apps = join(dir, "Applications");
@@ -133,5 +146,5 @@ test("the stand-in ls and open hide the host's Cruma app, and the Mac workspace 
   const settings = readFileSync(join(workspace, ".claude/settings.json"), "utf8");
   assert.deepEqual(JSON.parse(settings).sandbox.filesystem.denyRead, [join(apps, "Cruma.app")]);
   // The Read, Glob and Grep tools are not confined by the sandbox: Read deny rules keep them off the app.
-  assert.deepEqual(JSON.parse(settings).permissions.deny, [`Read(/${join(apps, "Cruma.app")})`, `Read(/${join(apps, "Cruma.app")}/**)`, "Read(//opt/homebrew/**)"]);
+  assert.deepEqual(JSON.parse(settings).permissions.deny, ["Agent", "Task", `Read(/${join(apps, "Cruma.app")})`, `Read(/${join(apps, "Cruma.app")}/**)`, "Read(//opt/homebrew/**)"]);
 });
