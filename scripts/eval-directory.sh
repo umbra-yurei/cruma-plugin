@@ -10,7 +10,7 @@
 # if no run, trace or tool result was scanned, or if a tool result in a run's trace shows the host
 # leaking in or the sandbox failing (scripts/scan-eval-trace.mjs: `Operation not permitted`, `Read-only file system`,
 # `apply-seccomp`, bwrap start-up errors, /opt/homebrew, Darwin outside the macOS cases, the host's Cruma.app,
-# a `"build_flavor":"gui"` version, a Bash call in a case whose allowed_tools has no Bash). The kept directories are removed afterwards unless --keep-temp was passed.
+# a `"build_flavor":"gui"` version, a Bash call in a case whose allowed_tools has no Bash). Every run is started with `--disallow-tools Agent Task`: a subagent has its own Bash outside the grants and the stand-ins. With --keep-temp the script's own temp directory, with each case's result JSON, is kept too and its path printed. The kept directories are removed afterwards unless --keep-temp was passed.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 scaffold="$root/evals/fake-cruma/directory-shims.sh"
@@ -20,11 +20,11 @@ fail() { echo "eval-directory: $*" >&2; exit 1; }
 check_only=0
 if [ "${1:-}" = --check-only ]; then check_only=1; shift; fi
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+keep=0
+trap '[ "$keep" = 1 ] || rm -rf "$tmp"' EXIT
 
 # --case picks the cases; every other option goes to each harness run as it is.
 case_glob='directory-*'
-keep=0
 harness_args=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -119,10 +119,12 @@ while IFS= read -r line; do
   echo "eval-directory: $name (tools granted: ${fields[*]:1})" >&2
   set +e
   "$claude_bin" plugin eval .eval-work/cruma --trust-plugin --scaffold \
-    --case "$name" --keep-temp --json "$result" ${grant[@]+"${grant[@]}"} ${harness_args[@]+"${harness_args[@]}"}
+    --case "$name" --keep-temp --json "$result" --disallow-tools Agent Task ${grant[@]+"${grant[@]}"} ${harness_args[@]+"${harness_args[@]}"}
   status=$?
   set -e
   [ "$status" -le "$worst" ] || worst=$status
+  echo "eval-directory: $name: harness exit $status, result file $result$([ "$keep" = 1 ] && echo ' (kept)')" >&2
+  [ "$status" = 0 ] || problems+=("$name: the harness exited $status (scores in $result when --keep-temp)")
 
   if [ ! -s "$result" ]; then problems+=("$name: the run wrote no result at $result, so nothing was scanned; its scores do not count"); continue; fi
   scan_status=0
