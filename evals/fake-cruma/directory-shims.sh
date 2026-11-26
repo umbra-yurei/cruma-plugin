@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # Eval scaffold helper for the `directory-*` cases (they need `--scaffold` and `--allow-tools Bash`).
-# Puts stand-ins for `npm`, `node`, `uname`, `curl`, `claude` and `cruma` in ~/.local/bin of the run's
+# Puts stand-ins for `npm`, `node`, `uname`, `curl`, `claude`, `cruma` and `ls` (and `open` on a Mac) in ~/.local/bin of the run's
 # own HOME, so an install, an MCP server add (`claude mcp add`) or a share the skill runs touches nothing real. Each
 # stand-in appends the command line it was given to ~/.local/share/directory-shims/calls.log.
 # The agent's Bash PATH is then only that directory plus /usr/bin:/bin, so the host's Homebrew,
 # /usr/local and real `cruma` are not on it, and `uname` answers Linux x86_64 like the prompts say.
+# The host's own Cruma app (/Applications/Cruma*) is hidden too: the stand-in `ls` answers "No such file or
+# directory" for it and leaves it out of an `ls /Applications` listing, the stand-in `open` cannot find the
+# application, and on a Mac the workspace's .claude/settings.json also denies the sandbox reading it (a probe
+# that goes round `ls`, such as `/bin/ls` or `stat`, then fails with `Operation not permitted`, which
+# scripts/scan-eval-trace.mjs counts as a failed run). The existing-app check sees only what the case's fixture
+# puts in the run's own ~/Applications. DIRECTORY_SHIMS_HOST_APPS names the directory to hide it in
+# (default /Applications; the scaffold's own check sets it to a temporary directory).
 # PATH is set in the eval workspace's .claude/settings.json and in the run home's shell start-up
 # files (`claude plugin eval` takes it from either, depending on the version). The stand-ins are in
 # the run's home because the eval sandbox allows reading it, and blocks the repository's .eval-work. The scaffold exits 3 when a zsh or bash login shell with only the run's
@@ -40,6 +47,7 @@ case "$mode" in
     uname_a="MINGW64_NT-10.0-22631 eval-host 3.5.4 2024-08-25 x86_64 Msys" ;;
   *) echo "directory-shims: unknown mode '$mode'; usage: directory-shims.sh missing|installed|sandbox|macos|macos-bare|windows" >&2; exit 2 ;;
 esac
+host_apps="${DIRECTORY_SHIMS_HOST_APPS:-/Applications}"
 bin="$HOME/.local/bin"
 log="$HOME/.local/share/directory-shims/calls.log"
 mkdir -p "$bin" "$(dirname "$log")"
@@ -157,6 +165,52 @@ case " \$* " in
 esac
 STUB
 
+# The host's Cruma app is not there: `ls` (as the skill's existing-app check runs it) answers like a Mac or
+# Linux box that never had it, and a listing of the apps directory leaves it out.
+if [ "$os" = Darwin ]; then
+  ls_missing="ls: \$a: No such file or directory"; ls_missing_status=1
+else
+  ls_missing="ls: cannot access '\$a': No such file or directory"; ls_missing_status=2
+fi
+cat >"$bin/ls" <<STUB
+#!/bin/sh
+host="$host_apps"
+n=\$#
+hidden=0; kept=0; listing=0
+while [ \$n -gt 0 ]; do
+  a="\$1"; shift; n=\$((n - 1))
+  case "\$a" in
+    "\$host"/Cruma*) echo "$ls_missing" >&2; hidden=1; continue ;;
+    "\$host"|"\$host"/) listing=1; kept=1 ;;
+    -*) ;;
+    *) kept=1 ;;
+  esac
+  set -- "\$@" "\$a"
+done
+status=0
+if [ "\$hidden" = 1 ] && [ "\$kept" = 0 ]; then
+  exit $ls_missing_status
+elif [ "\$listing" = 1 ]; then
+  /bin/ls "\$@" | grep -v 'Cruma[^/]*\\.app'
+else
+  /bin/ls "\$@" || status=\$?
+fi
+[ "\$hidden" = 1 ] && exit $ls_missing_status
+exit \$status
+STUB
+
+if [ "$os" = Darwin ]; then
+  cat >"$bin/open" <<STUB
+#!/bin/sh
+$logfn
+log "open \$*"
+case " \$* " in
+  *Cruma*) echo "Unable to find application named 'Cruma'" >&2; exit 1 ;;
+  *) echo "open (eval stand-in): unsupported: \$*" >&2; exit 2 ;;
+esac
+STUB
+fi
+
 if [ "$mode" = installed ]; then
   cp "$bin/cruma-installed" "$bin/cruma"
 else
@@ -170,21 +224,40 @@ exit 127
 STUB
 fi
 # A Mac without Node has no npm or node on PATH at all, so `command -v npm` finds nothing.
-tools="cruma cruma-installed npm node uname curl claude"
+tools="cruma cruma-installed npm node uname curl claude ls"
 if [ "$mode" = macos-bare ]; then
   rm -f "$bin/npm" "$bin/node"
-  tools="cruma cruma-installed uname curl claude"
+  tools="cruma cruma-installed uname curl claude ls"
 fi
+[ "$os" != Darwin ] || tools="$tools open"
 for tool in $tools; do chmod +x "$bin/$tool"; done
 
 # Never write into a plugin source tree or over an existing settings file.
+# On a Mac the sandbox also refuses reading the host's Cruma app, for the probes that go round the `ls` stand-in,
+# and Read deny rules cover the Read, Glob and Grep tools, which the sandbox does not confine and no stand-in answers.
 if [ ! -e .claude-plugin ] && [ ! -e .claude/settings.json ]; then
   mkdir -p .claude
+  # A subagent has its own Bash, outside the case's tools and the stand-ins, so none is allowed.
+  sandbox=",
+  \"permissions\": {
+    \"deny\": [\"Agent\", \"Task\"]
+  }"
+  if [ "$os" = Darwin ]; then
+    sandbox=",
+  \"sandbox\": {
+    \"filesystem\": {
+      \"denyRead\": [\"$host_apps/Cruma.app\"]
+    }
+  },
+  \"permissions\": {
+    \"deny\": [\"Agent\", \"Task\", \"Read(/$host_apps/Cruma.app)\", \"Read(/$host_apps/Cruma.app/**)\", \"Read(//opt/homebrew/**)\"]
+  }"
+  fi
   cat >.claude/settings.json <<SETTINGS
 {
   "env": {
     "PATH": "$bin:/usr/bin:/bin"
-  }
+  }$sandbox
 }
 SETTINGS
 fi
@@ -205,7 +278,9 @@ done
 # shows in a run's trace, which scripts/eval-directory.sh scans for.
 for sh in zsh bash; do
   shell="$(command -v "$sh" 2>/dev/null)" || continue
-  for tool in cruma npm node uname curl claude; do
+  resolved="cruma npm node uname curl claude ls"
+  [ "$os" != Darwin ] || resolved="$resolved open"
+  for tool in $resolved; do
     found="$(env -i HOME="$HOME" PATH=/usr/bin:/bin "$shell" -lic "command -v $tool" 2>/dev/null | tail -n 1 || true)"
     if [ "$mode" = macos-bare ] && { [ "$tool" = npm ] || [ "$tool" = node ]; }; then
       if [ -n "$found" ]; then
