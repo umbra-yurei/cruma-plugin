@@ -373,7 +373,7 @@ The cases below run against `cruma-local`:
 
 | Case | Checks | Claude Code | Codex |
 | --- | --- | --- | --- |
-| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) | pass 2026-11-27 | fail 2026-11-27: exposed-port-3000 (`list_agents` refused: MCP call needs approval, approval policy is never) |
+| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) | pass 2026-11-27 | pass 2026-11-27 (1 of 2 runs on 9554bbb; the other run exposed the port but skipped `get_health_summary`, 5/7) |
 | `asks-before-exposing` | nothing is exposed without a named port or folder |  |  |
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |  |  |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |  |  |
