@@ -3,11 +3,12 @@
 // See README "### Running cases in Codex".
 //   node scripts/codex-eval.mjs [--dry-run] [--no-judge] [--model <model>] [--sandbox <mode>] [--case <name>]...
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { JUDGE_SCHEMA, grade, judgePrompt, parseFrontmatter, runRecord } from "./codex-grade.mjs";
 import { BASH_TOOL, EVAL_WORK, LOCAL_MOCK_DIR, LOCAL_PLUGIN, LOCAL_SERVER, MARKETPLACE_FILE, MCP_TOOL_PREFIX, SKILL_TOOL, STAND_IN_VERSION, owner, root, stagedPluginDir } from "./eval-cases.mjs";
+import { mcpApprovalConfig } from "./codex-config.mjs";
 import { ensureTools, runCodex } from "./codex-tools.mjs";
 
 // Share a port, agent missing, no shell.
@@ -89,7 +90,11 @@ function prepare(name) {
   for (const directory of [home, workspace]) mkdirSync(directory, { recursive: true });
   freshCodexHome(codexHome);
   codexOk(["plugin", "marketplace", "add", root, "--json"], { codexHome, home, cwd: home });
-  codexOk(["plugin", "add", `${plugin}@${marketplace}`, "--json"], { codexHome, home, cwd: home });
+  const pluginId = `${plugin}@${marketplace}`;
+  codexOk(["plugin", "add", pluginId, "--json"], { codexHome, home, cwd: home });
+  // Approve exactly the case's declared MCP tools, as the Claude arm's grant does.
+  const approvals = mcpApprovalConfig(allowed, plugin, pluginId);
+  if (approvals) appendFileSync(join(codexHome, "config.toml"), `\n# codex-eval: the case's allowed MCP tools\n${approvals}`);
 
   const scaffold = /^\s*scaffold_script:\s*(\S+)\s*$/m.exec(existsSync(join(caseDir, "case.yaml")) ? readFileSync(join(caseDir, "case.yaml"), "utf8") : "")?.[1];
   if (scaffold) {
@@ -126,7 +131,7 @@ function prepare(name) {
     "-",
   ];
   const command = `cd ${shellQuote(workspace)} && CODEX_HOME=${shellQuote(codexHome)} HOME=${shellQuote(home)} ${[codex, ...args].map(shellQuote).join(" ")} < ${shellQuote(promptFile)}`;
-  return { name, plugin, caseDir, run, codexHome, home, workspace, args, command, promptFile, lastMessage, mockLog, timeout: (prompt.timeout_seconds ?? 300) * 1000 };
+  return { name, plugin, caseDir, run, allowed, approvals, codexHome, home, workspace, args, command, promptFile, lastMessage, mockLog, timeout: (prompt.timeout_seconds ?? 300) * 1000 };
 }
 
 function judge(verdict, run, index) {
@@ -150,6 +155,7 @@ const summary = [];
 for (const name of options.cases) {
   const prepared = prepare(name);
   console.log(`\n== ${name} (${prepared.plugin})\n${prepared.command}`);
+  if (prepared.approvals) console.log(`approved in ${join(prepared.codexHome, "config.toml")}:\n${prepared.approvals}`);
   if (options.dryRun) {
     summary.push([name, "staged", "-"]);
     continue;
@@ -170,6 +176,14 @@ for (const name of options.cases) {
   if (result.error || record.failure || !record.response) {
     console.log(`NOT RUN: ${result.error?.message ?? record.failure ?? `codex exited ${result.status} with no reply`}`);
     summary.push([name, "not run", "-"]);
+    exitCode = Math.max(exitCode, 2);
+    continue;
+  }
+  if (record.approvalRefusals.length) {
+    // A config gap, not a skill failure: never grade a run whose tools Codex would not call.
+    const refusals = record.approvalRefusals.map(({ tool, message }) => `  ${tool} (${prepared.allowed.includes(tool) ? "in allowed_tools: the runner's config failed to approve it" : "not in allowed_tools"}): ${message}`);
+    console.log(`NOT RUN: Codex refused ${refusals.length} call(s) as needing approval, so the graders would score the runner's config, not the skill:\n${refusals.join("\n")}`);
+    summary.push([name, "config gap", "-"]);
     exitCode = Math.max(exitCode, 2);
     continue;
   }

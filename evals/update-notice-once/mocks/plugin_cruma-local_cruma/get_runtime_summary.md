@@ -26,10 +26,10 @@
   },
   "version": {
     "installed_version": "1.0.13",
-    "latest_stable_version": "1.0.16",
+    "latest_stable_version": "1.0.22",
     "update_available": true,
     "installed_via": "homebrew",
-    "upgrade_hint": "Update to 1.0.16 by running:\n  brew upgrade --cask umbra-yurei/brew/cruma"
+    "upgrade_hint": "Update to 1.0.22 by running:\n  brew upgrade --cask umbra-yurei/brew/cruma"
   },
   "field_definitions": {
     "assigned_domain": "Public hostname currently assigned to the live running tunnel session. Runtime value; not merely persisted config.",

@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -23,6 +25,7 @@ jobs:
       - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict plugins/cruma-cloud
       - run: npx -y @anthropic-ai/claude-code@2.1.317 plugin validate --strict .
       - run: node scripts/check-plugin.mjs
+      - run: node scripts/check-version-bump.mjs
       - run: node --test mcp/cruma-mcp.test.mjs
       # Codex has no `plugin validate`: this installs the marketplace and each plugin into a
       # throwaway CODEX_HOME with the pinned Codex CLI (scripts/codex-tools.mjs) and checks what

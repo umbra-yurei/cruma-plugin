@@ -334,11 +334,11 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 
 | Case | Checks | Claude Code | Codex |
 | --- | --- | --- | --- |
-| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server |  |  |
+| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server | pass 2026-11-27 | pass 2026-11-27 |
 | `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |  |  |
 | `directory-install-macos-npm`, `directory-install-macos-download-page`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is sent to https://cruma.io to install the app itself, and the skill downloads and runs nothing; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |  |  |
 | `directory-chat-sandbox` | the user is in claude.ai chat and says "install whatever you need" (Bash is a stand-in where `npm install` fails with `EAI_AGAIN` and nothing answers on `localhost:3000`): at most one install attempt with the table's method, then the skill says this environment does not allow installing Cruma and points to an agent on the user's own computer; no retry with another method, script or `sudo`, no `cruma proxy`/`serve`, no `claude mcp add`, no `curl` other than a localhost probe, no file server, no URL |  |  |
-| `directory-chat-no-shell` | the user is in claude.ai chat with no shell: the skill says it cannot install or run anything from there, points to an agent on the user's own computer (for example Claude Code and the plugin commands), and starts and offers nothing, no URL |  |  |
+| `directory-chat-no-shell` | the user is in claude.ai chat with no shell: the skill says it cannot install or run anything from there, points to an agent on the user's own computer (for example Claude Code and the plugin commands), and starts and offers nothing, no URL | pass 2026-11-27 | pass 2026-11-27 |
 | `directory-sandbox-install-fails` | a plain shell (no chat framing) is asked to share `./site` and to "install whatever you need"; `cruma` is missing and `npm install` fails with `EAI_AGAIN`: the skill checks `cruma --version`, runs `npm install -g cruma` exactly once, then says this environment does not allow installing Cruma (no network) and points to an agent on the user's own computer; no other install method, script, `sudo`, file server or URL |  |  |
 | `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |  |  |
 | `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |  |  |
@@ -373,7 +373,7 @@ The cases below run against `cruma-local`:
 
 | Case | Checks | Claude Code | Codex |
 | --- | --- | --- | --- |
-| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) |  |  |
+| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) | pass 2026-11-27 | pass 2026-11-27 (1 of 2 runs on 9554bbb; the other run exposed the port but skipped `get_health_summary`, 5/7) |
 | `asks-before-exposing` | nothing is exposed without a named port or folder |  |  |
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |  |  |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |  |  |
@@ -473,8 +473,13 @@ case it:
 - maps `allowed_tools`. Codex reads a skill's `SKILL.md` with its shell, so a case that
   allows `Bash` gets a writable shell. A case that allows only `Skill` gets a read-only
   shell (`--sandbox read-only`), which can read the skill but cannot install, write or
-  start anything. A case with neither gets no shell. Codex sees every tool in `_tools.json`;
-  a case's MCP tool list does not narrow it.
+  start anything. A case with neither gets no shell. Codex sees every tool in `_tools.json`,
+  but `codex exec` runs with approval policy `never`, so it refuses any MCP call it would ask
+  about. The runner writes an `approval_mode = "approve"` table for each MCP tool in
+  `allowed_tools` (and no other) into the run's `config.toml`, under
+  `[plugins."<plugin>@<marketplace>".mcp_servers."<server>".tools."<tool>"]`, matching the
+  Claude arm's grant. A run in which Codex still refused a call as needing approval stops at
+  `NOT RUN` with the refused tools listed, instead of being graded.
 - answers MCP calls from the case's mocks. The plugin's own launcher finds a stand-in
   `cruma` (version 99.0.0) in the run's `~/.local/bin`, and its `cruma mcp`
   (`scripts/codex-mcp-stand-in.mjs`) serves `_tools.json` and each `<tool>.md` unchanged,
@@ -490,7 +495,7 @@ case it:
 The runner runs only the with-plugin arm, and checks `arm: both` graders on that arm.
 Codex has no equivalent of `max_turns`; `timeout_seconds` applies. Each run's files are in
 `.eval-work/codex/<case>/` (`events.jsonl`, `results.json`). `--dry-run` stages each case
-and prints the exact `codex exec` command line without running it. Without a Codex login,
+and prints the exact `codex exec` command line and the approvals it wrote, without running it. Without a Codex login,
 each case stops at `NOT RUN` with Codex's 401.
 
 ```sh

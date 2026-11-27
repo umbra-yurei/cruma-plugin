@@ -45,6 +45,8 @@ export function unwrapShell(command) {
   return script;
 }
 
+const APPROVAL_REFUSAL = /[^\n]*requires approval[^\n]*/i;
+
 function resultText(result) {
   return (result?.content ?? []).map((content) => content.text ?? "").join("\n");
 }
@@ -56,10 +58,12 @@ function resultText(result) {
 //   lastMessage  the `-o` file Codex wrote
 //   mockLog    the MCP stand-in's request log (JSONL), or ""
 //   shimLog    the directory-shims stand-ins' calls.log, or ""
+// `approvalRefusals` lists each tool call Codex refused as needing an approval ({ tool, message }).
 export function runRecord({ events, plugin, lastMessage = "", mockLog = "", shimLog = "" }) {
   const messages = [];
   const calls = [];
   const trace = [];
+  const approvalRefusals = [];
   let failure;
   for (const line of events.split("\n")) {
     if (!line.trim().startsWith("{")) continue;
@@ -80,6 +84,9 @@ export function runRecord({ events, plugin, lastMessage = "", mockLog = "", shim
       calls.push({ tool, input });
       trace.push(`${tool} ${input}\n${resultText(item.result)}${item.error?.message ?? ""}`);
     }
+    // Codex refusing a call for want of an approval is a runner config gap, never a skill result.
+    const said = [item.error?.message, item.aggregated_output, resultText(item.result)].filter(Boolean).join("\n");
+    if (APPROVAL_REFUSAL.test(said)) approvalRefusals.push({ tool: item.type === "mcp_tool_call" ? mcpToolName(plugin, item.server, item.tool) : item.type, message: said.match(APPROVAL_REFUSAL)[0].trim() });
   }
   const mockCalls = mockLog
     .split("\n")
@@ -101,6 +108,7 @@ export function runRecord({ events, plugin, lastMessage = "", mockLog = "", shim
     response: messages.join("\n\n"),
     lastMessage: lastMessage.trim() || messages.at(-1) || "",
     trace: trace.join("\n\n"),
+    approvalRefusals,
     mockCalls: mockCalls.map((request) => `${request.tool} ${JSON.stringify(request.arguments ?? {})}`).join("\n"),
     calls,
   };
