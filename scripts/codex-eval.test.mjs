@@ -6,6 +6,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { mcpApprovalConfig } from "./codex-config.mjs";
 import { grade, parseFrontmatter, runRecord, unwrapShell } from "./codex-grade.mjs";
 import { LOCAL_MOCK_DIR, LOCAL_PLUGIN, LOCAL_SERVER, SKILL_TOOL, STAND_IN_VERSION, mcpToolName, root } from "./eval-cases.mjs";
 
@@ -67,6 +68,31 @@ test("MCP calls are graded under Claude's plugin tool names and as mock_calls", 
   const judged = grade(grader("expose-dev-server/graders/handoff.md"), record);
   assert.equal(judged.status, "judge");
   assert.equal(judged.subject, "Shared https://port-3000.demo1234.tun.example.test");
+});
+
+test("the per-run Codex config approves exactly the case's declared MCP tools", () => {
+  const allowed = parseFrontmatter(readFileSync(join(root, "evals/expose-dev-server/prompt.md"), "utf8")).fields.allowed_tools;
+  const config = mcpApprovalConfig(allowed, LOCAL_PLUGIN, "cruma-local@cruma-plugin");
+  const approved = [...config.matchAll(/^\[plugins\."cruma-local@cruma-plugin"\.mcp_servers\."cruma"\.tools\."(\w+)"\]\napproval_mode = "approve"$/gm)].map((match) => match[1]);
+  assert.deepEqual(approved, allowed.filter((tool) => tool.startsWith("mcp__")).map((tool) => tool.split("__").at(-1)));
+  assert.ok(approved.includes("list_agents") && approved.includes("expose_local_port"));
+  // Nothing else: no server-wide default, no shell, no approval policy.
+  assert.equal(config.split("\n").filter((line) => line && !line.startsWith("[")).every((line) => line === 'approval_mode = "approve"'), true);
+  assert.doesNotMatch(config, /default_tools_approval_mode|approval_policy|stop_agent/);
+  assert.equal(mcpApprovalConfig([SKILL_TOOL, "Bash"], LOCAL_PLUGIN, "cruma-local@cruma-plugin"), "");
+  assert.throws(() => mcpApprovalConfig([mcpToolName("cruma-cloud", "cruma-cloud", "list_boards")], LOCAL_PLUGIN, "cruma-local@cruma-plugin"), /not one of the cruma-local plugin's MCP tools/);
+});
+
+test("a call Codex refused as needing approval is reported, so the runner does not grade it", () => {
+  // As codex exec --json reports it (codex-cli 0.171.0, approval policy never).
+  const refused = { type: "mcp_tool_call", server: "cruma", tool: "list_agents", arguments: {}, result: null, error: { message: "MCP tool call requires approval, but approval policy is never" }, status: "failed" };
+  const record = runRecord({ events: events(refused, message("That call needs approval, which this session blocks.")), plugin: "cruma-local" });
+  assert.deepEqual(record.approvalRefusals, [{ tool: mcpToolName(LOCAL_PLUGIN, LOCAL_SERVER, "list_agents"), message: "MCP tool call requires approval, but approval policy is never" }]);
+  const answered = runRecord({
+    events: events({ type: "mcp_tool_call", server: "cruma", tool: "list_agents", arguments: {}, result: { content: [{ type: "text", text: "{}" }] }, status: "completed" }, message("One agent.")),
+    plugin: "cruma-local",
+  });
+  assert.deepEqual(answered.approvalRefusals, []);
 });
 
 test("a run that never reached the model reports why instead of grading", () => {
