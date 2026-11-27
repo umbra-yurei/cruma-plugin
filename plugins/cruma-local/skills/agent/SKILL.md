@@ -264,9 +264,19 @@ use `upsert_backend` (`http` for a port, `local-directory` for a folder) and
 `get_runtime_summary`; it is `null` for a few seconds while the tunnel
 connects, so call it again. Do not stop at "update cruma".
 
-After exposing, call `get_health_summary`; `status` should be `ok`. Use
-`list_shares` to report every live URL. Once per session, also call
-`get_runtime_summary` and read its `version` block (see **Versions** below).
+### After exposing (required, in this order)
+
+The expose result is not the end of the share. Do these steps in the same turn,
+before writing the final message:
+
+1. Call `get_health_summary`, after the expose call. This step is never
+   optional, even when the expose result already carries a `public_url`.
+   `status` should be `ok`; otherwise report the status and issues.
+2. Call `list_shares` for every live URL.
+3. Once per session, call `get_runtime_summary` and read its `version` block
+   (see **Versions** below).
+4. Only then write the hand-off below. Do not report a URL in any message
+   until `get_health_summary` has returned.
 
 ### Hand-off
 
