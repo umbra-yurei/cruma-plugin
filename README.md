@@ -473,8 +473,13 @@ case it:
 - maps `allowed_tools`. Codex reads a skill's `SKILL.md` with its shell, so a case that
   allows `Bash` gets a writable shell. A case that allows only `Skill` gets a read-only
   shell (`--sandbox read-only`), which can read the skill but cannot install, write or
-  start anything. A case with neither gets no shell. Codex sees every tool in `_tools.json`;
-  a case's MCP tool list does not narrow it.
+  start anything. A case with neither gets no shell. Codex sees every tool in `_tools.json`,
+  but `codex exec` runs with approval policy `never`, so it refuses any MCP call it would ask
+  about. The runner writes an `approval_mode = "approve"` table for each MCP tool in
+  `allowed_tools` (and no other) into the run's `config.toml`, under
+  `[plugins."<plugin>@<marketplace>".mcp_servers."<server>".tools."<tool>"]`, matching the
+  Claude arm's grant. A run in which Codex still refused a call as needing approval stops at
+  `NOT RUN` with the refused tools listed, instead of being graded.
 - answers MCP calls from the case's mocks. The plugin's own launcher finds a stand-in
   `cruma` (version 99.0.0) in the run's `~/.local/bin`, and its `cruma mcp`
   (`scripts/codex-mcp-stand-in.mjs`) serves `_tools.json` and each `<tool>.md` unchanged,
@@ -490,7 +495,7 @@ case it:
 The runner runs only the with-plugin arm, and checks `arm: both` graders on that arm.
 Codex has no equivalent of `max_turns`; `timeout_seconds` applies. Each run's files are in
 `.eval-work/codex/<case>/` (`events.jsonl`, `results.json`). `--dry-run` stages each case
-and prints the exact `codex exec` command line without running it. Without a Codex login,
+and prints the exact `codex exec` command line and the approvals it wrote, without running it. Without a Codex login,
 each case stops at `NOT RUN` with Codex's 401.
 
 ```sh
