@@ -32,8 +32,8 @@
     "state": "signed_in"
   },
   "version": {
-    "installed_version": "1.0.16",
-    "latest_stable_version": "1.0.16",
+    "installed_version": "1.0.22",
+    "latest_stable_version": "1.0.22",
     "update_available": false,
     "installed_via": "homebrew"
   },
