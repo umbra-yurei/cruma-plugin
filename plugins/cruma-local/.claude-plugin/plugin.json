@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "cruma-local",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "description": "Cruma tunnel agent with a bundled local MCP server: the plugin connects `cruma mcp` itself, so a coding session can publish a dev server or a folder (several sites at once) with no extra setup.",
   "author": {
     "name": "Cruma"
