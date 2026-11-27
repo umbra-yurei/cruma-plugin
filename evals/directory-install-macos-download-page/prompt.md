@@ -1,7 +1,7 @@
 ---
 max_turns: 8
 timeout_seconds: 240
-allowed_tools: [Skill]
+allowed_tools: [Skill, Bash]
 ---
 
 I am in Claude Code on my Apple Silicon Mac, and `cruma --version` says command not found.

@@ -109,12 +109,16 @@ Homebrew row.
 | Anything else | no command: point the user to https://cruma.io for the install options | cruma.io |
 
 On a Mac with neither `brew` nor `npm` there is no command to ask about:
-download nothing and run no installer. Say that the signed, notarized app
-installs from https://cruma.io (its Download button), ask the user to install
-it themselves, and stop until `cruma --version --json` works (a fresh app is
-reached by the full path described above).
+download nothing and run no installer, and give no download steps. Say that
+the signed, notarized app installs from https://cruma.io (its Download button),
+ask the user to install it themselves, and say you will carry on once
+`cruma --version` works (a fresh app is reached by the full path described
+above).
 
-Offer exactly one method and mention no other. Cruma on macOS needs Apple Silicon
+Offer exactly one method and mention no other. Write out only that row's
+command: never name the command of a row that does not apply, not even to say
+why you skip it (no `brew install` without Homebrew, no `npm install` without
+npm, no disk image, `curl` or script). Cruma on macOS needs Apple Silicon
 (`uname -m` prints `x86_64` on a Mac without it): say so and install nothing. Never download
 a Windows `.exe`. On Windows,
 first check whether the Store package is already there with
@@ -307,7 +311,10 @@ a tool result's `account.state` is `anonymous` or the tunnel is anonymous, that
 signing in to a free Cruma account (`cruma auth login`) keeps the same tunnel
 working past the limit, with `account.sign_up_url` quoted exactly when the
 result carries it. Say nothing about accounts when the result says
-`signed_in`.
+`signed_in`, except once per session when it carries `account.subscribe_url`
+(the daily traffic cap is near or reached): say so, quote that link exactly,
+and do not repeat it on later results. Say traffic still flows when the
+`traffic_limit` block has `enforced: false`.
 
 Account features (plan, account tunnels, sites) belong to the optional
 `cruma-cloud` plugin, not to this skill.
