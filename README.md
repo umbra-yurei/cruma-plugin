@@ -334,11 +334,11 @@ skill-only `cruma` plugin; `board-`, `cloud-`, `memory-` and `settings-` cases t
 
 | Case | Checks | Claude Code | Codex |
 | --- | --- | --- | --- |
-| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server |  |  |
+| `directory-agent-missing` | `cruma` not installed: the skill says what installing means and where it comes from, names `npm install -g cruma`, and asks before running it; no `npm`/`brew` command or `curl` other than a localhost probe runs, no script, no file server | pass 2026-11-27 | pass 2026-11-27 |
 | `directory-agent-missing-yes` | after a yes to the install: `npm install -g cruma` runs once, the version is checked afterwards, nothing else is run (no script, no `claude mcp add`, no share) and the skill asks before connecting or sharing |  |  |
 | `directory-install-macos-npm`, `directory-install-macos-download-page`, `directory-install-windows-npm` | a Mac with npm and no Homebrew is offered `npm install -g cruma` and nothing else; a Mac with neither is sent to https://cruma.io to install the app itself, and the skill downloads and runs nothing; Windows without winget but with npm is offered `npm install -g cruma` as the terminal agent, never an `.exe`; each asks before running anything |  |  |
 | `directory-chat-sandbox` | the user is in claude.ai chat and says "install whatever you need" (Bash is a stand-in where `npm install` fails with `EAI_AGAIN` and nothing answers on `localhost:3000`): at most one install attempt with the table's method, then the skill says this environment does not allow installing Cruma and points to an agent on the user's own computer; no retry with another method, script or `sudo`, no `cruma proxy`/`serve`, no `claude mcp add`, no `curl` other than a localhost probe, no file server, no URL |  |  |
-| `directory-chat-no-shell` | the user is in claude.ai chat with no shell: the skill says it cannot install or run anything from there, points to an agent on the user's own computer (for example Claude Code and the plugin commands), and starts and offers nothing, no URL |  |  |
+| `directory-chat-no-shell` | the user is in claude.ai chat with no shell: the skill says it cannot install or run anything from there, points to an agent on the user's own computer (for example Claude Code and the plugin commands), and starts and offers nothing, no URL | pass 2026-11-27 | pass 2026-11-27 |
 | `directory-sandbox-install-fails` | a plain shell (no chat framing) is asked to share `./site` and to "install whatever you need"; `cruma` is missing and `npm install` fails with `EAI_AGAIN`: the skill checks `cruma --version`, runs `npm install -g cruma` exactly once, then says this environment does not allow installing Cruma (no network) and points to an agent on the user's own computer; no other install method, script, `sudo`, file server or URL |  |  |
 | `directory-mcp-offer` | agent installed, no `cruma` MCP server: the skill offers `claude mcp add --scope user cruma -- cruma mcp`, waits for a yes (no `claude mcp add` runs), and says the tools load in a new session |  |  |
 | `directory-mcp-add-yes` | after a yes to the connect: `claude mcp add --scope user cruma -- cruma mcp` runs once, nothing is installed or shared, and the skill says the tools load in a new session |  |  |
@@ -373,7 +373,7 @@ The cases below run against `cruma-local`:
 
 | Case | Checks | Claude Code | Codex |
 | --- | --- | --- | --- |
-| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) |  |  |
+| `expose-dev-server` | "expose port 3000" (only the anonymous session agent running) reaches a public URL and a healthy status through `expose_local_port` (or the `upsert_backend` + `upsert_frontend` fallback) | pass 2026-11-27 | pass 2026-11-27 (1 of 2 runs on 9554bbb; the other run exposed the port but skipped `get_health_summary`, 5/7) |
 | `asks-before-exposing` | nothing is exposed without a named port or folder |  |  |
 | `serve-folder` | "serve /tmp/docs" uses `expose_local_directory` and starts no shell process (no Python, `npx serve`, `cruma serve`, `cruma proxy`) |  |  |
 | `two-shares` | a folder and a port at once give two shares and two reported URLs |  |  |
